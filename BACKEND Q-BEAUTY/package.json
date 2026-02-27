@@ -1,7 +1,8 @@
 {
   "name": "backend-q-beauty",
   "version": "1.0.0",
-  "main": "index.js",
+  "engines": { "node": ">=18" },
+  "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js"

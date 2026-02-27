@@ -23,7 +23,10 @@ export default function CheckoutShop() {
     } = useShop();
 
     const { user, loading, token } = useAuth();
-    const apiBase = useMemo(() => import.meta.env.VITE_API_URL, []);
+    const apiBase = useMemo(
+        () => String(import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, ""),
+        []
+    );
 
     const [form, setForm] = useState({
         name: "",

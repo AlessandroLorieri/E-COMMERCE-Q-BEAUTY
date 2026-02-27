@@ -212,10 +212,16 @@ module.exports = function makePaymentsRouter({ stripe }) {
                 return res.status(400).json({ message: "Totale ordine non valido" });
             }
 
-            const frontend =
-                process.env.FRONTEND_URL ||
-                process.env.CLIENT_ORIGIN ||
-                "http://localhost:5173";
+            const frontend = (() => {
+                const raw =
+                    process.env.FRONTEND_URL ||
+                    (process.env.CLIENT_ORIGIN ? String(process.env.CLIENT_ORIGIN).split(",")[0] : "") ||
+                    "http://localhost:5173";
+
+                return String(raw).trim().replace(/\/+$/, "");
+            })();
+
+            const orderIdEnc = encodeURIComponent(String(orderId));
 
             const session = await stripe.checkout.sessions.create({
                 mode: "payment",
@@ -231,8 +237,8 @@ module.exports = function makePaymentsRouter({ stripe }) {
                         quantity: 1,
                     },
                 ],
-                success_url: `${frontend}/shop/order-success/${orderId}?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${frontend}/shop/checkout?canceled=1&orderId=${orderId}`,
+                success_url: `${frontend}/shop/order-success/${orderIdEnc}?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${frontend}/shop/checkout?canceled=1&orderId=${orderIdEnc}`,
                 metadata: {
                     orderId: String(orderId),
                     userId: req.user?._uid ? String(req.user._uid) : "",

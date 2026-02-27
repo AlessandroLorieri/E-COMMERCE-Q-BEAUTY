@@ -106,7 +106,7 @@ function normalizeProductFromApi(p) {
 
     return {
         ...p,
-        id,                 
+        id,
         _id: mongoId || p?._id,
         legacyId,
         priceCents,
@@ -129,7 +129,7 @@ function mergeCartLines(lines) {
 
 export function ShopProvider({ children }) {
     const { user, token, loading, logout: authLogout } = useAuth();
-    const apiBase = import.meta.env.VITE_API_URL;
+    const apiBase = String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
     const cartKey = useMemo(() => getCartStorageKey(loading ? null : user), [
         loading,
@@ -453,7 +453,7 @@ export function ShopProvider({ children }) {
             .filter(x => productsById.has(x.productId));
 
         if (!validItems.length) return;
-
+        if (!apiBase) return;
         const controller = new AbortController();
 
         async function fetchQuote() {
@@ -541,6 +541,7 @@ export function ShopProvider({ children }) {
 
     // ORDERS / ADDRESSES
     async function createOrder(payload) {
+        if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
 
         const items = cartRaw
@@ -567,6 +568,7 @@ export function ShopProvider({ children }) {
     }
 
     async function fetchMyOrders() {
+        if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
         const res = await fetch(`${apiBase}/api/orders/me`, { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json().catch(() => ({}));
@@ -575,6 +577,7 @@ export function ShopProvider({ children }) {
     }
 
     async function fetchMyAddresses() {
+        if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
         const res = await fetch(`${apiBase}/api/addresses/me`, { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json().catch(() => ({}));
@@ -583,6 +586,7 @@ export function ShopProvider({ children }) {
     }
 
     async function createAddress(payload) {
+        if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
         const res = await fetch(`${apiBase}/api/addresses`, {
             method: "POST",
@@ -599,6 +603,7 @@ export function ShopProvider({ children }) {
     }
 
     async function setDefaultAddress(addressId) {
+        if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
         const res = await fetch(`${apiBase}/api/addresses/${addressId}/default`, {
             method: "PATCH",

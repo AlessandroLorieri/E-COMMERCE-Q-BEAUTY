@@ -22,6 +22,7 @@ const makeDevRouter = require("./dev/dev.routes");
 const { verifySmtp, sendWelcomeEmail } = require("./utils/mailer");
 
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(helmet());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }));
@@ -31,9 +32,19 @@ app.use("/api/webhooks", makeStripeWebhookRouter({ stripe }));
 app.use(express.json());
 app.use(cookieParser());
 
+const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
+    .split(",")
+    .map((s) => s.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+
 app.use(
     cors({
-        origin: process.env.CLIENT_ORIGIN,
+        origin: (origin, cb) => {
+            if (!origin) return cb(null, true);
+
+            if (allowedOrigins.includes(origin)) return cb(null, true);
+            return cb(new Error("Not allowed by CORS"));
+        },
         credentials: true,
     })
 );
@@ -50,6 +61,13 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/addresses", addressesRoutes);
 app.use("/api/coupons", couponRoutes);
+
+app.use((err, req, res, next) => {
+    if (err && err.message === "Not allowed by CORS") {
+        return res.status(403).json({ message: "CORS: origin non consentita" });
+    }
+    return next(err);
+});
 
 mongoose
     .connect(process.env.MONGO_URI)

@@ -11,6 +11,9 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
         express.raw({ type: "application/json" }),
         async (req, res) => {
             const sig = req.headers["stripe-signature"];
+            if (!sig) {
+                return res.status(400).send("Missing stripe-signature header");
+            }
             const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
             if (!webhookSecret) {
@@ -40,17 +43,21 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                 };
 
                 switch (event.type) {
-                    case "checkout.session.completed": {
+                    case "checkout.session.completed":
+                    case "checkout.session.async_payment_succeeded": {
                         const session = event.data.object;
-                        const orderId = session?.metadata?.orderId;
-
-                        if (!orderId) {
-                            console.warn("Stripe webhook: orderId mancante in metadata", {
-                                eventId: event?.id,
-                                type: event?.type,
+                        if (
+                            event.type === "checkout.session.completed" &&
+                            session?.payment_status !== "paid" &&
+                            session?.payment_status !== "no_payment_required"
+                        ) {
+                            console.log("Stripe webhook: session completed ma pagamento non ancora paid", {
+                                sessionId: session?.id,
+                                payment_status: session?.payment_status,
                             });
                             break;
                         }
+
 
                         if (!mongoose.Types.ObjectId.isValid(String(orderId))) {
                             console.warn("Stripe webhook: orderId NON valido", {
@@ -119,6 +126,13 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                     }
 
                     case "checkout.session.expired": {
+                        const session = event.data.object;
+                        const orderId = session?.metadata?.orderId;
+                        await markCancelledByOrderId(orderId);
+                        break;
+                    }
+
+                    case "checkout.session.async_payment_failed": {
                         const session = event.data.object;
                         const orderId = session?.metadata?.orderId;
                         await markCancelledByOrderId(orderId);
