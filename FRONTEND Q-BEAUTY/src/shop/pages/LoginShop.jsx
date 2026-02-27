@@ -762,7 +762,7 @@ export default function LoginShop() {
                             </div>
                         </div>
 
-                        <button className="btn btn-outline-primary" type="submit" disabled={pwSubmitting}>
+                        <button className="btn shop-edit-btn"  type="submit" disabled={pwSubmitting}>
                             {pwSubmitting ? "Aggiorno..." : "Aggiorna password"}
                         </button>
                     </form>
@@ -779,7 +779,7 @@ export default function LoginShop() {
                             Logout
                         </button>
 
-                        <button className="btn btn-primary" onClick={() => navigate(next, { replace: true })}>
+                        <button className="btn shop-edit-btn" onClick={() => navigate(next, { replace: true })}>
                             Chiudi
                         </button>
                     </div>

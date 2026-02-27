@@ -220,7 +220,7 @@
   color: var(--qb-text);
   border-color: var(--qb-border-strong);
   background: transparent;
-    border-radius: 999px;
+  border-radius: 999px;
 }
 
 .shop-auth-header .btn.btn-outline-light:hover {
@@ -240,6 +240,14 @@
   flex: 0 0 auto;
   width: auto !important;
   white-space: nowrap;
+  color: var(--qb-text) !important;
+  border-color: var(--qb-border-strong) !important;
+  background: transparent !important;
+}
+
+.shop-edit-btn:hover {
+  background: rgba(222, 190, 104, .10) !important;
+  border-color: var(--qb-border-strong) !important;
 }
 
 .shop-auth .form-check-label {
@@ -292,4 +300,17 @@
 .shop-auth .input-group .form-control {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.shop-auth a {
+  color: var(--qb-text);
+}
+
+.shop-auth a:hover {
+  color: var(--qb-text);
+  text-decoration: underline;
+}
+
+.shop-auth a.btn {
+  text-decoration: none !important;
 }
