@@ -1,0 +1,138 @@
+/* Usa le variabili già definite in App.css: --gold, --text, --bg-800, ecc. */
+.policy {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 16px 64px;
+    color: var(--text);
+  }
+  
+  .policy h1 {
+    font-size: 2.25rem;
+    line-height: 1.2;
+    margin: 0 0 8px;
+    color: var(--gold);
+    letter-spacing: .5px;
+  }
+  
+  .policy__meta {
+    color: #bda76a; /* oro soft */
+    margin: 0 0 24px;
+  }
+  
+  .policy h2 {
+    margin: 28px 0 12px;
+    font-size: 1.35rem;
+    color: var(--gold);
+    letter-spacing: .3px;
+  }
+  
+  .policy h3 {
+    margin: 20px 0 10px;
+    font-size: 1.05rem;
+    color: #e5cf84;
+  }
+  
+  .policy p {
+    margin: 10px 0 14px;
+    line-height: 1.7;
+    font-size: 1rem;
+    color: #eaeaea;
+  }
+  
+  .policy ul {
+    margin: 8px 0 16px 20px;
+    padding: 0;
+  }
+  
+  .policy li {
+    margin: 6px 0;
+    line-height: 1.65;
+  }
+  
+  .policy a {
+    color: var(--gold);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  
+  .policy a:hover {
+    text-decoration: none;
+    filter: brightness(1.1);
+  }
+  
+  /* Tabella cookie */
+  .policy table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 18px;
+    background: rgba(0,0,0,.45);
+    border: 1px solid rgba(212,175,55,.25);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(212,175,55,.08);
+  }
+  
+  .policy thead th {
+    background: rgba(212,175,55,.12);
+    color: #f6f1da;
+    font-weight: 600;
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid rgba(212,175,55,.25);
+  }
+  
+  .policy tbody td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(212,175,55,.15);
+    vertical-align: top;
+    color: #f0f0f0;
+  }
+  
+  .policy tbody tr:nth-child(odd) td {
+    background: rgba(255,255,255,.02);
+  }
+  
+  .policy code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .95em;
+    background: rgba(255,255,255,.06);
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(212,175,55,.2);
+    color: #ffe9a6;
+  }
+  
+  /* Divider opzionale */
+  .policy hr {
+    border: none;
+    border-top: 1px solid rgba(212,175,55,.25);
+    margin: 20px 0;
+    opacity: .7;
+  }
+  
+  /* Responsive */
+  @media (max-width: 720px) {
+    .policy { padding-bottom: 80px; }
+    .policy h1 { font-size: 1.9rem; }
+    .policy h2 { font-size: 1.2rem; }
+    .policy table, .policy thead, .policy tbody, .policy th, .policy td, .policy tr {
+      display: block;
+    }
+    .policy thead { display: none; }
+    .policy tbody tr { margin-bottom: 10px; border: 1px solid rgba(212,175,55,.15); border-radius: 8px; overflow: hidden; }
+    .policy tbody td {
+      border: none;
+      border-bottom: 1px solid rgba(212,175,55,.12);
+      position: relative;
+      padding: 10px 12px;
+    }
+    .policy tbody td:last-child { border-bottom: none; }
+    .policy tbody td::before {
+      content: attr(data-th);
+      display: block;
+      font-weight: 600;
+      color: #e5cf84;
+      margin-bottom: 4px;
+    }
+  }
+  

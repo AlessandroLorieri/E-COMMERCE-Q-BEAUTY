@@ -1,0 +1,215 @@
+.shop-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: 14px 20px;
+    background: #000;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+    backdrop-filter: blur(6px);
+}
+
+.shop-header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+}
+
+.shop-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.shop-brand-logo {
+    height: 45px;
+}
+
+.shop-brand-text {
+    color: #debe68;
+    font-size: 25px;
+    white-space: nowrap;
+}
+
+.shop-brand:hover {
+    filter: brightness(1.05);
+}
+
+.shop-nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.shop-nav-link,
+.shop-nav-link-disabled {
+    color: #debe68;
+    text-decoration: none;
+    border: 1px solid #debe68;
+    padding: 6px 12px;
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.shop-nav-link:hover {
+    background: rgba(212, 175, 55, 0.12);
+    border-color: rgba(212, 175, 55, 0.6);
+    transform: translateY(-1px);
+}
+
+.shop-nav-link:focus-visible,
+.shop-icon-btn:focus-visible,
+.shop-burger:focus-visible {
+    outline: 3px solid rgba(212, 175, 55, 0.35);
+    outline-offset: 4px;
+}
+
+.shop-nav-link-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.shop-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.shop-icon-btn {
+    -webkit-appearance: none;
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    line-height: 1;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    position: relative;
+    color: #debe68;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.shop-icon {
+    width: 20px;
+    height: 20px;
+    color: #debe68;
+}
+
+.shop-icon-btn:hover {
+    transform: translateY(-2px);
+    border-color: rgba(222, 190, 104, 0.45);
+    background: rgba(222, 190, 104, 0.08);
+}
+
+.shop-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #debe68;
+    color: #000;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.shop-burger {
+    display: none;
+    border: 1px solid #000;
+    background: transparent;
+    border-radius: 12px;
+    padding: 10px;
+
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    justify-content: center;
+}
+
+.shop-burger span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: #debe68;
+    border-radius: 999px;
+}
+
+.shop-brand {
+    order: 1;
+}
+
+.shop-header-actions {
+    order: 2;
+    margin-left: auto;
+}
+
+.shop-nav {
+    order: 3;
+    margin-left: 10px;
+}
+
+/*MOBILE (hamburger)*/
+@media (max-width: 991.98px) {
+    .shop-header-inner {
+        flex-wrap: wrap;
+    }
+
+    .shop-header-actions {
+        margin-left: auto;
+    }
+
+    .shop-burger {
+        display: inline-flex;
+    }
+
+    .shop-nav {
+        flex: 0 0 100%;
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+        background: rgba(0, 0, 0, 0.92);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 12px;
+    }
+
+    .shop-nav.is-open {
+        display: flex;
+    }
+
+    /* Bottoni nel dropdown */
+    .shop-nav-link,
+    .shop-nav-link-disabled {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        text-align: center;
+        white-space: normal;
+        line-height: 1.1;
+    }
+}
+
+@media (max-width: 480px) {
+    .shop-brand-text {
+        font-size: 20px;
+    }
+
+    .shop-nav-link,
+    .shop-nav-link-disabled {
+        padding: 7px 12px;
+    }
+}

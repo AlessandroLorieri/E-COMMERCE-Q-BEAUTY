@@ -1,0 +1,843 @@
+/* ======================================================
+   Q•BEAUTY — THEME
+====================================================== */
+@font-face {
+  font-family: "Korolev Compressed W04 Light";
+  src: url("/img/Korolev-Compressed-W04-Light.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+:root {
+  --gold: #d4af37;
+  --gold-soft: #e0c068;
+  --bg-900: #0f0f0f;
+  --bg-800: #1a1a1a;
+  --text: #ffffff;
+  --shadow-gold: 0 0 25px rgba(212, 175, 55, 0.15);
+}
+
+/* ======================================================
+   RESET / BASE
+====================================================== */
+* {
+  box-sizing: border-box;
+  font-family: "Korolev Compressed W04 Light", sans-serif !important;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #121212;
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Wrapper centrale */
+.App {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Sfondo generale */
+.home {
+  min-height: 100vh;
+  background: url("/img/black2.png") center / cover fixed no-repeat;
+}
+
+/* ======================================================
+   HERO
+====================================================== */
+.hero-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: -1;
+}
+
+@keyframes fadeInHero {
+  0% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: fadeInHero 1.8s ease-out forwards;
+}
+
+/* CTA sopra l’hero */
+.cta-overlay {
+  position: absolute;
+  bottom: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #fff;
+  z-index: 2;
+  opacity: 0;
+  animation: fadeInCTA 1.5s ease-out 1.2s forwards;
+}
+
+.cta-overlay h1 {
+  font-size: 2.5rem;
+  color: #fff;
+  margin: 0 0 1rem;
+  letter-spacing: .5px;
+}
+
+.cta-button {
+  display: inline-block;
+  padding: .7rem 1.8rem;
+  background: linear-gradient(135deg, var(--gold), #b38e2e);
+  color: #fff;
+  font-weight: bold;
+  border-radius: 30px;
+  font-size: 1rem;
+  text-decoration: none;
+  box-shadow: 0 0 15px rgba(212, 175, 55, .3);
+  transition: transform .3s ease, box-shadow .3s ease, background .3s ease;
+  letter-spacing: .5px;
+}
+
+.cta-button:hover {
+  background: linear-gradient(135deg, var(--gold-soft), #9c7c25);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 20px rgba(212, 175, 55, .5);
+}
+
+@keyframes fadeInCTA {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ======================================================
+   SEZIONI / CONTENUTI
+====================================================== */
+@keyframes contentFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.founder,
+.gallery,
+.contact {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: contentFadeIn .8s ease-out forwards;
+}
+
+.founder {
+  animation-delay: .5s;
+}
+
+.gallery {
+  animation-delay: 1s;
+}
+
+.contact {
+  animation-delay: 1.5s;
+}
+
+section {
+  padding: 40px 20px;
+}
+
+.founder h2,
+.gallery h2,
+.contact h2,
+.set-section h2,
+.section-title {
+  font-size: 2rem;
+  color: var(--gold);
+  margin: 0 0 1rem;
+  letter-spacing: .5px;
+}
+
+/* Fondatrice */
+.founder-photo-container {
+  width: 240px;
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: box-shadow .3s ease;
+  cursor: pointer;
+}
+
+.founder-photo-container:hover {
+  box-shadow: 0 0 20px var(--gold);
+}
+
+.founder-photo {
+  border-radius: 16px;
+}
+
+/* Prodotti */
+.products {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.products img {
+  width: 200px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, .2);
+  transition: transform .3s ease;
+}
+
+.products img:hover {
+  transform: scale(1.05);
+}
+
+/* Contatti (Instagram) */
+.contact p {
+
+  font-size: 1.5rem;
+  color: var(--gold);
+}
+
+.contact a {
+  color: var(--gold);
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.contact a:hover {
+  text-decoration: underline;
+}
+
+/* ======================================================
+   FORM DI CONTATTO — COERENTE CON IL TEMA
+====================================================== */
+/* Wrapper della sezione (con fade-in aggiunto) */
+.contact-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 60px 20px 40px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: contentFadeIn .8s ease-out forwards;
+  animation-delay: 1.3s;
+}
+
+
+/* Sottotitolo */
+.section-subtitle {
+  margin: 0 0 1.6rem;
+  color: var(--gold);
+  font-size: 2rem;
+}
+
+/* Card del form */
+.form-card {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 18px;
+  background: rgba(0, 0, 0, .55);
+  border-radius: 16px;
+  box-shadow: var(--shadow-gold);
+  backdrop-filter: blur(2px);
+}
+
+/* Layout del form */
+.contact-form {
+  display: grid;
+  gap: 12px;
+}
+
+/* Campi */
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  background: var(--bg-800);
+  color: var(--text);
+  border: 1.5px solid var(--gold);
+  border-radius: 10px;
+  padding: 12px 14px;
+  outline: none;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, .10);
+}
+
+.contact-form input::placeholder,
+.contact-form textarea::placeholder {
+  color: #bda76a;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, .25);
+}
+
+.contact-form input {
+  height: 44px;
+}
+
+.contact-form textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+/* Bottone */
+.contact-form button {
+  justify-self: center;
+  margin-top: 6px;
+  padding: .6rem 1.4rem;
+  background: linear-gradient(135deg, var(--gold), #b38e2e);
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(212, 175, 55, .3);
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.contact-form button:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, var(--gold-soft), #9c7c25);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, .45);
+}
+
+
+/* ======================================================
+   PAGINA PRODOTTO
+====================================================== */
+.product-page {
+  background: url("/img/black2.png") center / cover fixed no-repeat;
+  color: var(--text);
+  padding: 4rem 2rem;
+  min-height: 100vh;
+  text-align: center;
+}
+
+.product-title {
+  text-align: center;
+  font-size: 2rem;
+  color: var(--gold);
+  margin: 2rem 0 0;
+  letter-spacing: 0.5px;
+}
+
+.product-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  margin: 2rem auto 0;
+  padding: 2rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 16px;
+  box-shadow: var(--shadow-gold);
+  max-width: 1000px;
+  flex-wrap: wrap;
+}
+
+.product-image img {
+  width: 300px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.2);
+  object-fit: cover;
+}
+
+.product-details {
+  flex: 1;
+  text-align: left;
+  color: var(--text);
+  font-size: 1.35rem;
+  /* 👈 Uniforme per paragrafi e liste */
+  line-height: 1.7;
+}
+
+.product-details p {
+  margin-bottom: 1rem;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.product-details ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+
+.product-details li {
+  font-size: inherit;
+  line-height: inherit;
+  margin-bottom: 0.5rem;
+}
+
+
+/* ======================================================
+   SET SECTION (fade-in + centratura immagine)
+====================================================== */
+.set-section {
+  text-align: center;
+  color: var(--text);
+  opacity: 0;
+  transform: translateY(20px);
+  animation: contentFadeIn .8s ease-out forwards;
+  animation-delay: 1.2s;
+}
+
+.set-section p {
+  font-size: 1.5rem;
+  color: #f0f0f0;
+  margin: 0 0 20px;
+}
+
+/* assicura che il link che avvolge l'immagine non rompa il centraggio */
+.set-section a {
+  display: inline-block;
+}
+
+/* immagine centrata e responsiva */
+.set-image {
+  display: block;
+  /* permette il margin auto */
+  margin-inline: auto;
+  /* centra l'immagine */
+  width: min(70%, 600px);
+  max-width: 100%;
+  border-radius: 20px;
+  box-shadow: 0 0 15px rgba(255, 215, 0, .4);
+  transition: transform .3s ease;
+}
+
+.set-image:hover {
+  transform: scale(1.02);
+  cursor: pointer;
+}
+
+.set-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.set-buttons .insta-btn {
+  background: transparent;
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  padding: .6rem 1.4rem;
+  border-radius: 30px;
+  font-weight: bold;
+  text-decoration: none;
+  transition: all .3s ease;
+}
+
+.set-buttons .insta-btn:hover {
+  background: var(--gold);
+  color: #000;
+  transform: translateY(-2px);
+}
+
+
+/* ======================================================
+   MODAL (aggiornato per mobile fix)
+====================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 15, 15, 0.898);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  /* aggiunto per mobile */
+  overflow-y: auto;
+  /* consente scroll se contenuto eccede */
+}
+
+.modal-content {
+  position: relative;
+  /* cambiato da absolute */
+  max-width: 700px;
+  width: 100%;
+  padding: 2rem 1.5rem;
+  background-color: rgba(0, 0, 0, 0.807);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--text);
+  overflow: hidden;
+  z-index: 10;
+  /* per sicurezza sopra background */
+}
+
+.modal-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.18;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.modal-text {
+  position: relative;
+  z-index: 1;
+  font-size: 1.5rem;
+}
+
+.modal-text h3 {
+  color: var(--gold);
+  margin: 0 0 1rem;
+}
+
+.modal-text p {
+  line-height: 1.6;
+  margin: 0 auto 1.5rem;
+  max-width: 90%;
+}
+
+.modal-text button {
+  margin-top: 1.5rem;
+  padding: .6rem 1.2rem;
+  border: none;
+  background-color: var(--gold);
+  color: #000;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  z-index: 2;
+  width: 100%;
+  /* migliora usabilità su mobile */
+}
+
+
+/* ======================================================
+   FOOTER
+====================================================== */
+.footer {
+  text-align: center;
+  padding: 40px 20px 20px;
+  font-size: 0.95rem;
+  color: var(--gold);
+  background-color: transparent;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: contentFadeIn .8s ease-out forwards;
+  animation-delay: 1.6s;
+}
+
+.footer p {
+  margin: 4px 0;
+}
+
+
+/* ======================================================
+   RESPONSIVE
+====================================================== */
+
+@media (max-width: 480px) {
+  .modal-content {
+    max-width: 100vw;
+    max-height: 90vh;
+    height: auto;
+    padding: 1rem;
+    border-radius: 0;
+    overflow-y: auto;
+  }
+
+  .modal-background {
+    opacity: 0.08;
+  }
+
+  .modal-text {
+    font-size: 1rem;
+    padding: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .modal-text p {
+    font-size: 1rem;
+    max-width: 100%;
+    line-height: 1.4;
+    margin: 0 auto 1rem;
+  }
+
+  .modal-text button {
+    padding: 0.6rem 1rem;
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  section {
+    padding: 20px 10px;
+  }
+
+  .contact p,
+  .set-section p {
+    font-size: 1.1rem;
+  }
+
+  .cta-overlay h1 {
+    font-size: 1.5rem;
+  }
+
+  .cta-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .product-details {
+    font-size: 1rem;
+  }
+
+  .product-image img {
+    width: 100%;
+  }
+
+  .form-card {
+    padding: 1rem;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .products {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 1rem;
+  }
+
+  .products img {
+    width: 90%;
+    margin: 0 auto;
+  }
+
+  .cta-overlay h1 {
+    font-size: 1.8rem;
+  }
+
+  .cta-button {
+    padding: 0.5rem 1.2rem;
+    font-size: 0.95rem;
+  }
+
+  .product-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .product-details {
+    text-align: center;
+  }
+
+  .product-image img {
+    width: 90%;
+  }
+
+  .set-image {
+    width: 90%;
+  }
+
+  .set-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero-container {
+    position: relative;
+    height: auto;
+    z-index: auto;
+  }
+
+  .hero-img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    aspect-ratio: 3/4;
+  }
+
+  .cta-overlay {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    margin-top: 1rem;
+    animation: none;
+    opacity: 1;
+    z-index: 10;
+  }
+
+  .form-card {
+    padding: 1rem;
+  }
+
+  .section-title {
+    font-size: 1.8rem;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .products {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem;
+  }
+
+  .products img {
+    width: 70%;
+    margin: 0 auto;
+  }
+
+  .cta-overlay {
+    bottom: 10%;
+    transform: translateX(-50%);
+    font-size: 1.2rem;
+  }
+
+  .cta-overlay h1 {
+    font-size: 2.2rem;
+  }
+
+  .cta-button {
+    font-size: 1rem;
+    padding: 0.6rem 1.6rem;
+  }
+
+  .hero-img {
+    height: 100vh;
+    width: 100vw;
+    object-fit: cover;
+  }
+
+  .product-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .product-details {
+    text-align: center;
+  }
+}
+
+
+/* ======================================================
+   SHOP CTA (vetrina → shop)
+====================================================== */
+.shop-cta {
+  padding: 40px 20px;
+}
+
+.shop-cta-box {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 26px 20px;
+
+  background: rgba(0, 0, 0, 0.55);
+  border: 1.5px solid rgba(212, 175, 55, 0.35);
+  border-radius: 16px;
+
+  box-shadow: var(--shadow-gold);
+  backdrop-filter: blur(2px);
+}
+
+.shop-cta-title {
+  margin: 0 0 10px;
+  color: var(--gold);
+  font-size: 2rem;
+  letter-spacing: .5px;
+}
+
+.shop-cta-text {
+  margin: 0 0 18px;
+  color: #f0f0f0;
+  font-size: 1.5rem;
+}
+
+.shop-cta-btn {
+  display: inline-block;
+  padding: .75rem 1.9rem;
+
+  background: linear-gradient(135deg, var(--gold), #b38e2e);
+  color: #fff;
+  font-weight: bold;
+
+  border-radius: 30px;
+  text-decoration: none;
+
+  box-shadow: 0 0 15px rgba(212, 175, 55, .3);
+  transition: transform .3s ease, box-shadow .3s ease, background .3s ease;
+  letter-spacing: .5px;
+}
+
+.shop-cta-btn:hover {
+  background: linear-gradient(135deg, var(--gold-soft), #9c7c25);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 20px rgba(212, 175, 55, .5);
+}
+
+.shop-cta-btn:focus-visible {
+  outline: 3px solid rgba(212, 175, 55, 0.35);
+  outline-offset: 4px;
+}
+
+/* Shop layout: niente buchi bianchi */
+.shop-shell{
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--qb-bg);
+  color: var(--qb-text);
+}
+
+.shop-main{
+  flex: 1 0 auto;
+  /* evita che qualche container "stacchi" visivamente */
+  background: transparent;
+}

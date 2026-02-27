@@ -1,0 +1,98 @@
+.shop-order-success {
+  color: var(--qb-text);
+}
+
+.shop-order-success .card {
+  background: var(--qb-card);
+  border: 1px solid var(--qb-border);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .18);
+  color: var(--qb-text);
+}
+
+.shop-order-success h1,
+.shop-order-success .h4 {
+  color: var(--qb-text);
+  letter-spacing: .2px;
+}
+
+.shop-order-success p {
+  color: var(--qb-muted);
+}
+
+.shop-order-success .text-muted {
+  color: var(--qb-muted) !important;
+}
+
+.shop-order-success hr {
+  border-color: var(--qb-border);
+  opacity: 1;
+}
+
+.shop-order-success .btn {
+  border-radius: 999px;
+  padding: 10px 14px;
+  transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.shop-order-success .btn:focus,
+.shop-order-success .btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 .2rem rgba(222, 190, 104, .18);
+}
+
+.shop-order-success .btn:disabled,
+.shop-order-success .btn.disabled {
+  opacity: 1;
+  filter: grayscale(10%);
+  cursor: not-allowed;
+}
+
+.shop-order-success .btn.btn-primary {
+  background: linear-gradient(180deg, var(--qb-accent), var(--qb-accent-2));
+  border: 1px solid rgba(0, 0, 0, .15);
+  color: #111;
+  font-weight: 800;
+}
+
+.shop-order-success .btn.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 12px 26px rgba(222, 190, 104, .18);
+}
+
+.shop-order-success .btn.btn-outline-secondary,
+.shop-order-success .btn.btn-outline-light {
+  color: var(--qb-text);
+  border: 1px solid var(--qb-border);
+  background: transparent;
+}
+
+.shop-order-success .btn.btn-outline-secondary:hover:not(:disabled),
+.shop-order-success .btn.btn-outline-light:hover:not(:disabled) {
+  background: rgba(222, 190, 104, .10);
+  border-color: var(--qb-border-strong);
+  transform: translateY(-1px);
+}
+
+.shop-order-success .alert {
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid var(--qb-border);
+  color: var(--qb-text);
+}
+
+.shop-order-success .alert-success {
+  border-color: rgba(140, 230, 170, .35);
+}
+
+.shop-order-success .alert-warning {
+  border-color: rgba(222, 190, 104, .32);
+}
+
+.shop-order-success .alert-secondary {
+  border-color: rgba(243, 233, 198, .18);
+}
+
+.shop-order-success .d-flex.gap-2 {
+  flex-wrap: wrap;
+}

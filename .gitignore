@@ -1,0 +1,22 @@
+# ===== Node / JS =====
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===== Env (mai su git) =====
+**/.env
+**/.env.*
+!**/.env.example
+
+# ===== Build outputs =====
+**/dist/
+**/build/
+**/coverage/
+
+# ===== Vite =====
+**/.vite/
+
+# ===== OS =====
+.DS_Store

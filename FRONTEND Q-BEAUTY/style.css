@@ -1,0 +1,101 @@
+/* --- HERO LAYOUT CON SIDEBAR --- */
+.hero-layout {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .sidebar {
+    width: 12%;
+    background-color: #121212;
+    color: #d4af37;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    padding: 1rem;
+    text-align: center;
+    z-index: 3;
+  }
+  
+  .sidebar.left {
+    border-right: 1px solid #333;
+  }
+  
+  .sidebar.right {
+    border-left: 1px solid #333;
+  }
+  
+  .sidebar-link {
+    background: none;
+    border: none;
+    color: #d4af37;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  
+  .sidebar-link:hover {
+    color: white;
+  }
+  
+  /* --- HERO IMMAGINE CENTRALE --- */
+  .hero-main {
+    flex: 1;
+    position: relative;
+  }
+  
+  .hero-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  
+  .cta-overlay {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: white;
+    z-index: 2;
+  }
+  
+  .cta-overlay h1 {
+    font-size: 3rem;
+    color: #fff;
+    margin: 0;
+  }
+  
+  .cta-overlay p {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: #fff;
+  }
+  
+  .cta-button {
+    display: inline-block;
+    padding: 0.6rem 1.4rem;
+    background-color: #d4af37;
+    color: black;
+    font-weight: bold;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.3s ease;
+  }
+  
+  .cta-button:hover {
+    background-color: #b08d2f;
+  }
+  

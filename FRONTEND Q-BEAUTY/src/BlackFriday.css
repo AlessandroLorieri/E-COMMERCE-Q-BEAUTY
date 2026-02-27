@@ -1,0 +1,346 @@
+/* ===== BANNER BLACK FRIDAY ===== */
+
+.bf-banner {
+    background: radial-gradient(circle at top, #ffa733 0, #d19b3d 18%, #000 65%, #000 100%);
+    color: #fff;
+    padding: 3.5rem 1.5rem;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .bf-banner__content {
+    width: 100%;
+    max-width: 1100px;
+    text-align: center;
+    position: relative;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, sans-serif;
+  }
+  
+  .bf-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 1.2rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-size: 0.8rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+  }
+  
+  .bf-title {
+    font-family: "Playfair Display", serif;
+    font-size: 2.2rem;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.04em;
+  }
+  
+  .bf-subtitle {
+    font-size: 0.95rem;
+    max-width: 580px;
+    margin: 0 auto 2.3rem;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  
+  /* ===== CARDS ===== */
+  
+  .bf-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .bf-card {
+    position: relative;
+    background: rgba(0, 0, 0, 0.78);
+    border-radius: 1.5rem;
+    padding: 1.5rem 1.4rem 1.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+    transition:
+      transform 0.28s ease,
+      box-shadow 0.28s ease,
+      border-color 0.28s ease,
+      background 0.28s ease;
+    overflow: hidden;
+  }
+  
+  .bf-card::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(circle at top, rgba(255, 215, 128, 0.32), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    z-index: 0;
+  }
+  
+  .bf-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+    border-color: rgba(255, 215, 128, 0.8);
+    background: rgba(10, 10, 10, 0.95);
+  }
+  
+  .bf-card:hover::before {
+    opacity: 1;
+  }
+  
+  /* card centrale evidenziata */
+  .bf-card--highlight {
+    transform: translateY(-10px);
+    border-color: rgba(255, 215, 128, 0.95);
+    background: linear-gradient(145deg, rgba(0, 0, 0, 0.95), rgba(80, 60, 20, 0.95));
+  }
+  
+  .bf-card--highlight:hover {
+    transform: translateY(-14px) scale(1.03);
+  }
+  
+  /* ribbon sconto */
+  
+  .bf-card__ribbon {
+    position: absolute;
+    top: 1.1rem;
+    left: -2.4rem;
+    padding: 0.35rem 2.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    background: linear-gradient(120deg, #ffb74d, #fdd835);
+    color: #000;
+    transform: rotate(-12deg);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.7);
+  }
+  
+  /* ===== FOTO PRODOTTO NELLA CARD ===== */
+  
+  .bf-card__image-wrapper {
+    position: relative;
+    margin: 0 auto 1.1rem;
+    width: 170px;          /* ingrandito */
+    height: 170px;
+    border-radius: 999px;
+    overflow: hidden;      /* taglia in cerchio */
+    background: #000;      /* fallback se non carica l'immagine */
+    box-shadow:
+      0 18px 40px rgba(0, 0, 0, 0.8),
+      0 0 35px rgba(0, 0, 0, 0.7);
+  }
+  
+  .bf-card__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;     /* la foto riempie tutto il cerchio */
+    display: block;
+  }
+  
+  /* ===== TESTI E PREZZI ===== */
+  
+  .bf-card__title {
+    position: relative;
+    z-index: 1;
+    font-size: 1.05rem;
+    margin-bottom: 0.55rem;
+  }
+  
+  .bf-card__desc {
+    position: relative;
+    z-index: 1;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 1.2rem;
+  }
+  
+  .bf-card__price {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-bottom: 1.3rem;
+  }
+  
+  .bf-card__old {
+    font-size: 0.9rem;
+    text-decoration: line-through;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  .bf-card__new {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #ffd95a;
+  }
+  
+  /* bottone */
+  
+  .bf-card__btn {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    border-radius: 999px;
+    padding: 0.7rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    background: linear-gradient(120deg, #ffd95a, #ffb74d);
+    color: #000;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
+    text-decoration: none;
+    border: none;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      background 0.2s ease;
+  }
+  
+  .bf-card__btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.9);
+    background: linear-gradient(120deg, #ffe082, #ffca28);
+  }
+  
+  /* nota finale */
+  
+  .bf-note {
+    margin-top: 2rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  /* ===== MODAL / POPUP ===== */
+  
+  .bf-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  
+  .bf-modal {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 24px;
+  
+    /* nascondi scrollbar del modal */
+    scrollbar-width: none;          /* Firefox */
+  }
+  
+  .bf-modal::-webkit-scrollbar {
+    width: 0;
+    height: 0;                      /* Chrome / Safari */
+  }
+  
+  /* il banner dentro il popup ha angoli arrotondati */
+  .bf-modal .bf-banner {
+    border-radius: 24px;
+    padding: 2.5rem 1.5rem;
+  }
+  
+  .bf-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    z-index: 10;
+    border: none;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .bf-modal-close:hover {
+    background: rgba(0, 0, 0, 0.9);
+  }
+  /* ===== VIDEO INTRO ===== */
+
+.bf-video-wrapper {
+    border-radius: 24px;
+    overflow: hidden;
+    max-height: 90vh;
+  }
+  
+  .bf-video {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+/* testo + link Instagram sotto il badge */
+
+.bf-ig-follow {
+    margin-top: 0.25rem;
+    margin-bottom: 1.2rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .bf-ig-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: 0.25rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: #ffd95a;
+  }
+  
+  .bf-ig-link:hover {
+    text-decoration: underline;
+  }
+  
+  .bf-ig-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .bf-ig-text {
+    font-size: 0.8rem;
+  }
+  
+  
+  /* ===== RESPONSIVE ===== */
+  
+  @media (max-width: 900px) {
+    .bf-cards {
+      grid-template-columns: 1fr;
+    }
+  
+    .bf-card--highlight {
+      order: -1;
+    }
+  
+    .bf-banner {
+      padding: 2.5rem 1.25rem;
+    }
+  
+    .bf-title {
+      font-size: 1.8rem;
+    }
+  }
+  

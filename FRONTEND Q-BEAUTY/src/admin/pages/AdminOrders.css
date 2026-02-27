@@ -1,0 +1,55 @@
+.admin-orders .qb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: .2px;
+    border: 1px solid rgba(222, 190, 104, .25);
+    background: rgba(222, 190, 104, .10);
+    color: #000;
+    line-height: 1;
+}
+
+.admin-orders .qb-badge-muted {
+    background: rgba(0, 0, 0, .06);
+    border-color: rgba(0, 0, 0, .14);
+    color: rgba(0, 0, 0, .78);
+}
+
+.admin-orders .qb-badge-info {
+    background: rgba(222, 190, 104, .26);
+    border-color: rgba(222, 190, 104, .42);
+}
+
+.admin-orders .qb-badge-warn {
+    background: rgba(222, 190, 104, .32);
+    border-color: rgba(222, 190, 104, .48);
+}
+
+.admin-orders .qb-badge-primary {
+    background: rgba(222, 190, 104, .30);
+    border-color: rgba(222, 190, 104, .46);
+}
+
+.admin-orders .qb-badge-success {
+    background: rgba(190, 220, 160, .24);
+    border-color: rgba(190, 220, 160, .40);
+}
+
+.admin-orders .qb-badge-danger {
+    background: rgba(255, 120, 120, .22);
+    border-color: rgba(255, 120, 120, .36);
+}
+
+.admin-orders .qb-badge-dark {
+    background: rgba(255, 255, 255, .10);
+    border-color: rgba(222, 190, 104, .28);
+}
+
+.admin-orders .qb-badge-light {
+    background: rgba(255, 255, 255, .16);
+    border-color: rgba(255, 255, 255, .26);
+}
