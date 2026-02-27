@@ -220,6 +220,7 @@
   color: var(--qb-text);
   border-color: var(--qb-border-strong);
   background: transparent;
+    border-radius: 999px;
 }
 
 .shop-auth-header .btn.btn-outline-light:hover {

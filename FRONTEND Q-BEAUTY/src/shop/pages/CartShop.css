@@ -255,3 +255,10 @@
     width: 100%;
   }
 }
+
+@media (max-width: 520px) {
+  .shop-cart-header .btn {
+    flex: 0 0 auto !important;
+    width: auto !important;
+  }
+}

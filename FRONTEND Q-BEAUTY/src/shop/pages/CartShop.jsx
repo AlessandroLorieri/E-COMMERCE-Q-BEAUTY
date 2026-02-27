@@ -166,9 +166,15 @@ export default function CartShop() {
 
     return (
         <div className="container py-4 shop-cart">
-            <div className="d-flex align-items-center justify-content-between mb-4 shop-cart-header">
-                <h1 className="mb-0">Carrello</h1>
-                <Link to="/shop" className="btn btn-outline-light">
+            <div className="d-flex align-items-center mb-4 shop-cart-header gap-2">
+                <h1 className="mb-0 flex-grow-1" style={{ minWidth: 0 }}>
+                    Carrello
+                </h1>
+
+                <Link
+                    to="/shop"
+                    className="btn btn-outline-light btn-sm flex-shrink-0 text-nowrap"
+                >
                     Torna allo shop
                 </Link>
             </div>
@@ -196,7 +202,6 @@ export default function CartShop() {
                             const idKey = String(p?.id ?? "").trim().toLowerCase();
                             const nameKey = String(p?.name ?? "").trim().toLowerCase();
 
-                            // set riconosciuto per id (e fallback sul nome)
                             const isSet =
                                 idKey === SET_ID_NORM ||
                                 nameKey.includes(SET_ID_NORM);

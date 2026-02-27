@@ -11,7 +11,7 @@ export default function RegisterShop() {
 
     const { register } = useAuth();
 
-    const [customerType, setCustomerType] = useState("private"); 
+    const [customerType, setCustomerType] = useState("private");
     const [form, setForm] = useState({
         firstName: "",
         lastName: "",
@@ -69,9 +69,15 @@ export default function RegisterShop() {
 
     return (
         <div className="container py-4 shop-auth" style={{ maxWidth: 720 }}>
-            <div className="d-flex justify-content-between align-items-center mb-3 shop-auth-header">
-                <h1 className="mb-0">Registrazione</h1>
-                <Link to="/shop" className="btn btn-outline-light">
+            <div className="d-flex align-items-center mb-3 shop-auth-header gap-2">
+                <h1 className="mb-0 flex-grow-1" style={{ minWidth: 0 }}>
+                    Registrazione
+                </h1>
+
+                <Link
+                    to="/shop"
+                    className="btn btn-outline-light btn-sm text-nowrap flex-grow-0 flex-shrink-0 w-auto px-2 py-1"
+                >
                     Torna allo shop
                 </Link>
             </div>

@@ -246,7 +246,7 @@ export default function LoginShop() {
                 streetNumber: newAddr.streetNumber.trim(),
                 city: newAddr.city.trim(),
                 cap: newAddr.cap.trim(),
-                email: user?.email || "", 
+                email: user?.email || "",
             });
 
             if (newAddrMakeDefault && created?._id) {
@@ -357,7 +357,11 @@ export default function LoginShop() {
         <div className="container py-4 shop-auth" style={{ maxWidth: 720 }}>
             <div className="d-flex justify-content-between align-items-center mb-3 shop-auth-header">
                 <h1 className="mb-0">{user ? "Area utente" : "Accesso"}</h1>
-                <Link to="/shop" className="btn btn-outline-light">
+                <Link
+                    to="/shop"
+                    className="btn btn-outline-light btn-sm text-nowrap px-2 py-1"
+                    style={{ flex: "0 0 auto", width: "auto" }}
+                >
                     Torna allo shop
                 </Link>
             </div>
