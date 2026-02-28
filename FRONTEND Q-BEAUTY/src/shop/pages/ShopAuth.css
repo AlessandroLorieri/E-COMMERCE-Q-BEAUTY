@@ -314,3 +314,10 @@
 .shop-auth a.btn {
   text-decoration: none !important;
 }
+
+@media (max-width: 520px) {
+  .shop-logout-btn {
+    flex: 0 0 auto !important;
+    width: auto !important;
+  }
+}

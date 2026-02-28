@@ -770,7 +770,7 @@ export default function LoginShop() {
 
                     <div className="d-flex flex-wrap gap-2 mt-3">
                         <button
-                            className="btn btn-outline-danger"
+                            className="btn btn-outline-danger shop-logout-btn"
                             onClick={() => {
                                 logout();
                                 navigate("/shop", { replace: true });
