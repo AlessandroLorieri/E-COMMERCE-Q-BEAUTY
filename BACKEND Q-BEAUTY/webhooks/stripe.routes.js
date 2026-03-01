@@ -164,6 +164,11 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                         break;
                 }
 
+                console.log("✅ Stripe webhook: risposta 200 inviata", {
+                    eventId: event?.id,
+                    type: event?.type,
+                });
+
                 return res.status(200).json({ received: true });
             } catch (err) {
                 console.error("❌ Stripe webhook handler error:", err);
