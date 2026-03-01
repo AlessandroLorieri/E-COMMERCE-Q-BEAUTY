@@ -128,16 +128,30 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                             break;
                         }
 
-                        try {
-                            await sendOrderPaymentConfirmedEmail({ to, order, includeItems: true });
+                        console.log("Stripe webhook: email pagamento schedulata", {
+                            orderId: String(orderId),
+                            to,
+                            sessionId: session?.id,
+                        });
 
-                            await ordersCol.updateOne(
-                                { _id, paymentEmailSentAt: { $exists: false } },
-                                { $set: { paymentEmailSentAt: new Date() } }
-                            );
-                        } catch (mailErr) {
-                            console.error("Email pagamento Stripe fallita:", mailErr?.message || mailErr);
-                        }
+                        // ✅ Non blocchiamo la risposta a Stripe sull'SMTP
+                        setImmediate(async () => {
+                            try {
+                                await sendOrderPaymentConfirmedEmail({ to, order, includeItems: true });
+
+                                await ordersCol.updateOne(
+                                    { _id, paymentEmailSentAt: { $exists: false } },
+                                    { $set: { paymentEmailSentAt: new Date() } }
+                                );
+
+                                console.log("Stripe webhook: email pagamento inviata", {
+                                    orderId: String(orderId),
+                                    to,
+                                });
+                            } catch (mailErr) {
+                                console.error("Email pagamento Stripe fallita:", mailErr?.message || mailErr);
+                            }
+                        });
 
                         break;
                     }
