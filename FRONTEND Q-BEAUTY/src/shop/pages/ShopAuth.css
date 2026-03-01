@@ -321,3 +321,21 @@
     width: auto !important;
   }
 }
+
+.shop-auth .alert.alert-danger {
+  background: rgba(220, 53, 69, .16) !important; 
+  border: 1px solid rgba(220, 53, 69, .55) !important;
+  color: rgba(255, 215, 215, .98) !important;
+}
+
+.shop-auth .alert.alert-danger a {
+  color: rgba(255, 235, 235, .98) !important;
+}
+
+@media (max-width: 520px) {
+  .shop-auth .list-group-item .btn {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    white-space: nowrap;
+  }
+}

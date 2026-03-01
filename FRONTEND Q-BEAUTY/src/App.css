@@ -512,6 +512,10 @@ section {
   opacity: 0.18;
   object-fit: cover;
   z-index: 0;
+  display: none; 
+  pointer-events: none;
+
+
 }
 
 .modal-text {
@@ -840,4 +844,21 @@ section {
   flex: 1 0 auto;
   /* evita che qualche container "stacchi" visivamente */
   background: transparent;
+}
+
+
+
+/* box nero dietro al testo del modal (leggibile sempre) */
+.modal-content .modal-text p {
+  background: rgba(0, 0, 0, 0.92) !important;
+  color: #fff !important;
+  padding: 12px 14px !important;
+  border-radius: 14px !important;
+  max-width: 100% !important;
+  text-shadow: none !important;
+}
+
+/* se hai più paragrafi: separazione pulita */
+.modal-content .modal-text p + p {
+  margin-top: 12px !important;
 }

@@ -27,6 +27,12 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                 return res.status(400).send(`Webhook Error: ${err.message}`);
             }
 
+            console.log("✅ Stripe webhook ricevuto", {
+                eventId: event?.id,
+                type: event?.type,
+                livemode: event?.livemode,
+            });
+
             try {
                 const ordersCol = mongoose.connection.collection("orders");
 
@@ -46,6 +52,17 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                     case "checkout.session.completed":
                     case "checkout.session.async_payment_succeeded": {
                         const session = event.data.object;
+                        const orderId = session?.metadata?.orderId;
+
+                        if (!orderId) {
+                            console.warn("Stripe webhook: metadata.orderId mancante", {
+                                eventId: event?.id,
+                                type: event?.type,
+                                sessionId: session?.id,
+                                metadata: session?.metadata,
+                            });
+                            break;
+                        }
                         if (
                             event.type === "checkout.session.completed" &&
                             session?.payment_status !== "paid" &&
@@ -140,6 +157,10 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                     }
 
                     default:
+                        console.log("Stripe webhook: evento ignorato", {
+                            type: event?.type,
+                            eventId: event?.id,
+                        });
                         break;
                 }
 

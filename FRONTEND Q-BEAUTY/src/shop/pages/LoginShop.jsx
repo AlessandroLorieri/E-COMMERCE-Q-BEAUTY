@@ -338,16 +338,37 @@ export default function LoginShop() {
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
+    function formatLoginError(err) {
+        const raw = String(err?.message || "").trim();
+        const low = raw.toLowerCase();
+
+        if (
+            low.includes("invalid credentials") ||
+            low.includes("credenziali") ||
+            low.includes("unauthorized") ||
+            low.includes("401")
+        ) {
+            return "Email o password non corrette.";
+        }
+
+        if (low.includes("failed to fetch") || low.includes("network")) {
+            return "Problema di connessione. Riprova tra poco.";
+        }
+
+        return "Accesso non riuscito. Riprova.";
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         setError("");
         setSubmitting(true);
 
         try {
-            await login(email, password);
+            await login(String(email).trim(), password);
             navigate(next, { replace: true });
         } catch (err) {
-            setError(err.message || "Login fallito");
+            setError(formatLoginError(err));
+            setPassword("");
         } finally {
             setSubmitting(false);
         }
@@ -589,11 +610,11 @@ export default function LoginShop() {
 
                                             {!a.isDefault ? (
                                                 <button
-                                                    className="btn btn-outline-primary btn-sm"
+                                                    className="btn btn-sm shop-edit-btn"
                                                     onClick={() => makeDefaultAddress(a._id)}
                                                     disabled={addrBusyId === a._id}
                                                 >
-                                                    {addrBusyId === a._id ? "..." : "Imposta default"}
+                                                    {addrBusyId === a._id ? "..." : "Imposta come predefinito"}
                                                 </button>
                                             ) : null}
                                         </div>
@@ -762,7 +783,7 @@ export default function LoginShop() {
                             </div>
                         </div>
 
-                        <button className="btn shop-edit-btn"  type="submit" disabled={pwSubmitting}>
+                        <button className="btn shop-edit-btn" type="submit" disabled={pwSubmitting}>
                             {pwSubmitting ? "Aggiorno..." : "Aggiorna password"}
                         </button>
                     </form>
