@@ -67,7 +67,10 @@ async function sendMailResend({ from, to, subject, html, text }) {
 }
 
 async function sendMail({ to, subject, html, text }) {
-  const from = must("MAIL_FROM");
+  const fromEmail = must("MAIL_FROM");
+  const fromName = String(process.env.MAIL_FROM_NAME || "").trim();
+  const from = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
+
   const finalTo = resolveRecipient(to);
 
   if (MAIL_TRANSPORT === "smtp") {
