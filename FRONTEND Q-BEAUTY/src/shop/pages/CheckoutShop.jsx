@@ -97,7 +97,7 @@ export default function CheckoutShop() {
                         ...prev,
                         name: def.name || prev.name,
                         surname: def.surname || prev.surname,
-                        taxCode: prev.taxCode,
+                        taxCode: normalizeTaxCode(prev.taxCode || def.taxCode || def.codiceFiscale || def.fiscalCode || ""),
                         phone: def.phone || prev.phone,
                         address: def.address || prev.address,
                         streetNumber: def.streetNumber || prev.streetNumber,
@@ -132,7 +132,7 @@ export default function CheckoutShop() {
             ...prev,
             name: a.name || "",
             surname: a.surname || "",
-            taxCode: prev.taxCode,
+            taxCode: normalizeTaxCode(prev.taxCode || a.taxCode || a.codiceFiscale || a.fiscalCode || ""),
             phone: a.phone || "",
             address: a.address || "",
             streetNumber: a.streetNumber || "",
@@ -179,15 +179,89 @@ export default function CheckoutShop() {
         return String(v || "").trim().toUpperCase();
     }
 
+    function isValidCodiceFiscale(cfRaw) {
+        const cf = normalizeTaxCode(cfRaw);
+
+        // 16 caratteri, lettere o numeri (omocodia inclusa)
+        if (!/^[A-Z0-9]{16}$/.test(cf)) return false;
+
+        // tabelle ufficiali per il carattere di controllo
+        const odd = {
+            "0": 1, "1": 0, "2": 5, "3": 7, "4": 9, "5": 13, "6": 15, "7": 17, "8": 19, "9": 21,
+            A: 1, B: 0, C: 5, D: 7, E: 9, F: 13, G: 15, H: 17, I: 19, J: 21,
+            K: 2, L: 4, M: 18, N: 20, O: 11, P: 3, Q: 6, R: 8, S: 12, T: 14,
+            U: 16, V: 10, W: 22, X: 25, Y: 24, Z: 23,
+        };
+
+        const even = {
+            "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
+            A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9,
+            K: 10, L: 11, M: 12, N: 13, O: 14, P: 15, Q: 16, R: 17, S: 18, T: 19,
+            U: 20, V: 21, W: 22, X: 23, Y: 24, Z: 25,
+        };
+
+        let sum = 0;
+        for (let i = 0; i < 15; i++) {
+            const ch = cf[i];
+            // posizione 1-based: 1,3,5... = odd  -> 0-based i=0,2,4...
+            sum += (i % 2 === 0 ? odd[ch] : even[ch]);
+            if (Number.isNaN(sum)) return false;
+        }
+
+        const expected = String.fromCharCode((sum % 26) + 65);
+        return cf[15] === expected;
+    }
+
+    const storedTaxCode = useMemo(() => {
+        // Prendo CF/P.IVA da user (nome campo può variare: metto più tentativi)
+        const u = user || {};
+        const candidates = [
+            u?.taxCode,
+            u?.codiceFiscale,
+            u?.fiscalCode,
+            u?.taxId,
+            u?.vatNumber,
+            u?.vat,
+            u?.piva,
+            u?.partitaIva,
+        ];
+        const found = candidates.find((v) => String(v || "").trim());
+        return normalizeTaxCode(found);
+    }, [user]);
+
+    const isVatUser = useMemo(() => {
+        const u = user || {};
+        return Boolean(
+            u?.isBusiness ||
+            u?.isCompany ||
+            u?.customerType === "business" ||
+            u?.customerType === "piva" ||
+            (storedTaxCode && /^\d{11}$/.test(String(storedTaxCode)))
+        );
+    }, [user, storedTaxCode]);
+
+    useEffect(() => {
+        if (isVatUser) return;
+        if (!storedTaxCode) return;
+
+        setForm((prev) => {
+            const current = normalizeTaxCode(prev.taxCode);
+            if (current === storedTaxCode) return prev;
+            return { ...prev, taxCode: storedTaxCode };
+        });
+    }, [storedTaxCode, isVatUser]);
+
     function validateClient() {
         const e = {};
         if (!form.name.trim()) e.name = "Nome richiesto";
         if (!form.surname.trim()) e.surname = "Cognome richiesto";
 
-        const tc = String(form.taxCode || "").trim().toUpperCase();
-        if (!tc) e.taxCode = "Codice Fiscale richiesto";
-        else if (!(/^[A-Z0-9]{16}$/.test(tc) || /^\d{11}$/.test(tc))) {
-            e.taxCode = "Codice Fiscale non valido (16 caratteri o 11 cifre)";
+        if (!isVatUser) {
+            const tc = storedTaxCode || normalizeTaxCode(form.taxCode);
+            if (!tc) e.taxCode = "Codice Fiscale richiesto";
+            else if (!isValidCodiceFiscale(tc)) {
+                e.taxCode = "Codice Fiscale non valido";
+            }
         }
 
         if (!form.phone.trim()) e.phone = "Telefono richiesto";
@@ -297,7 +371,27 @@ export default function CheckoutShop() {
         setSubmitError("");
 
         try {
-            const taxCode = normalizeTaxCode(form.taxCode);
+            // ✅ P.IVA: non chiediamo nulla nel checkout, prendiamo dal profilo (storedTaxCode)
+            const taxCode = isVatUser ? storedTaxCode : (storedTaxCode || normalizeTaxCode(form.taxCode));
+
+            if (isVatUser) {
+                if (!taxCode) {
+                    setSubmitError("Dati di fatturazione mancanti nel profilo. Aggiornali in Area utente.");
+                    return;
+                }
+                // Se vuoi, qui puoi validare P.IVA con checksum (poi lo aggiungiamo).
+            } else {
+                if (!taxCode) {
+                    setFieldErrors((prev) => ({ ...prev, taxCode: "Codice Fiscale richiesto" }));
+                    setSubmitError("Controlla i campi evidenziati.");
+                    return;
+                }
+                if (!isValidCodiceFiscale(taxCode)) {
+                    setFieldErrors((prev) => ({ ...prev, taxCode: "Codice Fiscale non valido" }));
+                    setSubmitError("Controlla i campi evidenziati.");
+                    return;
+                }
+            }
 
             const payload = {
                 name: form.name.trim(),
@@ -365,7 +459,25 @@ export default function CheckoutShop() {
         setSubmitError("");
 
         try {
-            const taxCode = normalizeTaxCode(form.taxCode);
+            const taxCode = isVatUser ? storedTaxCode : (storedTaxCode || normalizeTaxCode(form.taxCode));
+
+            if (isVatUser && !taxCode) {
+                setSubmitError("Dati di fatturazione mancanti nel profilo. Aggiornali in Area utente.");
+                return;
+            }
+
+            if (!isVatUser) {
+                if (!taxCode) {
+                    setFieldErrors((prev) => ({ ...prev, taxCode: "Codice Fiscale richiesto" }));
+                    setSubmitError("Controlla i campi evidenziati.");
+                    return;
+                }
+                if (!isValidCodiceFiscale(taxCode)) {
+                    setFieldErrors((prev) => ({ ...prev, taxCode: "Codice Fiscale non valido" }));
+                    setSubmitError("Controlla i campi evidenziati.");
+                    return;
+                }
+            }
 
             const payload = {
                 name: form.name.trim(),
@@ -557,25 +669,33 @@ export default function CheckoutShop() {
                                 {fieldErrors.surname && <div className="invalid-feedback">{fieldErrors.surname}</div>}
                             </div>
 
-                            <div className="col-12">
-                                <label className="form-label">Codice Fiscale (per fattura)</label>
-                                <input
-                                    className={`form-control ${fieldErrors.taxCode ? "is-invalid" : ""}`}
-                                    name="taxCode"
-                                    value={form.taxCode}
-                                    onChange={onChange}
-                                    disabled={busy}
-                                    placeholder="Es. RSSMRA80A01H501U"
-                                    autoCapitalize="characters"
-                                    autoCorrect="off"
-                                    spellCheck={false}
-                                    inputMode="text"
-                                />
-                                {fieldErrors.taxCode && <div className="invalid-feedback">{fieldErrors.taxCode}</div>}
-                                {!fieldErrors.taxCode ? (
-                                    <div className="form-text">16 caratteri (persona fisica) oppure 11 cifre (azienda).</div>
-                                ) : null}
-                            </div>
+                            {!isVatUser ? (
+                                <div className="col-12">
+                                    <label className="form-label">Codice Fiscale (per fattura)</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.taxCode ? "is-invalid" : ""}`}
+                                        name="taxCode"
+                                        value={form.taxCode}
+                                        onChange={onChange}
+                                        disabled={busy || Boolean(storedTaxCode) || (addressMode === "saved" && selectedAddressId)}
+                                        placeholder="Es. RSSMRA80A01H501U"
+                                        autoCapitalize="characters"
+                                        autoCorrect="off"
+                                        spellCheck={false}
+                                        inputMode="text"
+                                    />
+                                    {fieldErrors.taxCode && <div className="invalid-feedback">{fieldErrors.taxCode}</div>}
+                                    {!fieldErrors.taxCode ? (
+                                        storedTaxCode ? (
+                                            <div className="form-text">Codice fiscale già salvato nel profilo: lo useremo automaticamente.</div>
+                                        ) : (addressMode === "saved" && selectedAddressId && form.taxCode) ? (
+                                            <div className="form-text">Codice fiscale precompilato dall’indirizzo salvato.</div>
+                                        ) : (
+                                            <div className="form-text">16 caratteri (persona fisica).</div>
+                                        )
+                                    ) : null}
+                                </div>
+                            ) : null}
 
                             <div className="col-12">
                                 <label className="form-label">Telefono</label>

@@ -22,3 +22,4 @@ router.patch("/me", authRequired, controller.updateMe);
 router.patch("/password", authRequired, controller.changePassword);
 
 module.exports = router;
+

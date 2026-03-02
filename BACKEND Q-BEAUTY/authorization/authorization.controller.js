@@ -10,6 +10,25 @@ const {
 
 const { sendWelcomeEmail, sendPasswordResetEmail } = require("../utils/mailer");
 
+function mapMongooseError(err) {
+    if (err && err.code === 11000) {
+        const field = Object.keys(err.keyPattern || err.keyValue || {})[0] || "field";
+        const msg = field === "email" ? "Email già registrata" : "Valore già presente";
+        return { status: 409, message: msg, errors: { [field]: msg } };
+    }
+
+    if (err && err.name === "ValidationError" && err.errors) {
+        const errors = {};
+        for (const [k, v] of Object.entries(err.errors)) {
+            errors[k] = v?.message || "Valore non valido";
+        }
+        const firstMsg = errors[Object.keys(errors)[0]] || "Validazione fallita";
+        return { status: 422, message: firstMsg, errors };
+    }
+
+    return null;
+}
+
 async function register(req, res) {
     try {
         const result = await registerUser(req.body);
@@ -27,8 +46,20 @@ async function register(req, res) {
 
         return res.status(201).json(result);
     } catch (err) {
-        const status = err.status || 500;
-        return res.status(status).json({ message: err.message || "Server error" });
+        if (err?.status) {
+            const status = err.status || 500;
+            return res.status(status).json({ message: err.message || "Server error" });
+        }
+
+        const mapped = mapMongooseError(err);
+        if (mapped) {
+            return res.status(mapped.status).json({
+                message: mapped.message,
+                errors: mapped.errors,
+            });
+        }
+
+        return res.status(500).json({ message: err?.message || "Server error" });
     }
 }
 
@@ -83,10 +114,24 @@ async function updateMe(req, res) {
         const result = await updateMeUser(userId, req.body);
         return res.json(result);
     } catch (err) {
-        const status = err.status || 500;
-        return res.status(status).json({
-            message: err.message || "Server error",
-            errors: err.errors || undefined,
+        if (err?.status) {
+            const status = err.status || 500;
+            return res.status(status).json({
+                message: err.message || "Server error",
+                errors: err.errors || undefined,
+            });
+        }
+
+        const mapped = mapMongooseError(err);
+        if (mapped) {
+            return res.status(mapped.status).json({
+                message: mapped.message,
+                errors: mapped.errors,
+            });
+        }
+
+        return res.status(500).json({
+            message: err?.message || "Server error",
         });
     }
 }
