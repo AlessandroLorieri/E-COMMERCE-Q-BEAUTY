@@ -535,7 +535,7 @@ export default function CheckoutShop() {
         <div className="container py-4 shop-checkout" style={{ maxWidth: 820 }}>
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h1 className="mb-0">Checkout</h1>
-                <Link to="/shop/cart" className="btn btn-outline-light">
+                <Link to="/shop/cart" className="btn btn-outline-light shop-checkout-back-btn">
                     Torna al carrello
                 </Link>
             </div>

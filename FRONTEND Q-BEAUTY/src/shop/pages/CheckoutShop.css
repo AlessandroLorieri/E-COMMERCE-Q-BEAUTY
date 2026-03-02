@@ -174,3 +174,10 @@
 .shop-checkout .invalid-feedback {
   color: rgba(255, 160, 160, .95);
 }
+
+.shop-checkout .shop-checkout-back-btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  align-self: center;
+  white-space: nowrap;
+}
