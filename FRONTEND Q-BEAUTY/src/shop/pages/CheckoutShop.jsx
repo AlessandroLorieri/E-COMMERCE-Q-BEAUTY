@@ -677,7 +677,7 @@ export default function CheckoutShop() {
                                         name="taxCode"
                                         value={form.taxCode}
                                         onChange={onChange}
-                                        disabled={busy || Boolean(storedTaxCode) || (addressMode === "saved" && selectedAddressId)}
+                                        disabled={busy || Boolean(storedTaxCode)}
                                         placeholder="Es. RSSMRA80A01H501U"
                                         autoCapitalize="characters"
                                         autoCorrect="off"
