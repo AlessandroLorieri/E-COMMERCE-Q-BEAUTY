@@ -422,6 +422,135 @@ Q•BEAUTY`;
   return sendMail({ to, subject, html, text });
 }
 
+//MAIL ADMIN NUOVO ORDINE
+function coalesceStr(...vals) {
+  for (const v of vals) {
+    const s = String(v || "").trim();
+    if (s) return s;
+  }
+  return "";
+}
+
+function parseAdminRecipients(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+
+  // supporta: "a@a.it" oppure "a@a.it,b@b.it; c@c.it"
+  const parts = s.split(/[,;]+/).map((x) => x.trim()).filter(Boolean);
+  if (!parts.length) return null;
+  return parts.length === 1 ? parts[0] : parts;
+}
+
+async function sendAdminNewOrderEmail({ order, user }) {
+  const adminToRaw = process.env.MAIL_ADMIN_TO;
+  const adminTo = parseAdminRecipients(adminToRaw);
+  if (!adminTo) return; // se non configurato, non fare nulla
+
+  const publicId = coalesceStr(order?.publicId);
+  const orderId = coalesceStr(order?._id);
+  const orderLabel = publicId || (orderId ? `#${orderId.slice(-6)}` : "ordine");
+
+  const userName = coalesceStr(
+    user?.name,
+    user?.fullName,
+    order?.customerName,
+    order?.shippingAddress?.name
+  );
+
+  const userEmail = coalesceStr(
+    user?.email,
+    user?.mail,
+    order?.userEmail,
+    order?.customerEmail
+  );
+
+  const userId = coalesceStr(user?.sub, user?._id, order?.userId);
+
+  const items = Array.isArray(order?.items) ? order.items : [];
+  const total = formatEURFromCents(order?.totalCents);
+  const shippingCents = Number(order?.shippingCents) || 0;
+  const shipping = shippingCents === 0 ? "Gratis" : formatEURFromCents(shippingCents);
+  const subtotal = formatEURFromCents(order?.subtotalCents);
+  const discountCents = Number(order?.discountCents) || 0;
+  const discountLabel = String(order?.discountLabel || "").trim();
+
+  const subject = `NUOVO ORDINE ${orderLabel} — ${total}`;
+
+  const text = `Nuovo ordine ricevuto ✅
+Ordine: ${orderLabel}
+Cliente: ${userName || "-"}${userEmail ? ` <${userEmail}>` : ""}
+UserId: ${userId || "-"}
+
+Articoli:
+${items.length ? buildItemsText(items) : "- (nessun articolo in payload)"}
+
+Riepilogo:
+Subtotale: ${subtotal}
+${discountCents > 0 ? `Sconto${discountLabel ? ` (${discountLabel})` : ""}: -${formatEURFromCents(discountCents)}` : ""}
+Spedizione: ${shipping}
+Totale: ${total}
+`;
+
+  const itemsTableHtml = items.length
+    ? `
+      <table style="width:100%; border-collapse:collapse; margin-top:12px;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding:8px 0; border-bottom:1px solid #eee;">Prodotto</th>
+            <th style="text-align:center; padding:8px 0; border-bottom:1px solid #eee;">Qta</th>
+            <th style="text-align:right; padding:8px 0; border-bottom:1px solid #eee;">Totale</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${buildItemsRowsHtml(items)}
+        </tbody>
+      </table>
+    `
+    : `<p style="margin:10px 0 0; color:#555;">(Nessun articolo in payload)</p>`;
+
+  const html = `
+    <div style="font-family:Arial,sans-serif; line-height:1.45; color:#111;">
+      <h2 style="margin:0 0 10px;">Nuovo ordine ricevuto ✅</h2>
+
+      <p style="margin:0 0 10px;">
+        <strong>Ordine:</strong> ${escapeHtml(orderLabel)}<br/>
+        <strong>Cliente:</strong> ${escapeHtml(userName || "-")}
+        ${userEmail ? `&lt;${escapeHtml(userEmail)}&gt;` : ""}<br/>
+        <strong>UserId:</strong> ${escapeHtml(userId || "-")}
+      </p>
+
+      ${itemsTableHtml}
+
+      <table style="width:100%; border-collapse:collapse; margin-top:12px;">
+        <tbody>
+          <tr>
+            <td style="padding:4px 0;">Subtotale</td>
+            <td style="padding:4px 0; text-align:right;">${escapeHtml(subtotal)}</td>
+          </tr>
+          ${discountCents > 0
+      ? `<tr>
+                 <td style="padding:4px 0;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
+                 <td style="padding:4px 0; text-align:right;">- ${escapeHtml(formatEURFromCents(discountCents))}</td>
+               </tr>`
+      : ""
+    }
+          <tr>
+            <td style="padding:4px 0;">Spedizione</td>
+            <td style="padding:4px 0; text-align:right;">${escapeHtml(shipping)}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; font-weight:700;">Totale</td>
+            <td style="padding:8px 0; text-align:right; font-weight:700;">${escapeHtml(total)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  return sendMail({ to: adminTo, subject, html, text });
+}
+
+
 module.exports = {
   sendMail,
   verifySmtp,
@@ -429,7 +558,8 @@ module.exports = {
   sendShipmentEmail,
   sendOrderPaymentConfirmedEmail,
   sendBankTransferInstructionsEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendAdminNewOrderEmail
 };
 
 
