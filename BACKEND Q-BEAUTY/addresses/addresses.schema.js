@@ -12,6 +12,7 @@ const AddressSchema = new mongoose.Schema(
         phone: { type: String, trim: true, default: "" },
         email: { type: String, trim: true, lowercase: true, default: "" },
 
+        taxCode: { type: String, trim: true, uppercase: true, default: "" },
         address: { type: String, trim: true, default: "" },
         streetNumber: { type: String, trim: true, default: "" },
         city: { type: String, trim: true, default: "" },

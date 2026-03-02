@@ -53,8 +53,8 @@ async function create(req, res) {
             return res.status(400).json({ message: "Validation error", errors });
         }
 
-        const { items, shippingAddress, shippingAddressId, couponCode } = req.body || {};
-        const { order, quote } = await createOrder(userId, items, shippingAddress, shippingAddressId, couponCode);
+        const { items, shippingAddress, shippingAddressId, couponCode, taxCode } = req.body || {};
+        const { order, quote } = await createOrder(userId, items, shippingAddress, shippingAddressId, couponCode, taxCode);
 
         return res.status(201).json({
             orderId: order._id,

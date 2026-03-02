@@ -312,8 +312,20 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
     };
 }
 
-async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId, couponCode) {
+async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId, couponCode, taxCodeRaw) {
     const quote = await computeQuote(userId, itemsRaw, couponCode);
+
+    function normalizeTaxCode(v) {
+        return String(v || "").trim().toUpperCase();
+    }
+
+    const incomingTaxCode =
+        normalizeTaxCode(
+            taxCodeRaw ||
+            shippingAddress?.taxCode ||
+            shippingAddress?.codiceFiscale ||
+            shippingAddress?.fiscalCode
+        ) || null;
 
     let normalizedAddress = null;
     let shippingAddressRef = null;
@@ -326,6 +338,11 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             throw err;
         }
 
+        const addrTaxCode =
+            normalizeTaxCode(addr?.taxCode || addr?.codiceFiscale || addr?.fiscalCode) || null;
+
+        const finalTaxCode = incomingTaxCode || addrTaxCode || null;
+
         shippingAddressRef = addr._id;
         normalizedAddress = normalizeShippingAddress({
             name: addr.name,
@@ -335,9 +352,21 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             city: addr.city,
             cap: addr.cap,
         });
+
+        if (finalTaxCode) normalizedAddress.taxCode = finalTaxCode;
+
+        // se il CF arriva ora e l'indirizzo salvato non lo aveva, proviamo a salvarlo in rubrica indirizzi
+        if (incomingTaxCode && !addrTaxCode) {
+            await Address.updateOne(
+                { _id: addr._id, user: userId },
+                { $set: { taxCode: incomingTaxCode, updatedAt: new Date() } }
+            );
+        }
+
     }
     else if (shippingAddress) {
         normalizedAddress = normalizeShippingAddress(shippingAddress);
+        if (incomingTaxCode) normalizedAddress.taxCode = incomingTaxCode;
     }
 
     if (!normalizedAddress) {
