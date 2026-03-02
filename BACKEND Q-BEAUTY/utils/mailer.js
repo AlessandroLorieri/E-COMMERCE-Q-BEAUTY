@@ -40,6 +40,8 @@ async function sendMailResend({ from, to, subject, html, text }) {
     throw new Error("fetch non disponibile: assicurati di usare Node 18+ su Render");
   }
 
+  const replyTo = String(process.env.MAIL_REPLY_TO || "").trim() || undefined;
+
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -49,6 +51,7 @@ async function sendMailResend({ from, to, subject, html, text }) {
     body: JSON.stringify({
       from,
       to: Array.isArray(to) ? to : [to],
+      reply_to: replyTo ? [replyTo] : undefined,
       subject,
       html,
       text,
@@ -68,9 +71,12 @@ async function sendMail({ to, subject, html, text }) {
   const finalTo = resolveRecipient(to);
 
   if (MAIL_TRANSPORT === "smtp") {
+    const replyTo = String(process.env.MAIL_REPLY_TO || "").trim() || undefined;
+
     return transporter.sendMail({
       from,
       to: finalTo,
+      replyTo,
       subject,
       html,
       text,
