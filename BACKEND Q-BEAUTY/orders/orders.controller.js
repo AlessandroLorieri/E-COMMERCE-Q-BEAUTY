@@ -15,7 +15,6 @@ const Order = require("./orders.schema");
 
 const { validateCreateOrderBody, validateQuoteBody } = require("./validators/createOrder.validator");
 
-const { sendAdminNewOrderEmail } = require("../utils/mailer");
 
 async function quote(req, res) {
     try {
@@ -56,10 +55,6 @@ async function create(req, res) {
 
         const { items, shippingAddress, shippingAddressId, couponCode } = req.body || {};
         const { order, quote } = await createOrder(userId, items, shippingAddress, shippingAddressId, couponCode);
-
-        sendAdminNewOrderEmail({ order, user: req.user }).catch((e) => {
-            console.error("Admin new order email failed:", e.message || e);
-        });
 
         return res.status(201).json({
             orderId: order._id,

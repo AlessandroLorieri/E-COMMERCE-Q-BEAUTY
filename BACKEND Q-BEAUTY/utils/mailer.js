@@ -435,7 +435,6 @@ function parseAdminRecipients(raw) {
   const s = String(raw || "").trim();
   if (!s) return null;
 
-  // supporta: "a@a.it" oppure "a@a.it,b@b.it; c@c.it"
   const parts = s.split(/[,;]+/).map((x) => x.trim()).filter(Boolean);
   if (!parts.length) return null;
   return parts.length === 1 ? parts[0] : parts;

@@ -1,7 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 
-const { sendOrderPaymentConfirmedEmail } = require("../utils/mailer");
+const { sendOrderPaymentConfirmedEmail, sendAdminNewOrderEmail } = require("../utils/mailer");
 
 module.exports = function makeStripeWebhookRouter({ stripe }) {
     const router = express.Router();
@@ -139,6 +139,45 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                                     orderId: String(orderId),
                                 });
                                 break;
+                            }
+
+                            if (!order.adminEmailSentAt) {
+                                const fallbackEmail =
+                                    order?.shippingAddress?.email ||
+                                    session?.customer_details?.email ||
+                                    session?.customer_email ||
+                                    null;
+
+                                const name = [order?.shippingAddress?.name, order?.shippingAddress?.surname]
+                                    .filter(Boolean)
+                                    .join(" ")
+                                    .trim();
+
+                                try {
+                                    await withTimeout(
+                                        sendAdminNewOrderEmail({
+                                            order,
+                                            user: {
+                                                _id: order.user,
+                                                name,
+                                                email: fallbackEmail,
+                                            },
+                                        }),
+                                        15000,
+                                        "sendAdminNewOrderEmail"
+                                    );
+
+                                    await ordersCol.updateOne(
+                                        { _id, adminEmailSentAt: { $exists: false } },
+                                        { $set: { adminEmailSentAt: new Date() } }
+                                    );
+
+                                    console.log("Stripe webhook: email admin nuovo ordine inviata", {
+                                        orderId: String(order._id),
+                                    });
+                                } catch (e) {
+                                    console.error("Email admin nuovo ordine fallita:", e?.message || e);
+                                }
                             }
 
                             const to =
