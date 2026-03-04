@@ -264,6 +264,17 @@ export default function AdminOrders() {
                     const isOpen = openId === o._id;
                     const u = o.user || {};
                     const meta = statusMeta(o.status);
+                    const ship = o?.shippingAddress || {};
+                    const shipFullName = [ship?.name, ship?.surname].filter(Boolean).join(" ").trim() || "-";
+                    const shipEmail = ship?.email || u?.email || "-";
+                    const shipPhone = ship?.phone || "-";
+                    const shipTaxCode = ship?.taxCode || "-";
+
+                    const shipStreetNumber = ship?.streetNumber ? `, ${ship.streetNumber}` : "";
+                    const shipAddressLine = ship?.address ? `${ship.address}${shipStreetNumber}` : "-";
+                    const shipCityCap = `${ship?.city || "-"} (${ship?.cap || "-"})`;
+
+                    const items = Array.isArray(o?.items) ? o.items : [];
 
                     const canShip = o.status === "processing" || o.status === "paid";
 
@@ -273,19 +284,6 @@ export default function AdminOrders() {
                         trackingUrl: o?.shipment?.trackingUrl || "",
                     };
 
-                    const trackingNotified = Boolean(o?.shipment?.notifiedAt);
-
-                    const shippedLocked =
-                        o.status === "shipped" ||
-                        o.status === "completed" ||
-                        Boolean(o?.shipment?.notifiedAt || o?.shipment?.shippedAt);
-
-                    const hasTracking =
-                        Boolean(String(draft.trackingCode || "").trim() && String(draft.trackingUrl || "").trim());
-
-                    const canShipStatus = o.status === "processing" || o.status === "paid" || o.status === "shipped";
-                    const canSendShipment = canShipStatus && hasTracking && !trackingNotified;
-
                     function setDraftField(field, value) {
                         setTrackingDraft((prev) => ({
                             ...prev,
@@ -293,13 +291,51 @@ export default function AdminOrders() {
                         }));
                     }
 
+                    function looksLikeUrl(s) {
+                        const v = String(s || "").trim().toLowerCase();
+                        return v.startsWith("http://") || v.startsWith("https://") || v.startsWith("www.");
+                    }
+
+                    function normalizeUrlInput(s) {
+                        const v = String(s || "").trim();
+                        if (!v) return "";
+                        if (/^https?:\/\//i.test(v)) return v;
+                        return `https://${v}`;
+                    }
+
+                    // Validazioni
+                    const trackingCodeIsUrl = looksLikeUrl(draft.trackingCode);
+
+                    const normalizedUrl = normalizeUrlInput(draft.trackingUrl);
+                    const trackingUrlOk = (() => {
+                        if (!normalizedUrl) return false;
+                        try {
+                            const parsed = new URL(normalizedUrl);
+                            return (parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.hostname.includes(".");
+                        } catch {
+                            return false;
+                        }
+                    })();
+
+                    const trackingCodeError = trackingCodeIsUrl ? "Qui va il codice, non un link." : "";
+                    const trackingUrlError = draft.trackingUrl && !trackingUrlOk ? "Inserisci un link valido (http/https)." : "";
+
+                    const trackingNotified = Boolean(o?.shipment?.notifiedAt);
+
+                    const hasTracking =
+                        Boolean(String(draft.trackingCode || "").trim()) &&
+                        trackingUrlOk &&
+                        !trackingCodeIsUrl;
+
+                    const canShipStatus = o.status === "processing" || o.status === "paid" || o.status === "shipped";
+                    const canSendShipment = canShipStatus && hasTracking && !trackingNotified;
+
                     const subtotal = Number(o.subtotalCents ?? 0);
                     const discount = Number(o.discountCents ?? 0);
                     const totalCents = Number(o.totalCents ?? 0);
 
                     const computedShipping = Math.max(0, totalCents - Math.max(0, subtotal - discount));
                     const shipping = Number.isFinite(Number(o.shippingCents)) ? Number(o.shippingCents) : computedShipping;
-
 
                     return (
                         <div
@@ -338,87 +374,49 @@ export default function AdminOrders() {
                                 <div className="mt-3 pt-3 border-top">
 
                                     <div className="mb-3">
-                                        <div className="fw-semibold mb-2">Tracking spedizione</div>
-
-                                        <div className="d-flex flex-wrap gap-2">
-                                            <input
-                                                className="form-control"
-                                                style={{ maxWidth: 220 }}
-                                                placeholder="Corriere (es. GLS)"
-                                                value={draft.carrierName}
-                                                onChange={(e) => setDraftField("carrierName", e.target.value)}
-                                                disabled={savingId === o._id || shippedLocked}
-                                            />
-
-                                            <input
-                                                className="form-control"
-                                                style={{ maxWidth: 260 }}
-                                                placeholder="Codice spedizione"
-                                                value={draft.trackingCode}
-                                                onChange={(e) => setDraftField("trackingCode", e.target.value)}
-                                                disabled={savingId === o._id || shippedLocked}
-                                            />
-
-                                            <input
-                                                className="form-control"
-                                                style={{ maxWidth: 360 }}
-                                                placeholder="Link tracking"
-                                                value={draft.trackingUrl}
-                                                onChange={(e) => setDraftField("trackingUrl", e.target.value)}
-                                                disabled={savingId === o._id || shippedLocked}
-                                            />
-                                        </div>
-
-                                        <div className="mt-2">
-                                            <button
-                                                type="button"
-                                                className={`btn btn-sm ${trackingNotified ? "btn-success" : "btn-primary"}`}
-                                                disabled={savingId === o._id || !canSendShipment}
-                                                onClick={() => setStatus(o._id, "shipped", draft)}
-                                                title={
-                                                    trackingNotified
-                                                        ? "Tracking già inviato"
-                                                        : !canShipStatus
-                                                            ? "Puoi spedire solo se l'ordine è Pagato/In preparazione"
-                                                            : !hasTracking
-                                                                ? "Inserisci codice tracking e link tracking"
-                                                                : ""
-                                                }
-                                            >
-                                                {savingId === o._id ? "..." : trackingNotified ? "Tracking inviato ✅" : "Segna come spedito + invia tracking"}
-                                            </button>
+                                        <div className="fw-semibold mb-2">Dati cliente</div>
+                                        <div style={{ fontSize: 14 }}>
+                                            <div><span className="text-muted">Nome:</span> <b>{shipFullName}</b></div>
+                                            <div><span className="text-muted">Email:</span> <b>{shipEmail}</b></div>
+                                            <div><span className="text-muted">Telefono:</span> <b>{shipPhone}</b></div>
+                                            <div><span className="text-muted">Tipo:</span> <b>{u?.customerType || "-"}</b></div>
                                         </div>
                                     </div>
 
+                                    <div className="mb-3">
+                                        <div className="fw-semibold mb-2">Spedizione / Fatturazione</div>
+                                        <div style={{ fontSize: 14 }}>
+                                            <div><span className="text-muted">Indirizzo:</span> <b>{shipAddressLine}</b></div>
+                                            <div><span className="text-muted">Città:</span> <b>{shipCityCap}</b></div>
+                                            <div><span className="text-muted">CF / P.IVA:</span> <b>{shipTaxCode}</b></div>
+                                        </div>
+                                    </div>
 
-                                    <div className="d-flex flex-wrap gap-2 align-items-center">
+                                    <div className="mb-3">
+                                        <div className="fw-semibold mb-2">Articoli ordinati</div>
 
-                                        <div className="fw-semibold me-2">Cambia stato:</div>
-                                        {o.status === "pending_payment" ? (
-                                            <div className="mb-3">
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-sm btn-outline-danger"
-                                                    disabled={savingId === o._id}
-                                                    onClick={() => cancelOrder(o)}
-                                                >
-                                                    {savingId === o._id ? "..." : "Annulla ordine"}
-                                                </button>
+                                        {items.length ? (
+                                            <div className="list-group">
+                                                {items.map((it, idx) => (
+                                                    <div
+                                                        key={it.productRef || it.productId || idx}
+                                                        className="list-group-item d-flex justify-content-between align-items-start"
+                                                    >
+                                                        <div>
+                                                            <div className="fw-semibold">{it?.name || "Prodotto"}</div>
+                                                            <div className="text-muted" style={{ fontSize: 13 }}>
+                                                                Qta: {Number(it?.qty) || 1} • Prezzo: {formatEURFromCents(it?.unitPriceCents)}
+                                                            </div>
+                                                        </div>
+                                                        <div className="fw-semibold">{formatEURFromCents(it?.lineTotalCents)}</div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ) : null}
-
-                                        {STATUS_OPTIONS.map((s) => (
-                                            <button
-                                                key={s.value}
-                                                type="button"
-                                                className={`btn btn-sm ${o.status === s.value ? "btn-primary" : "btn-outline-primary"
-                                                    }`}
-                                                disabled={savingId === o._id}
-                                                onClick={() => (s.value === "shipped" ? setStatus(o._id, s.value, draft) : setStatus(o._id, s.value))}
-                                            >
-                                                {savingId === o._id ? "..." : s.label}
-                                            </button>
-                                        ))}
+                                        ) : (
+                                            <div className="text-muted" style={{ fontSize: 13 }}>
+                                                Nessun articolo presente nell’ordine.
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="mt-3">
@@ -449,9 +447,103 @@ export default function AdminOrders() {
                                         </div>
                                     </div>
 
-
                                     <div className="mt-3 text-muted" style={{ fontSize: 13 }}>
                                         ID: {o._id}
+                                    </div>
+
+                                    <div className="mb-3 mt-5">
+                                        <div className="fw-semibold mb-2">Tracking spedizione</div>
+
+                                        <div className="d-flex flex-wrap gap-2">
+                                            <input
+                                                className="form-control"
+                                                style={{ maxWidth: 220 }}
+                                                placeholder="Corriere (es. GLS)"
+                                                value={draft.carrierName}
+                                                onChange={(e) => setDraftField("carrierName", e.target.value)}
+                                                disabled={savingId === o._id || trackingNotified}
+                                            />
+
+                                            <input
+                                                className="form-control"
+                                                style={{ maxWidth: 260 }}
+                                                placeholder="Codice spedizione"
+                                                value={draft.trackingCode}
+                                                onChange={(e) => {
+                                                    const v = String(e.target.value || "");
+                                                    if (looksLikeUrl(v)) return;
+                                                    setDraftField("trackingCode", v);
+                                                }}
+                                                disabled={savingId === o._id || trackingNotified}
+                                            />
+
+                                            <input
+                                                type="url"
+                                                className="form-control"
+                                                style={{ maxWidth: 360 }}
+                                                placeholder="Link tracking"
+                                                value={draft.trackingUrl}
+                                                onChange={(e) => setDraftField("trackingUrl", normalizeUrlInput(e.target.value))}
+                                                disabled={savingId === o._id || trackingNotified}
+                                            />
+                                        </div>
+
+                                        {(trackingCodeError || trackingUrlError) ? (
+                                            <div className="text-danger mt-2" style={{ fontSize: 13 }}>
+                                                {trackingCodeError || trackingUrlError}
+                                            </div>
+                                        ) : null}
+
+                                        <div className="mt-2">
+                                            <button
+                                                type="button"
+                                                className={`btn btn-sm ${trackingNotified ? "btn-success" : "btn-primary"}`}
+                                                disabled={savingId === o._id || !canSendShipment}
+                                                onClick={() => setStatus(o._id, "shipped", draft)}
+                                                title={
+                                                    trackingNotified
+                                                        ? "Tracking già inviato"
+                                                        : !canShipStatus
+                                                            ? "Puoi spedire solo se l'ordine è Pagato/In preparazione"
+                                                            : !hasTracking
+                                                                ? "Inserisci codice tracking e link tracking"
+                                                                : ""
+                                                }
+                                            >
+                                                {savingId === o._id ? "..." : trackingNotified ? "Tracking inviato ✅" : "Segna come spedito + invia tracking"}
+                                            </button>
+                                        </div>
+                                    </div>
+
+
+                                    <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
+
+                                        <div className="fw-semibold me-2">Cambia stato:</div>
+                                        {o.status === "pending_payment" ? (
+                                            <div className="mb-3">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-outline-danger"
+                                                    disabled={savingId === o._id}
+                                                    onClick={() => cancelOrder(o)}
+                                                >
+                                                    {savingId === o._id ? "..." : "Annulla ordine"}
+                                                </button>
+                                            </div>
+                                        ) : null}
+
+                                        {STATUS_OPTIONS.map((s) => (
+                                            <button
+                                                key={s.value}
+                                                type="button"
+                                                className={`btn btn-sm ${o.status === s.value ? "btn-primary" : "btn-outline-primary"
+                                                    }`}
+                                                disabled={savingId === o._id}
+                                                onClick={() => (s.value === "shipped" ? setStatus(o._id, s.value, draft) : setStatus(o._id, s.value))}
+                                            >
+                                                {savingId === o._id ? "..." : s.label}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
                             ) : null}
