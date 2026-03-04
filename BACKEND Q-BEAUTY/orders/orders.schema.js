@@ -22,7 +22,11 @@ const ShippingAddressSchema = new mongoose.Schema(
         surname: { type: String, trim: true, default: "" },
         phone: { type: String, trim: true, default: "" },
         email: { type: String, trim: true, lowercase: true, default: "" },
+
+        taxCode: { type: String, trim: true, uppercase: true, default: "" },
+
         address: { type: String, trim: true, default: "" },
+        streetNumber: { type: String, trim: true, default: "" },
         city: { type: String, trim: true, default: "" },
         cap: { type: String, trim: true, default: "" },
     },

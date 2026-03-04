@@ -51,10 +51,9 @@ function normalizeShippingAddress(addr) {
         surname: toTitleCaseItalian(a.surname),
         phone: collapseSpaces(a.phone),
         email: normalizeEmail(a.email),
-
+        taxCode: String(a.taxCode || "").trim().toUpperCase(),
         address: finalAddress,
         streetNumber: finalStreetNumber,
-
         city: toTitleCaseItalian(a.city),
         cap: normalizeCap(a.cap),
     };

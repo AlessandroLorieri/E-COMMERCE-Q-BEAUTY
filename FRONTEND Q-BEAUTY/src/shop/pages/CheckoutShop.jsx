@@ -494,13 +494,13 @@ export default function CheckoutShop() {
             let created;
 
             if (addressMode === "saved" && selectedAddressId) {
-                created = await createOrder({ shippingAddressId: selectedAddressId, taxCode });
+                created = await createOrder({ shippingAddressId: selectedAddressId, taxCode, paymentMethod: "bank_transfer" });
             } else {
                 if (saveToAddressBook) {
                     const saved = await createAddress({ label: addressLabel.trim(), ...payload });
-                    created = await createOrder({ shippingAddressId: saved._id, taxCode });
+                    created = await createOrder({ shippingAddressId: saved._id, taxCode, paymentMethod: "bank_transfer" });
                 } else {
-                    created = await createOrder({ shippingAddress: payload, taxCode });
+                    created = await createOrder({ shippingAddress: payload, taxCode, paymentMethod: "bank_transfer" });
                 }
             }
 

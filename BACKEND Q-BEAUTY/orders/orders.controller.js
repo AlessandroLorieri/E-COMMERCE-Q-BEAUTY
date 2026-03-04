@@ -13,6 +13,10 @@ const {
 
 const Order = require("./orders.schema");
 
+const mongoose = require("mongoose");
+const User = require("../authorization/authorization.schema");
+const { sendAdminNewOrderEmail } = require("../utils/mailer");
+
 const { validateCreateOrderBody, validateQuoteBody } = require("./validators/createOrder.validator");
 
 
@@ -53,8 +57,35 @@ async function create(req, res) {
             return res.status(400).json({ message: "Validation error", errors });
         }
 
-        const { items, shippingAddress, shippingAddressId, couponCode, taxCode } = req.body || {};
+        const { items, shippingAddress, shippingAddressId, couponCode, taxCode, paymentMethod } = req.body || {};
         const { order, quote } = await createOrder(userId, items, shippingAddress, shippingAddressId, couponCode, taxCode);
+
+        if (String(paymentMethod || "").trim() === "bank_transfer") {
+            setImmediate(async () => {
+                try {
+                    const u = await User.findById(userId).select("email firstName lastName").lean();
+
+                    await sendAdminNewOrderEmail({
+                        order,
+                        user: {
+                            _id: userId,
+                            email: u?.email || null,
+                            name: [u?.firstName, u?.lastName].filter(Boolean).join(" ").trim(),
+                        },
+                        paymentMethod: "bank_transfer",
+                    });
+
+                    try {
+                        await mongoose.connection.collection("orders").updateOne(
+                            { _id: new mongoose.Types.ObjectId(String(order._id)), adminEmailSentAt: { $exists: false } },
+                            { $set: { adminEmailSentAt: new Date() } }
+                        );
+                    } catch { }
+                } catch (e) {
+                    console.error("Admin bank-transfer email failed:", e?.message || e);
+                }
+            });
+        }
 
         return res.status(201).json({
             orderId: order._id,

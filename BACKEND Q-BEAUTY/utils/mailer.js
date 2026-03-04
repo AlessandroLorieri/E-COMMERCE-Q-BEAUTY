@@ -440,10 +440,10 @@ function parseAdminRecipients(raw) {
   return parts.length === 1 ? parts[0] : parts;
 }
 
-async function sendAdminNewOrderEmail({ order, user }) {
+async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
   const adminToRaw = process.env.MAIL_ADMIN_TO;
   const adminTo = parseAdminRecipients(adminToRaw);
-  if (!adminTo) return; // se non configurato, non fare nulla
+  if (!adminTo) return;
 
   const publicId = coalesceStr(order?.publicId);
   const orderId = coalesceStr(order?._id);
@@ -460,7 +460,8 @@ async function sendAdminNewOrderEmail({ order, user }) {
     user?.email,
     user?.mail,
     order?.userEmail,
-    order?.customerEmail
+    order?.customerEmail,
+    order?.shippingAddress?.email
   );
 
   const userId = coalesceStr(user?.sub, user?._id, order?.userId);
@@ -473,12 +474,58 @@ async function sendAdminNewOrderEmail({ order, user }) {
   const discountCents = Number(order?.discountCents) || 0;
   const discountLabel = String(order?.discountLabel || "").trim();
 
-  const subject = `NUOVO ORDINE ${orderLabel} — ${total}`;
+  // Spedizione / Fatturazione
+  const ship = order?.shippingAddress || {};
+  const shipName = coalesceStr(ship?.name, order?.customerName, userName);
+  const shipSurname = coalesceStr(ship?.surname);
+  const shipFullName = [shipName, shipSurname].filter(Boolean).join(" ").trim() || "-";
+
+  const shipEmail = coalesceStr(ship?.email, userEmail);
+  const shipPhone = coalesceStr(ship?.phone);
+
+  const shipAddress = coalesceStr(ship?.address);
+  const shipStreetNumber = coalesceStr(ship?.streetNumber);
+  const shipCity = coalesceStr(ship?.city);
+  const shipCap = coalesceStr(ship?.cap);
+
+  const shipTaxCode = coalesceStr(ship?.taxCode, ship?.codiceFiscale, ship?.fiscalCode);
+
+  // Metodo/stato pagamento
+  const normPay = (v) => String(v || "").trim().toLowerCase();
+  const providerRaw = normPay(paymentMethod || order?.paymentProvider);
+
+  let paymentProviderLabel = "—";
+  if (providerRaw.includes("stripe")) paymentProviderLabel = "Stripe";
+  else if (providerRaw.includes("bank") || providerRaw.includes("bonifico")) paymentProviderLabel = "Bonifico";
+  else if (order?.stripeCheckoutSessionId || order?.stripePaymentIntentId) paymentProviderLabel = "Stripe";
+
+  const statusRaw = String(order?.status || "").trim();
+  const paidStatuses = new Set(["paid", "processing", "shipped", "completed"]);
+  const paymentStateLabel = paidStatuses.has(statusRaw)
+    ? "Pagato"
+    : statusRaw === "pending_payment"
+      ? "In attesa pagamento"
+      : statusRaw === "cancelled"
+        ? "Annullato"
+        : statusRaw === "refunded"
+          ? "Rimborsato"
+          : statusRaw || "—";
+
+  const subject = `NUOVO ORDINE ${orderLabel} — ${total} (${paymentProviderLabel})`;
 
   const text = `Nuovo ordine ricevuto ✅
 Ordine: ${orderLabel}
 Cliente: ${userName || "-"}${userEmail ? ` <${userEmail}>` : ""}
 UserId: ${userId || "-"}
+Pagamento: ${paymentStateLabel} • Metodo: ${paymentProviderLabel}
+
+Spedizione / Fatturazione:
+Nome: ${shipFullName}
+Email: ${shipEmail || "-"}
+Telefono: ${shipPhone || "-"}
+Indirizzo: ${shipAddress}${shipStreetNumber ? `, ${shipStreetNumber}` : ""}
+Città: ${shipCity || "-"} (CAP: ${shipCap || "-"})
+CF/P.IVA: ${shipTaxCode || "-"}
 
 Articoli:
 ${items.length ? buildItemsText(items) : "- (nessun articolo in payload)"}
@@ -515,8 +562,19 @@ Totale: ${total}
         <strong>Ordine:</strong> ${escapeHtml(orderLabel)}<br/>
         <strong>Cliente:</strong> ${escapeHtml(userName || "-")}
         ${userEmail ? `&lt;${escapeHtml(userEmail)}&gt;` : ""}<br/>
-        <strong>UserId:</strong> ${escapeHtml(userId || "-")}
+        <strong>UserId:</strong> ${escapeHtml(userId || "-")}<br/>
+        <strong>Pagamento:</strong> ${escapeHtml(paymentStateLabel)} • <strong>Metodo:</strong> ${escapeHtml(paymentProviderLabel)}
       </p>
+
+      <div style="margin:12px 0; padding:12px; border:1px solid #eee; border-radius:10px;">
+        <div style="font-weight:700; margin-bottom:6px;">Spedizione / Fatturazione</div>
+        <div><strong>Nome:</strong> ${escapeHtml(shipFullName)}</div>
+        <div><strong>Email:</strong> ${escapeHtml(shipEmail || "-")}</div>
+        <div><strong>Telefono:</strong> ${escapeHtml(shipPhone || "-")}</div>
+        <div><strong>Indirizzo:</strong> ${escapeHtml(shipAddress || "-")}${shipStreetNumber ? `, ${escapeHtml(shipStreetNumber)}` : ""}</div>
+        <div><strong>Città:</strong> ${escapeHtml(shipCity || "-")} <span style="color:#666;">(CAP: ${escapeHtml(shipCap || "-")})</span></div>
+        <div><strong>CF/P.IVA:</strong> ${escapeHtml(shipTaxCode || "-")}</div>
+      </div>
 
       ${itemsTableHtml}
 
@@ -528,9 +586,9 @@ Totale: ${total}
           </tr>
           ${discountCents > 0
       ? `<tr>
-                 <td style="padding:4px 0;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
-                 <td style="padding:4px 0; text-align:right;">- ${escapeHtml(formatEURFromCents(discountCents))}</td>
-               </tr>`
+                   <td style="padding:4px 0;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
+                   <td style="padding:4px 0; text-align:right;">- ${escapeHtml(formatEURFromCents(discountCents))}</td>
+                 </tr>`
       : ""
     }
           <tr>

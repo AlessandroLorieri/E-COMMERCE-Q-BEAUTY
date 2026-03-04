@@ -267,12 +267,24 @@ export default function AdminOrders() {
 
                     const canShip = o.status === "processing" || o.status === "paid";
 
-
                     const draft = trackingDraft[o._id] || {
                         carrierName: o?.shipment?.carrierName || "",
                         trackingCode: o?.shipment?.trackingCode || "",
                         trackingUrl: o?.shipment?.trackingUrl || "",
                     };
+
+                    const trackingNotified = Boolean(o?.shipment?.notifiedAt);
+
+                    const shippedLocked =
+                        o.status === "shipped" ||
+                        o.status === "completed" ||
+                        Boolean(o?.shipment?.notifiedAt || o?.shipment?.shippedAt);
+
+                    const hasTracking =
+                        Boolean(String(draft.trackingCode || "").trim() && String(draft.trackingUrl || "").trim());
+
+                    const canShipStatus = o.status === "processing" || o.status === "paid" || o.status === "shipped";
+                    const canSendShipment = canShipStatus && hasTracking && !trackingNotified;
 
                     function setDraftField(field, value) {
                         setTrackingDraft((prev) => ({
@@ -335,14 +347,16 @@ export default function AdminOrders() {
                                                 placeholder="Corriere (es. GLS)"
                                                 value={draft.carrierName}
                                                 onChange={(e) => setDraftField("carrierName", e.target.value)}
+                                                disabled={savingId === o._id || shippedLocked}
                                             />
 
                                             <input
                                                 className="form-control"
                                                 style={{ maxWidth: 260 }}
-                                                placeholder="Codice tracking"
+                                                placeholder="Codice spedizione"
                                                 value={draft.trackingCode}
                                                 onChange={(e) => setDraftField("trackingCode", e.target.value)}
+                                                disabled={savingId === o._id || shippedLocked}
                                             />
 
                                             <input
@@ -351,18 +365,27 @@ export default function AdminOrders() {
                                                 placeholder="Link tracking"
                                                 value={draft.trackingUrl}
                                                 onChange={(e) => setDraftField("trackingUrl", e.target.value)}
+                                                disabled={savingId === o._id || shippedLocked}
                                             />
                                         </div>
 
                                         <div className="mt-2">
                                             <button
                                                 type="button"
-                                                className="btn btn-sm btn-primary"
-                                                disabled={savingId === o._id || !canShip}
+                                                className={`btn btn-sm ${trackingNotified ? "btn-success" : "btn-primary"}`}
+                                                disabled={savingId === o._id || !canSendShipment}
                                                 onClick={() => setStatus(o._id, "shipped", draft)}
-                                                title={!canShip ? "Inserisci codice tracking o link tracking" : ""}
+                                                title={
+                                                    trackingNotified
+                                                        ? "Tracking già inviato"
+                                                        : !canShipStatus
+                                                            ? "Puoi spedire solo se l'ordine è Pagato/In preparazione"
+                                                            : !hasTracking
+                                                                ? "Inserisci codice tracking e link tracking"
+                                                                : ""
+                                                }
                                             >
-                                                {savingId === o._id ? "..." : "Segna come spedito + invia tracking"}
+                                                {savingId === o._id ? "..." : trackingNotified ? "Tracking inviato ✅" : "Segna come spedito + invia tracking"}
                                             </button>
                                         </div>
                                     </div>

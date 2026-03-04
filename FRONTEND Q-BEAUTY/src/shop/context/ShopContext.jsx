@@ -387,6 +387,8 @@ export function ShopProvider({ children }) {
 
     function clearCart() {
         setCartRaw([]);
+        setCouponCode("");
+        try { cartStorage.removeItem(couponKey); } catch { }
     }
 
     // TOTALS

@@ -6,7 +6,7 @@ const Address = require("../addresses/addresses.schema");
 const OrderCounter = require("../models/orderCounter.model");
 const mongoose = require("mongoose");
 const Product = require("../products/products.schema");
-const { sendShipmentEmail } = require("../utils/mailer");
+const { sendShipmentEmail, sendOrderPaymentConfirmedEmail } = require("../utils/mailer");
 const { findActiveCouponByCode } = require("../coupons/coupons.services");
 
 async function userHasCompletedOrders(userId) {
@@ -218,6 +218,19 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
             throw err;
         }
 
+        const alreadyUsed = await Order.exists({
+            user: userId,
+            couponCodeApplied: code,
+            status: { $nin: ["cancelled", "refunded"] },
+        });
+
+        if (alreadyUsed) {
+            const err = new Error("Validation error");
+            err.status = 400;
+            err.errors = { couponCode: "Coupon già utilizzato" };
+            throw err;
+        }
+
         const ruleMap = new Map();
         for (const r of coupon.rules || []) {
             const slug = r?.productId != null ? normId(r.productId) : "";
@@ -348,14 +361,18 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             name: addr.name,
             surname: addr.surname,
             email: addr.email,
+            phone: addr.phone,
+            taxCode: finalTaxCode || "",
             address: addr.address,
+            streetNumber: addr.streetNumber,
             city: addr.city,
             cap: addr.cap,
         });
 
+        normalizedAddress.phone = normalizedAddress.phone || addr.phone || "";
+        normalizedAddress.streetNumber = normalizedAddress.streetNumber || addr.streetNumber || "";
         if (finalTaxCode) normalizedAddress.taxCode = finalTaxCode;
 
-        // se il CF arriva ora e l'indirizzo salvato non lo aveva, proviamo a salvarlo in rubrica indirizzi
         if (incomingTaxCode && !addrTaxCode) {
             await Address.updateOne(
                 { _id: addr._id, user: userId },
@@ -366,6 +383,8 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
     }
     else if (shippingAddress) {
         normalizedAddress = normalizeShippingAddress(shippingAddress);
+        normalizedAddress.phone = normalizedAddress.phone || shippingAddress.phone || "";
+        normalizedAddress.streetNumber = normalizedAddress.streetNumber || shippingAddress.streetNumber || "";
         if (incomingTaxCode) normalizedAddress.taxCode = incomingTaxCode;
     }
 
@@ -427,6 +446,9 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
 
         subtotalCents: quote.subtotalCents,
         discountCents: quote.discountCents,
+        couponCodeApplied: quote.couponCodeApplied || null,
+        couponDiscountCents: quote?.discountBreakdown?.couponDiscountCents ?? 0,
+        globalDiscountCents: quote?.discountBreakdown?.globalDiscountCents ?? 0,
         discountLabel: quote.discountLabel,
         shippingCents: quote.shippingCents,
         totalCents: quote.totalCents,
@@ -540,6 +562,40 @@ async function adminSetOrderStatus(orderId, newStatus, shipment) {
     }
 
     await order.save();
+
+    if (order.status === "paid") {
+        try {
+            const ordersCol = mongoose.connection.collection("orders");
+            const raw = await ordersCol.findOne(
+                { _id: order._id },
+                { projection: { paymentEmailSentAt: 1 } }
+            );
+
+            if (raw?.paymentEmailSentAt) {
+                // già inviata, skip
+            } else {
+                const user = await User.findById(order.user).select("email").lean();
+
+                const to = order?.shippingAddress?.email || user?.email || null;
+
+                if (to) {
+                    await sendOrderPaymentConfirmedEmail({ to, order, includeItems: true });
+
+                    await ordersCol.updateOne(
+                        { _id: order._id, paymentEmailSentAt: { $exists: false } },
+                        { $set: { paymentEmailSentAt: new Date() } }
+                    );
+                } else {
+                    console.warn("adminSetOrderStatus: email pagamento non inviata (destinatario mancante)", {
+                        orderId: String(order._id),
+                        publicId: order.publicId,
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("sendOrderPaymentConfirmedEmail (admin paid) failed:", e?.message || e);
+        }
+    }
 
     if (order.status === "shipped") {
         order.shipment = order.shipment || {};
