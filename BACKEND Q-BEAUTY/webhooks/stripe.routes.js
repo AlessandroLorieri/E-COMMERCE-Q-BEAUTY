@@ -136,24 +136,19 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
 
             await ensureStripeEventsIndexes(eventsCol);
 
-            try {
-                await eventsCol.insertOne({
-                    _id: String(event?.id || ""),          // id evento Stripe (unico)
-                    type: String(event?.type || ""),
-                    livemode: Boolean(event?.livemode),
-                    receivedAt: new Date(),
-                    stripeCreatedAt: event?.created ? new Date(Number(event.created) * 1000) : null,
+            const stripeEventId = String(event?.id || "");
+
+            const existingEvent = await eventsCol.findOne(
+                { _id: stripeEventId },
+                { projection: { _id: 1 } }
+            );
+
+            if (existingEvent) {
+                console.log("Stripe webhook: evento duplicato, skip", {
+                    eventId: maskStripeId(event?.id),
+                    type: event?.type,
                 });
-            } catch (e) {
-                // evento già visto → Stripe retry/duplicato → SKIP
-                if (e && (e.code === 11000 || String(e.message || "").includes("E11000"))) {
-                    console.log("Stripe webhook: evento duplicato, skip", {
-                        eventId: maskStripeId(event?.id),
-                        type: event?.type,
-                    });
-                    return;
-                }
-                throw e;
+                return res.status(200).json({ received: true, duplicate: true });
             }
             const claimEmailLock = async ({ _id, sentAtField, lockField }) => {
                 const now = new Date();
@@ -413,6 +408,26 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                     });
                     break;
             }
+            try {
+                await eventsCol.insertOne({
+                    _id: stripeEventId,
+                    type: String(event?.type || ""),
+                    livemode: Boolean(event?.livemode),
+                    receivedAt: new Date(),
+                    stripeCreatedAt: event?.created ? new Date(Number(event.created) * 1000) : null,
+                    processedAt: new Date(),
+                });
+            } catch (e) {
+                if (!(e && (e.code === 11000 || String(e.message || "").includes("E11000")))) {
+                    throw e;
+                }
+
+                console.log("Stripe webhook: evento già registrato in chiusura", {
+                    eventId: maskStripeId(event?.id),
+                    type: event?.type,
+                });
+            }
+
             console.log("✅ Stripe webhook: processing completato", {
                 eventId: maskStripeId(event?.id),
                 type: event?.type,
