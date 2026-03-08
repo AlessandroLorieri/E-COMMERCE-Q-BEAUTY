@@ -6,6 +6,7 @@ const Address = require("../addresses/addresses.schema");
 const OrderCounter = require("../models/orderCounter.model");
 const mongoose = require("mongoose");
 const Product = require("../products/products.schema");
+const Coupon = require("../coupons/coupons.schema");
 const { sendShipmentEmail, sendOrderPaymentConfirmedEmail } = require("../utils/mailer");
 const { findActiveCouponByCode } = require("../coupons/coupons.services");
 
@@ -227,17 +228,43 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
             throw err;
         }
 
-        const alreadyUsed = await Order.exists({
-            user: userId,
-            couponCodeApplied: code,
-            status: { $nin: ["cancelled", "refunded"] },
-        });
+        const couponOwnerUserId = coupon?.ownerUser ? String(coupon.ownerUser) : "";
+        const currentUserId = String(userId || "").trim();
+        const isPersonalCoupon = !!couponOwnerUserId || !!coupon?.isRewardCoupon;
 
-        if (alreadyUsed) {
-            const err = new Error("Validation error");
-            err.status = 400;
-            err.errors = { couponCode: "Coupon già utilizzato" };
-            throw err;
+        if (isPersonalCoupon) {
+            if (!couponOwnerUserId) {
+                const err = new Error("Coupon configurato male");
+                err.status = 500;
+                throw err;
+            }
+
+            if (couponOwnerUserId !== currentUserId) {
+                const err = new Error("Validation error");
+                err.status = 400;
+                err.errors = { couponCode: "Coupon non valido per questo account" };
+                throw err;
+            }
+
+            if (coupon.usedAt || coupon.usedByOrder || coupon.usedByUser) {
+                const err = new Error("Validation error");
+                err.status = 400;
+                err.errors = { couponCode: "Coupon già utilizzato" };
+                throw err;
+            }
+        } else {
+            const alreadyUsed = await Order.exists({
+                user: userId,
+                couponCodeApplied: code,
+                status: { $nin: ["cancelled", "refunded"] },
+            });
+
+            if (alreadyUsed) {
+                const err = new Error("Validation error");
+                err.status = 400;
+                err.errors = { couponCode: "Coupon già utilizzato" };
+                throw err;
+            }
         }
 
         const ruleMap = new Map();
@@ -463,6 +490,25 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         totalCents: quote.totalCents,
         discountType: quote.discountType,
     });
+
+    if (quote.couponCodeApplied) {
+        await Coupon.updateOne(
+            {
+                code: quote.couponCodeApplied,
+                ownerUser: userId,
+                isRewardCoupon: true,
+                usedAt: null,
+            },
+            {
+                $set: {
+                    isActive: false,
+                    usedAt: new Date(),
+                    usedByOrder: order._id,
+                    usedByUser: userId,
+                },
+            }
+        );
+    }
 
     return { order, quote };
 

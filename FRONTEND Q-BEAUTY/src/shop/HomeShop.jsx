@@ -4,6 +4,7 @@ import { useShop } from "./context/ShopContext";
 import BrandSpinner from "./components/BrandSpinner";
 import { formatEURFromCents } from "./utils/money";
 import { useAuth } from "./context/AuthContext";
+import ReviewsSection from "./components/reviews/ReviewsSection";
 
 import "./HomeShop.css";
 
@@ -320,6 +321,9 @@ export default function HomeShop() {
                         ) : null}
                     </>
                 )}
+
+                <ReviewsSection />
+                
             </div>
         </>
     );

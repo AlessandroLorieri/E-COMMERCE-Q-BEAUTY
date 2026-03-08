@@ -13,6 +13,20 @@ function centsToEurString(cents) {
     return String(((Number(cents || 0) / 100) || 0).toFixed(2)).replace(".", ",");
 }
 
+function formatDate(value) {
+    try {
+        return new Date(value).toLocaleString("it-IT", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    } catch {
+        return "—";
+    }
+}
+
 export default function AdminCoupons() {
     const navigate = useNavigate();
     const { authFetch } = useAuth();
@@ -564,41 +578,80 @@ export default function AdminCoupons() {
                         <tr>
                             <th>Code</th>
                             <th>Nome</th>
+                            <th>Tipo</th>
                             <th>Attivo</th>
+                            <th>Usato</th>
                             <th>Regole</th>
-                            <th style={{ width: 240 }}>Azioni</th>
+                            <th style={{ width: 260 }}>Azioni</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {coupons.map((c) => (
-                            <tr key={c._id}>
-                                <td><code>{c.code}</code></td>
-                                <td>{c.name || <span className="text-muted">—</span>}</td>
-                                <td>{c.isActive ? "✅" : "⛔️"}</td>
-                                <td className="text-muted">{Array.isArray(c.rules) ? c.rules.length : 0}</td>
-                                <td className="d-flex gap-2">
-                                    <button
-                                        className="btn btn-sm btn-outline-primary"
-                                        onClick={() => startEdit(c)}
-                                        disabled={loading}
-                                    >
-                                        Modifica
-                                    </button>
+                        {coupons.map((c) => {
+                            const isReward = !!c.isRewardCoupon;
+                            const isUsed = !!c.usedAt;
 
-                                    <button
-                                        className="btn btn-sm btn-outline-danger"
-                                        onClick={() => deleteCoupon(c)}
-                                        disabled={loading}
-                                    >
-                                        Elimina
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                            return (
+                                <tr key={c._id}>
+                                    <td><code>{c.code}</code></td>
+
+                                    <td>
+                                        {c.name || <span className="text-muted">—</span>}
+                                        {isReward && (
+                                            <div className="text-muted" style={{ fontSize: 12 }}>
+                                                Coupon recensione
+                                            </div>
+                                        )}
+                                    </td>
+
+                                    <td>
+                                        {isReward ? (
+                                            <span className="badge text-bg-warning">Reward</span>
+                                        ) : (
+                                            <span className="badge text-bg-secondary">Manuale</span>
+                                        )}
+                                    </td>
+
+                                    <td>{c.isActive ? "✅" : "⛔️"}</td>
+
+                                    <td>
+                                        {isUsed ? (
+                                            <div>
+                                                <div>✅ Usato</div>
+                                                <div className="text-muted" style={{ fontSize: 12 }}>
+                                                    {formatDate(c.usedAt)}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            "—"
+                                        )}
+                                    </td>
+
+                                    <td className="text-muted">{Array.isArray(c.rules) ? c.rules.length : 0}</td>
+
+                                    <td className="d-flex gap-2">
+                                        <button
+                                            className="btn btn-sm btn-outline-primary"
+                                            onClick={() => startEdit(c)}
+                                            disabled={loading}
+                                        >
+                                            Modifica
+                                        </button>
+
+                                        <button
+                                            className="btn btn-sm btn-outline-danger"
+                                            onClick={() => deleteCoupon(c)}
+                                            disabled={loading}
+                                        >
+                                            Elimina
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
 
                         {!loading && coupons.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="text-muted py-4">
+                                <td colSpan={7} className="text-muted py-4">
                                     Nessun coupon trovato.
                                 </td>
                             </tr>

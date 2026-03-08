@@ -987,12 +987,12 @@ async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
     typeof globalThis.escapeHtml === "function"
       ? globalThis.escapeHtml
       : (s) =>
-          String(s ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
+        String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
 
   // Parse destinatari admin inline (niente helper fantasma)
   const adminToRaw = process.env.MAIL_ADMIN_TO;
@@ -1144,14 +1144,13 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
             <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(subtotal)}</td>
           </tr>
 
-          ${
-            discountCents > 0
-              ? `<tr>
+          ${discountCents > 0
+      ? `<tr>
                    <td style="padding:6px 0; color:#666;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
                    <td style="padding:6px 0; text-align:right; font-weight:700;">- ${escapeHtml(formatEURFromCents(discountCents))}</td>
                  </tr>`
-              : ""
-          }
+      : ""
+    }
 
           <tr>
             <td style="padding:6px 0; color:#666;">Spedizione</td>
@@ -1218,11 +1217,10 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
                       </div>
                       <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
                         <div><strong>Nome:</strong> ${escapeHtml(userName || "-")}</div>
-                        <div><strong>Email:</strong> ${
-                          userEmail
-                            ? `<a href="mailto:${escapeHtml(userEmail)}" style="color:#0b0b0c; text-decoration:underline;">${escapeHtml(userEmail)}</a>`
-                            : escapeHtml("-")
-                        }</div>
+                        <div><strong>Email:</strong> ${userEmail
+      ? `<a href="mailto:${escapeHtml(userEmail)}" style="color:#0b0b0c; text-decoration:underline;">${escapeHtml(userEmail)}</a>`
+      : escapeHtml("-")
+    }</div>
                         <div><strong>UserId:</strong> <span style="color:#666;">${escapeHtml(userId || "-")}</span></div>
                       </div>
                     </div>
@@ -1233,16 +1231,14 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
                       </div>
                       <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
                         <div><strong>Nome:</strong> ${escapeHtml(shipFullName)}</div>
-                        <div><strong>Email:</strong> ${
-                          shipEmail
-                            ? `<a href="mailto:${escapeHtml(shipEmail)}" style="color:#0b0b0c; text-decoration:underline;">${escapeHtml(shipEmail)}</a>`
-                            : escapeHtml("-")
-                        }</div>
-                        <div><strong>Telefono:</strong> ${
-                          shipPhone
-                            ? `<a href="tel:${escapeHtml(shipPhone)}" style="color:#0b0b0c; text-decoration:underline;">${escapeHtml(shipPhone)}</a>`
-                            : escapeHtml("-")
-                        }</div>
+                        <div><strong>Email:</strong> ${shipEmail
+      ? `<a href="mailto:${escapeHtml(shipEmail)}" style="color:#0b0b0c; text-decoration:underline;">${escapeHtml(shipEmail)}</a>`
+      : escapeHtml("-")
+    }</div>
+                        <div><strong>Telefono:</strong> ${shipPhone
+      ? `<a href="tel:${escapeHtml(shipPhone)}" style="color:#0b0b0c; text-decoration:underline;">${escapeHtml(shipPhone)}</a>`
+      : escapeHtml("-")
+    }</div>
                         <div><strong>Indirizzo:</strong> ${escapeHtml(shipAddress || "-")}${shipStreetNumber ? `, ${escapeHtml(shipStreetNumber)}` : ""}</div>
                         <div><strong>Città:</strong> ${escapeHtml(shipCity || "-")} <span style="color:#666;">(CAP: ${escapeHtml(shipCap || "-")})</span></div>
                         <div><strong>CF/P.IVA:</strong> ${escapeHtml(shipTaxCode || "-")}</div>
@@ -1277,6 +1273,280 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
   return sendMail({ to: adminTo, subject, html, text });
 }
 
+//MAIL UTENTE CON 5% DI SCONTO PER RECENSIONE
+async function sendReviewRewardEmail({ to, name, couponCode, percent = 5 }) {
+  if (!to) throw new Error("Recipient mancante (to)");
+  if (!couponCode) throw new Error("couponCode mancante");
+
+  const safeNameRaw = String(name || "").trim().replace(/\s+/g, " ");
+
+  const helloText = safeNameRaw ? `Ciao ${safeNameRaw},` : "Ciao,";
+  const helloHtml = safeNameRaw ? `Ciao <strong>${escapeHtml(safeNameRaw)}</strong>,` : "Ciao,";
+
+  const baseUrl = String(process.env.PUBLIC_SITE_URL || "https://qbeautyshop.it")
+    .trim()
+    .replace(/\/+$/, "");
+  const shopUrl = `${baseUrl}/shop`;
+
+  const safeCode = String(couponCode || "").trim().toUpperCase();
+  const safePercent = Number(percent) || 5;
+
+  const subject = `Q•BEAUTY | Grazie per la tua recensione ✨`;
+  const preheader = `La tua recensione è stata approvata. Ecco il tuo codice sconto del ${safePercent}%.`;
+
+  const text = `${helloText}
+
+Grazie! La tua recensione è stata approvata ✅
+
+Come promesso, ecco il tuo codice sconto del ${safePercent}%:
+
+${safeCode}
+
+Puoi usarlo sul prossimo acquisto nello shop Q•BEAUTY.
+
+Entra qui:
+${shopUrl}
+
+A presto,
+Q•BEAUTY
+`;
+
+  const html = `
+    <div style="margin:0; padding:0; background:#f6f6f7;">
+      <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+        ${escapeHtml(preheader)}
+      </div>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#f6f6f7; padding:24px 0;">
+        <tr>
+          <td align="center" style="padding:24px 12px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:560px;">
+              <tr>
+                <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:left;">
+                  <div style="font-family:Arial, sans-serif; font-size:16px; letter-spacing:0.6px; color:#d4af37; font-weight:700;">
+                    Q•BEAUTY
+                  </div>
+                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
+                    Grazie per la tua recensione ✨
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="background:#ffffff; padding:22px; border-left:1px solid #ececef; border-right:1px solid #ececef;">
+                  <div style="font-family:Arial,sans-serif; color:#121212; line-height:1.55;">
+                    <h1 style="margin:0 0 10px; font-size:20px; letter-spacing:0.2px;">
+                      Recensione approvata ✅
+                    </h1>
+
+                    <p style="margin:0 0 12px; font-size:14px;">
+                      ${helloHtml}<br/>
+                      grazie per aver condiviso la tua esperienza con Q•BEAUTY.
+                    </p>
+
+                    <div style="margin:14px 0 0; padding:14px 16px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
+                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#666; margin-bottom:6px;">
+                        Il tuo codice sconto
+                      </div>
+                      <div style="font-family:Arial,sans-serif; font-size:24px; font-weight:900; letter-spacing:1px; color:#0b0b0c;">
+                        ${escapeHtml(safeCode)}
+                      </div>
+                      <div style="font-family:Arial,sans-serif; font-size:12px; color:#666; margin-top:8px;">
+                        Valore: <strong>${safePercent}%</strong> di sconto
+                      </div>
+                    </div>
+
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin:18px 0 10px;">
+                      <tr>
+                        <td>
+                          <a href="${escapeHtml(shopUrl)}"
+                             style="display:inline-block; background:#d4af37; color:#0b0b0c; text-decoration:none; font-family:Arial, sans-serif;
+                                    font-size:14px; font-weight:800; padding:12px 16px; border-radius:12px;">
+                            Vai allo shop
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="margin:14px 0 0; font-size:12px; color:#666;">
+                      Conserva questo codice e inseriscilo al checkout sul tuo prossimo ordine.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="background:#ffffff; border-left:1px solid #ececef; border-right:1px solid #ececef; padding:0 22px 18px;">
+                  <div style="height:1px; background:#f0f0f2; margin:10px 0 14px;"></div>
+                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.45;">
+                    <div style="margin:0 0 6px;">Q•BEAUTY</div>
+                    <div style="margin:0;">Email automatica legata alla tua recensione approvata.</div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="background:#ffffff; border-radius:0 0 18px 18px; border:1px solid #ececef; border-top:none; height:12px;"></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  return sendMail({ to, subject, html, text });
+}
+
+//MAIL ADMIN CREATA NUOVA RECENSIONE
+async function sendAdminNewReviewEmail({ review }) {
+  if (!review) throw new Error("Review mancante (review)");
+
+  const coalesceStr = (...vals) => {
+    for (const v of vals) {
+      const s = String(v || "").trim();
+      if (s) return s;
+    }
+    return "";
+  };
+
+  const adminToRaw = process.env.MAIL_ADMIN_TO;
+  const s = String(adminToRaw || "").trim();
+  if (!s) return;
+
+  const parts = s
+    .split(/[,;]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  if (!parts.length) return;
+  const adminTo = parts.length === 1 ? parts[0] : parts;
+
+  const name = coalesceStr(review?.name) || "Utente";
+  const email = coalesceStr(review?.email) || "-";
+  const role = coalesceStr(review?.role) || "-";
+  const city = coalesceStr(review?.city) || "-";
+  const text = coalesceStr(review?.text) || "-";
+  const rating = Number(review?.rating) || 0;
+  const createdAt = review?.createdAt
+    ? new Date(review.createdAt).toLocaleString("it-IT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    : "-";
+
+  const stars = rating > 0 ? `${rating}/5` : "—";
+
+  const subject = `NUOVA RECENSIONE IN ATTESA — ${name} (${stars})`;
+  const preheader = `Una nuova recensione è in attesa di approvazione nel pannello admin.`;
+
+  const textBody = `Nuova recensione in attesa di approvazione
+
+Nome: ${name}
+Email: ${email}
+Ruolo: ${role}
+Città: ${city}
+Valutazione: ${stars}
+Data: ${createdAt}
+
+Testo:
+${text}
+`;
+
+  const html = `
+    <div style="margin:0; padding:0; background:#f6f6f7;">
+      <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+        ${escapeHtml(preheader)}
+      </div>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#f6f6f7; padding:24px 0;">
+        <tr>
+          <td align="center" style="padding:24px 12px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:560px;">
+              <tr>
+                <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:left;">
+                  <div style="font-family:Arial, sans-serif; font-size:16px; letter-spacing:0.6px; color:#d4af37; font-weight:700;">
+                    Q•BEAUTY • ADMIN
+                  </div>
+                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
+                    Nuova recensione in attesa
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="background:#ffffff; padding:22px; border-left:1px solid #ececef; border-right:1px solid #ececef;">
+                  <div style="font-family:Arial,sans-serif; color:#121212; line-height:1.55;">
+                    <h1 style="margin:0 0 10px; font-size:20px; letter-spacing:0.2px;">
+                      Nuova recensione da approvare
+                    </h1>
+
+                    <div style="margin:14px 0 0; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
+                        <tr>
+                          <td style="padding:6px 0; width:120px; color:#666;">Nome</td>
+                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(name)}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 0; width:120px; color:#666;">Email</td>
+                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(email)}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 0; width:120px; color:#666;">Ruolo</td>
+                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(role)}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 0; width:120px; color:#666;">Città</td>
+                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(city)}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 0; width:120px; color:#666;">Valutazione</td>
+                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(stars)}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 0; width:120px; color:#666;">Data</td>
+                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(createdAt)}</td>
+                        </tr>
+                      </table>
+                    </div>
+
+                    <div style="margin:14px 0 0; padding:12px 14px; background:#ffffff; border:1px solid #ececef; border-radius:12px;">
+                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; margin-bottom:8px; font-weight:700;">
+                        Testo recensione
+                      </div>
+                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; white-space:pre-wrap;">
+                        ${escapeHtml(text)}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="background:#ffffff; border-left:1px solid #ececef; border-right:1px solid #ececef; padding:0 22px 18px;">
+                  <div style="height:1px; background:#f0f0f2; margin:10px 0 14px;"></div>
+                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.45;">
+                    <div style="margin:0;">Q•BEAUTY • Admin notification</div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="background:#ffffff; border-radius:0 0 18px 18px; border:1px solid #ececef; border-top:none; height:12px;"></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  return sendMail({ to: adminTo, subject, html, text: textBody });
+}
+
 
 module.exports = {
   sendMail,
@@ -1286,7 +1556,9 @@ module.exports = {
   sendOrderPaymentConfirmedEmail,
   sendBankTransferInstructionsEmail,
   sendPasswordResetEmail,
-  sendAdminNewOrderEmail
+  sendAdminNewOrderEmail,
+  sendReviewRewardEmail,
+  sendAdminNewReviewEmail,
 };
 
 

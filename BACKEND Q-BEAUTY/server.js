@@ -120,6 +120,7 @@ const orderRoutes = require("./orders/orders.routes");
 const productRoutes = require("./products/products.routes");
 const addressesRoutes = require("./addresses/addresses.routes");
 const couponRoutes = require("./coupons/coupons.routes");
+const reviewRoutes = require("./reviews/reviews.routes");
 
 const makeStripeWebhookRouter = require("./webhooks/stripe.routes");
 const makePaymentsRouter = require("./payments/payments.routes");
@@ -252,6 +253,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/addresses", addressesRoutes);
 app.use("/api/coupons", couponRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 // 404 JSON
 app.use((req, res) => {

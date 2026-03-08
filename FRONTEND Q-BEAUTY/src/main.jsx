@@ -36,6 +36,7 @@ import ForgotPasswordShop from "./shop/pages/ForgotPasswordShop";
 import ResetPasswordShop from "./shop/pages/ResetPasswordShop";
 
 import AdminCoupons from "./admin/pages/AdminCoupons";
+import AdminReviews from "./admin/pages/AdminReviews";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -101,6 +102,7 @@ root.render(
           <Route path="products" element={<AdminProducts />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="coupons" element={<AdminCoupons />} />
+          <Route path="reviews" element={<AdminReviews />} />
 
         </Route>
 

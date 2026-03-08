@@ -20,6 +20,43 @@ const CouponSchema = new mongoose.Schema(
         endsAt: { type: Date, default: null },
 
         rules: { type: [CouponRuleSchema], default: [] },
+
+        ownerUser: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+            index: true,
+        },
+
+        sourceReview: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Review",
+            default: null,
+            index: true,
+        },
+
+        isRewardCoupon: {
+            type: Boolean,
+            default: false,
+            index: true,
+        },
+
+        usedAt: {
+            type: Date,
+            default: null,
+        },
+
+        usedByOrder: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Order",
+            default: null,
+        },
+
+        usedByUser: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
     },
     { timestamps: true }
 );
