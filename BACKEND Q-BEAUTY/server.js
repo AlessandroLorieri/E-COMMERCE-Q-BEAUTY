@@ -132,10 +132,6 @@ const app = express();
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
 
-if (process.env.NODE_ENV === "production") {
-    console.log = () => { };
-}
-
 app.use(
     helmet({
         contentSecurityPolicy: false,

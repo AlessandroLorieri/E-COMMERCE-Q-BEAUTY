@@ -130,301 +130,299 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
             livemode: event?.livemode,
         });
 
-        res.status(200).json({ received: true });
+        try {
+            const ordersCol = mongoose.connection.collection("orders");
+            const eventsCol = mongoose.connection.collection("stripe_events");
 
-        setImmediate(async () => {
+            await ensureStripeEventsIndexes(eventsCol);
+
             try {
-                const ordersCol = mongoose.connection.collection("orders");
-                const eventsCol = mongoose.connection.collection("stripe_events");
-
-                await ensureStripeEventsIndexes(eventsCol);
-
-                try {
-                    await eventsCol.insertOne({
-                        _id: String(event?.id || ""),          // id evento Stripe (unico)
-                        type: String(event?.type || ""),
-                        livemode: Boolean(event?.livemode),
-                        receivedAt: new Date(),
-                        stripeCreatedAt: event?.created ? new Date(Number(event.created) * 1000) : null,
+                await eventsCol.insertOne({
+                    _id: String(event?.id || ""),          // id evento Stripe (unico)
+                    type: String(event?.type || ""),
+                    livemode: Boolean(event?.livemode),
+                    receivedAt: new Date(),
+                    stripeCreatedAt: event?.created ? new Date(Number(event.created) * 1000) : null,
+                });
+            } catch (e) {
+                // evento già visto → Stripe retry/duplicato → SKIP
+                if (e && (e.code === 11000 || String(e.message || "").includes("E11000"))) {
+                    console.log("Stripe webhook: evento duplicato, skip", {
+                        eventId: maskStripeId(event?.id),
+                        type: event?.type,
                     });
-                } catch (e) {
-                    // evento già visto → Stripe retry/duplicato → SKIP
-                    if (e && (e.code === 11000 || String(e.message || "").includes("E11000"))) {
-                        console.log("Stripe webhook: evento duplicato, skip", {
+                    return;
+                }
+                throw e;
+            }
+            const claimEmailLock = async ({ _id, sentAtField, lockField }) => {
+                const now = new Date();
+                const LOCK_TTL_MINUTES = 30;
+                const staleBefore = new Date(now.getTime() - LOCK_TTL_MINUTES * 60 * 1000);
+
+                const r = await ordersCol.updateOne(
+                    {
+                        _id,
+                        [sentAtField]: { $exists: false },
+                        $or: [
+                            { [lockField]: { $exists: false } },
+                            { [lockField]: { $lt: staleBefore } }, // lock vecchio → lo riprendo
+                        ],
+                    },
+                    { $set: { [lockField]: now } }
+                );
+
+                return r?.modifiedCount === 1;
+            };
+
+            const markEmailSuccess = async ({ _id, sentAtField, lockField }) => {
+                await ordersCol.updateOne(
+                    { _id },
+                    { $set: { [sentAtField]: new Date() }, $unset: { [lockField]: "" } }
+                );
+            };
+
+            const clearEmailLock = async ({ _id, lockField }) => {
+                await ordersCol.updateOne({ _id }, { $unset: { [lockField]: "" } });
+            };
+
+            const markCancelledByOrderId = async (orderId) => {
+                if (!orderId) return;
+                if (!mongoose.Types.ObjectId.isValid(String(orderId))) return;
+
+                const _id = new mongoose.Types.ObjectId(String(orderId));
+                const r = await ordersCol.updateOne(
+                    { _id, status: { $in: ["pending_payment", "draft"] } },
+                    { $set: { status: "cancelled", updatedAt: new Date() } }
+                );
+
+                console.log("Stripe webhook: ordine cancellato (se presente)", {
+                    orderId: String(orderId),
+                    matched: r?.matchedCount,
+                    modified: r?.modifiedCount,
+                });
+            };
+
+            switch (event.type) {
+                case "checkout.session.completed":
+                case "checkout.session.async_payment_succeeded": {
+                    const session = event.data.object;
+                    const orderId = session?.metadata?.orderId;
+
+                    if (!orderId) {
+                        console.warn("Stripe webhook: metadata.orderId mancante", {
                             eventId: maskStripeId(event?.id),
                             type: event?.type,
+                            sessionId: maskStripeId(session?.id),
+                            metadataKeys: safeMetaKeys(session?.metadata),
                         });
-                        return;
+                        break;
                     }
-                    throw e;
-                }
-                const claimEmailLock = async ({ _id, sentAtField, lockField }) => {
-                    const now = new Date();
-                    const LOCK_TTL_MINUTES = 30;
-                    const staleBefore = new Date(now.getTime() - LOCK_TTL_MINUTES * 60 * 1000);
 
-                    const r = await ordersCol.updateOne(
-                        {
-                            _id,
-                            [sentAtField]: { $exists: false },
-                            $or: [
-                                { [lockField]: { $exists: false } },
-                                { [lockField]: { $lt: staleBefore } }, // lock vecchio → lo riprendo
-                            ],
-                        },
-                        { $set: { [lockField]: now } }
-                    );
+                    if (
+                        event.type === "checkout.session.completed" &&
+                        session?.payment_status !== "paid" &&
+                        session?.payment_status !== "no_payment_required"
+                    ) {
+                        console.log("Stripe webhook: completed ma payment_status non paid", {
+                            sessionId: maskStripeId(session?.id),
+                            payment_status: session?.payment_status,
+                        });
+                        break;
+                    }
 
-                    return r?.modifiedCount === 1;
-                };
-
-                const markEmailSuccess = async ({ _id, sentAtField, lockField }) => {
-                    await ordersCol.updateOne(
-                        { _id },
-                        { $set: { [sentAtField]: new Date() }, $unset: { [lockField]: "" } }
-                    );
-                };
-
-                const clearEmailLock = async ({ _id, lockField }) => {
-                    await ordersCol.updateOne({ _id }, { $unset: { [lockField]: "" } });
-                };
-
-                const markCancelledByOrderId = async (orderId) => {
-                    if (!orderId) return;
-                    if (!mongoose.Types.ObjectId.isValid(String(orderId))) return;
+                    if (!mongoose.Types.ObjectId.isValid(String(orderId))) {
+                        console.warn("Stripe webhook: orderId NON valido", {
+                            eventId: maskStripeId(event?.id),
+                            type: event?.type,
+                            orderId: shortId(orderId),
+                        });
+                        break;
+                    }
 
                     const _id = new mongoose.Types.ObjectId(String(orderId));
-                    const r = await ordersCol.updateOne(
-                        { _id, status: { $in: ["pending_payment", "draft"] } },
-                        { $set: { status: "cancelled", updatedAt: new Date() } }
+
+                    await ordersCol.updateOne(
+                        { _id },
+                        {
+                            $set: {
+                                paymentProvider: "stripe",
+                                stripeCheckoutSessionId: session?.id || null,
+                                stripePaymentIntentId: session?.payment_intent || null,
+                                updatedAt: new Date(),
+                            },
+                        }
                     );
 
-                    console.log("Stripe webhook: ordine cancellato (se presente)", {
+                    const updPaid = await ordersCol.updateOne(
+                        { _id, status: { $in: ["pending_payment", "draft"] } },
+                        { $set: { status: "paid", paidAt: new Date(), updatedAt: new Date() } }
+                    );
+
+                    console.log("Stripe webhook: update ordine (paid se possibile)", {
                         orderId: String(orderId),
-                        matched: r?.matchedCount,
-                        modified: r?.modifiedCount,
+                        paidMatched: updPaid?.matchedCount,
+                        paidModified: updPaid?.modifiedCount,
                     });
-                };
 
-                switch (event.type) {
-                    case "checkout.session.completed":
-                    case "checkout.session.async_payment_succeeded": {
-                        const session = event.data.object;
-                        const orderId = session?.metadata?.orderId;
-
-                        if (!orderId) {
-                            console.warn("Stripe webhook: metadata.orderId mancante", {
-                                eventId: maskStripeId(event?.id),
-                                type: event?.type,
-                                sessionId: maskStripeId(session?.id),
-                                metadataKeys: safeMetaKeys(session?.metadata),
-                            });
-                            break;
-                        }
-
-                        if (
-                            event.type === "checkout.session.completed" &&
-                            session?.payment_status !== "paid" &&
-                            session?.payment_status !== "no_payment_required"
-                        ) {
-                            console.log("Stripe webhook: completed ma payment_status non paid", {
-                                sessionId: maskStripeId(session?.id),
-                                payment_status: session?.payment_status,
-                            });
-                            break;
-                        }
-
-                        if (!mongoose.Types.ObjectId.isValid(String(orderId))) {
-                            console.warn("Stripe webhook: orderId NON valido", {
-                                eventId: maskStripeId(event?.id),
-                                type: event?.type,
-                                orderId: shortId(orderId),
-                            });
-                            break;
-                        }
-
-                        const _id = new mongoose.Types.ObjectId(String(orderId));
-
-                        await ordersCol.updateOne(
-                            { _id },
-                            {
-                                $set: {
-                                    paymentProvider: "stripe",
-                                    stripeCheckoutSessionId: session?.id || null,
-                                    stripePaymentIntentId: session?.payment_intent || null,
-                                    updatedAt: new Date(),
-                                },
-                            }
-                        );
-
-                        const updPaid = await ordersCol.updateOne(
-                            { _id, status: { $in: ["pending_payment", "draft"] } },
-                            { $set: { status: "paid", paidAt: new Date(), updatedAt: new Date() } }
-                        );
-
-                        console.log("Stripe webhook: update ordine (paid se possibile)", {
+                    const order = await ordersCol.findOne({ _id });
+                    if (!order) {
+                        console.warn("Stripe webhook: ordine non trovato", {
+                            eventId: maskStripeId(event?.id),
                             orderId: String(orderId),
-                            paidMatched: updPaid?.matchedCount,
-                            paidModified: updPaid?.modifiedCount,
+                        });
+                        break;
+                    }
+
+                    if (!order.adminEmailSentAt) {
+                        const adminLocked = await claimEmailLock({
+                            _id,
+                            sentAtField: "adminEmailSentAt",
+                            lockField: "adminEmailSendingAt",
                         });
 
-                        const order = await ordersCol.findOne({ _id });
-                        if (!order) {
-                            console.warn("Stripe webhook: ordine non trovato", {
-                                eventId: maskStripeId(event?.id),
+                        if (!adminLocked) {
+                            console.log("Stripe webhook: admin email già in invio o inviata, skip", {
                                 orderId: String(orderId),
                             });
-                            break;
-                        }
+                        } else {
+                            const fallbackEmail =
+                                order?.shippingAddress?.email ||
+                                session?.customer_details?.email ||
+                                session?.customer_email ||
+                                null;
 
-                        if (!order.adminEmailSentAt) {
-                            const adminLocked = await claimEmailLock({
-                                _id,
-                                sentAtField: "adminEmailSentAt",
-                                lockField: "adminEmailSendingAt",
-                            });
+                            const name = [order?.shippingAddress?.name, order?.shippingAddress?.surname]
+                                .filter(Boolean)
+                                .join(" ")
+                                .trim();
 
-                            if (!adminLocked) {
-                                console.log("Stripe webhook: admin email già in invio o inviata, skip", {
+                            try {
+                                await withTimeout(
+                                    sendAdminNewOrderEmail({
+                                        order,
+                                        user: {
+                                            _id: order.user,
+                                            name,
+                                            email: fallbackEmail,
+                                        },
+                                        paymentMethod: "stripe",
+                                    }),
+                                    15000,
+                                    "sendAdminNewOrderEmail"
+                                );
+
+                                await markEmailSuccess({
+                                    _id,
+                                    sentAtField: "adminEmailSentAt",
+                                    lockField: "adminEmailSendingAt",
+                                });
+
+                                console.log("Stripe webhook: email admin nuovo ordine inviata", {
                                     orderId: String(orderId),
                                 });
-                            } else {
-                                const fallbackEmail =
-                                    order?.shippingAddress?.email ||
-                                    session?.customer_details?.email ||
-                                    session?.customer_email ||
-                                    null;
-
-                                const name = [order?.shippingAddress?.name, order?.shippingAddress?.surname]
-                                    .filter(Boolean)
-                                    .join(" ")
-                                    .trim();
-
-                                try {
-                                    await withTimeout(
-                                        sendAdminNewOrderEmail({
-                                            order,
-                                            user: {
-                                                _id: order.user,
-                                                name,
-                                                email: fallbackEmail,
-                                            },
-                                            paymentMethod: "stripe",
-                                        }),
-                                        15000,
-                                        "sendAdminNewOrderEmail"
-                                    );
-
-                                    await markEmailSuccess({
-                                        _id,
-                                        sentAtField: "adminEmailSentAt",
-                                        lockField: "adminEmailSendingAt",
-                                    });
-
-                                    console.log("Stripe webhook: email admin nuovo ordine inviata", {
-                                        orderId: String(orderId),
-                                    });
-                                } catch (e) {
-                                    await clearEmailLock({ _id, lockField: "adminEmailSendingAt" });
-                                    console.error("Email admin nuovo ordine fallita:", e?.message || e);
-                                }
+                            } catch (e) {
+                                await clearEmailLock({ _id, lockField: "adminEmailSendingAt" });
+                                console.error("Email admin nuovo ordine fallita:", e?.message || e);
                             }
                         }
+                    }
 
-                        if (order.paymentEmailSentAt) {
-                            console.log("Stripe webhook: payment email già inviata, skip", {
-                                orderId: String(orderId),
-                            });
-                            break;
-                        }
+                    if (order.paymentEmailSentAt) {
+                        console.log("Stripe webhook: payment email già inviata, skip", {
+                            orderId: String(orderId),
+                        });
+                        break;
+                    }
 
-                        const to =
-                            order?.shippingAddress?.email ||
-                            session?.customer_details?.email ||
-                            session?.customer_email ||
-                            null;
+                    const to =
+                        order?.shippingAddress?.email ||
+                        session?.customer_details?.email ||
+                        session?.customer_email ||
+                        null;
 
-                        if (!to) {
-                            console.warn("Stripe webhook: destinatario email mancante", {
-                                orderId: shortId(orderId),
-                                publicId: order?.publicId || "-",
-                                shipEmail: maskEmail(order?.shippingAddress?.email),
-                                stripeEmail: maskEmail(session?.customer_details?.email || session?.customer_email),
-                                sessionId: maskStripeId(session?.id),
-                            });
-                            break;
-                        }
+                    if (!to) {
+                        console.warn("Stripe webhook: destinatario email mancante", {
+                            orderId: shortId(orderId),
+                            publicId: order?.publicId || "-",
+                            shipEmail: maskEmail(order?.shippingAddress?.email),
+                            stripeEmail: maskEmail(session?.customer_details?.email || session?.customer_email),
+                            sessionId: maskStripeId(session?.id),
+                        });
+                        break;
+                    }
 
-                        const payLocked = await claimEmailLock({
+                    const payLocked = await claimEmailLock({
+                        _id,
+                        sentAtField: "paymentEmailSentAt",
+                        lockField: "paymentEmailSendingAt",
+                    });
+
+                    if (!payLocked) {
+                        console.log("Stripe webhook: payment email già in invio o inviata, skip", {
+                            orderId: String(orderId),
+                        });
+                        break;
+                    }
+
+                    try {
+                        await withTimeout(
+                            sendOrderPaymentConfirmedEmail({ to, order, includeItems: true }),
+                            15000,
+                            "sendOrderPaymentConfirmedEmail"
+                        );
+
+                        await markEmailSuccess({
                             _id,
                             sentAtField: "paymentEmailSentAt",
                             lockField: "paymentEmailSendingAt",
                         });
 
-                        if (!payLocked) {
-                            console.log("Stripe webhook: payment email già in invio o inviata, skip", {
-                                orderId: String(orderId),
-                            });
-                            break;
-                        }
-
-                        try {
-                            await withTimeout(
-                                sendOrderPaymentConfirmedEmail({ to, order, includeItems: true }),
-                                15000,
-                                "sendOrderPaymentConfirmedEmail"
-                            );
-
-                            await markEmailSuccess({
-                                _id,
-                                sentAtField: "paymentEmailSentAt",
-                                lockField: "paymentEmailSendingAt",
-                            });
-
-                            console.log("Stripe webhook: email pagamento inviata", {
-                                orderId: shortId(orderId),
-                                to: maskEmail(to),
-                            });
-                        } catch (mailErr) {
-                            await clearEmailLock({ _id, lockField: "paymentEmailSendingAt" });
-
-                            console.error("Stripe webhook: email pagamento FALLITA", {
-                                orderId: shortId(orderId),
-                                error: String(mailErr?.message || mailErr),
-                            });
-                        }
-                        break;
-                    }
-                    case "checkout.session.expired": {
-                        const session = event.data.object;
-                        const orderId = session?.metadata?.orderId;
-                        await markCancelledByOrderId(orderId);
-                        break;
-                    }
-
-                    case "checkout.session.async_payment_failed": {
-                        const session = event.data.object;
-                        const orderId = session?.metadata?.orderId;
-                        await markCancelledByOrderId(orderId);
-                        break;
-                    }
-
-                    default:
-                        console.log("Stripe webhook: evento ignorato", {
-                            type: event?.type,
-                            eventId: maskStripeId(event?.id),
+                        console.log("Stripe webhook: email pagamento inviata", {
+                            orderId: shortId(orderId),
+                            to: maskEmail(to),
                         });
-                        break;
+                    } catch (mailErr) {
+                        await clearEmailLock({ _id, lockField: "paymentEmailSendingAt" });
+
+                        console.error("Stripe webhook: email pagamento FALLITA", {
+                            orderId: shortId(orderId),
+                            error: String(mailErr?.message || mailErr),
+                        });
+                    }
+                    break;
                 }
-                console.log("✅ Stripe webhook: async processing completato", {
-                    eventId: maskStripeId(event?.id),
-                    type: event?.type,
-                });
-            } catch (err) {
-                console.error("❌ Stripe webhook handler async error:", err?.message || err);
+                case "checkout.session.expired": {
+                    const session = event.data.object;
+                    const orderId = session?.metadata?.orderId;
+                    await markCancelledByOrderId(orderId);
+                    break;
+                }
+
+                case "checkout.session.async_payment_failed": {
+                    const session = event.data.object;
+                    const orderId = session?.metadata?.orderId;
+                    await markCancelledByOrderId(orderId);
+                    break;
+                }
+
+                default:
+                    console.log("Stripe webhook: evento ignorato", {
+                        type: event?.type,
+                        eventId: maskStripeId(event?.id),
+                    });
+                    break;
             }
-        });
-        return;
+            console.log("✅ Stripe webhook: processing completato", {
+                eventId: maskStripeId(event?.id),
+                type: event?.type,
+            });
+
+            return res.status(200).json({ received: true });
+        } catch (err) {
+            console.error("❌ Stripe webhook handler error:", err?.message || err);
+            return res.status(500).json({ message: "Webhook processing failed" });
+        }
     });
 
     return router;
