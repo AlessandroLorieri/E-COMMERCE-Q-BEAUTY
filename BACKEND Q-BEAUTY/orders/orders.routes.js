@@ -128,6 +128,8 @@ function validateCreateBody(req, res, next) {
     const finalShippingAddressId = shippingAddressId && isObjectId(shippingAddressId) ? shippingAddressId : undefined;
 
     const shippingAddress = pickShippingAddress(req.body?.shippingAddress);
+    const taxCode = pickString(req.body?.taxCode, 20);
+    const finalTaxCode = taxCode ? taxCode.toUpperCase() : undefined;
 
     // whitelist
     req.body = {
@@ -136,6 +138,7 @@ function validateCreateBody(req, res, next) {
         ...(finalPaymentMethod ? { paymentMethod: finalPaymentMethod } : {}),
         ...(finalShippingAddressId ? { shippingAddressId: finalShippingAddressId } : {}),
         ...(shippingAddress ? { shippingAddress } : {}),
+        ...(finalTaxCode ? { taxCode: finalTaxCode } : {}),
     };
 
     next();
