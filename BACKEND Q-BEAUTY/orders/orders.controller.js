@@ -19,6 +19,33 @@ const { sendAdminNewOrderEmail } = require("../utils/mailer");
 
 const { validateCreateOrderBody, validateQuoteBody } = require("./validators/createOrder.validator");
 
+function clipStr(v, maxLen) {
+    const s = String(v ?? "").trim();
+    if (!s) return "";
+    return s.length > maxLen ? s.slice(0, maxLen) : s;
+}
+
+function looksLikeUrl(s) {
+    const v = String(s || "").trim().toLowerCase();
+    return v.startsWith("http://") || v.startsWith("https://") || v.startsWith("www.");
+}
+
+function normalizeUrlInput(s) {
+    const v = String(s || "").trim();
+    if (!v) return "";
+    if (/^https?:\/\//i.test(v)) return v;
+    return `https://${v}`;
+}
+
+function isValidHttpUrl(s) {
+    try {
+        const u = new URL(String(s));
+        return u.protocol === "http:" || u.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
 
 async function quote(req, res) {
     try {
@@ -60,7 +87,7 @@ async function create(req, res) {
         const { items, shippingAddress, shippingAddressId, couponCode, taxCode, paymentMethod } = req.body || {};
         const { order, quote } = await createOrder(userId, items, shippingAddress, shippingAddressId, couponCode, taxCode);
 
-        if (String(paymentMethod || "").trim() === "bank_transfer") {
+        if (String(paymentMethod || "").trim().toLowerCase() === "bank_transfer") {
             setImmediate(async () => {
                 try {
                     const u = await User.findById(userId).select("email firstName lastName").lean();
@@ -127,6 +154,10 @@ async function mine(req, res) {
 
 async function payDemo(req, res) {
     try {
+        if (process.env.NODE_ENV === "production") {
+            return res.status(404).json({ message: "Not found" });
+        }
+
         const userId = req.user?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -190,16 +221,37 @@ async function adminSetStatus(req, res) {
         const shipmentRaw = req.body?.shipment;
         const shipmentObj = shipmentRaw && typeof shipmentRaw === "object" ? shipmentRaw : null;
 
-        const carrierName = shipmentObj?.carrierName != null ? String(shipmentObj.carrierName).trim() : "";
-        const trackingCode = shipmentObj?.trackingCode != null ? String(shipmentObj.trackingCode).trim() : "";
-        const trackingUrl = shipmentObj?.trackingUrl != null ? String(shipmentObj.trackingUrl).trim() : "";
+        const carrierName = clipStr(shipmentObj?.carrierName, 60);
+        let trackingCode = clipStr(shipmentObj?.trackingCode, 120);
+        let trackingUrl = clipStr(shipmentObj?.trackingUrl, 500);
+
+        // trackingCode NON deve essere un link
+        if (trackingCode && looksLikeUrl(trackingCode)) {
+            return res.status(400).json({
+                message: "Validation error",
+                errors: { shipment: "Il codice tracking non può essere un link" },
+            });
+        }
+
+        // trackingUrl deve essere un URL valido (http/https). Se manca schema, aggiungiamo https://
+        if (trackingUrl) {
+            trackingUrl = normalizeUrlInput(trackingUrl);
+            if (!isValidHttpUrl(trackingUrl)) {
+                return res.status(400).json({
+                    message: "Validation error",
+                    errors: { shipment: "Link tracking non valido" },
+                });
+            }
+        }
+
+        const hasTracking = Boolean(trackingCode) || Boolean(trackingUrl);
 
         const shipment =
             carrierName || trackingCode || trackingUrl
                 ? { carrierName, trackingCode, trackingUrl }
                 : null;
 
-        if (newStatus === "shipped" && !shipment) {
+        if (newStatus === "shipped" && !hasTracking) {
             return res.status(400).json({
                 message: "Validation error",
                 errors: { shipment: "Inserisci almeno codice tracking o link tracking" },

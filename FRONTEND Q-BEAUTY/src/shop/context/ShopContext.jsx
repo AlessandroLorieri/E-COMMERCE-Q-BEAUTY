@@ -128,7 +128,7 @@ function mergeCartLines(lines) {
 }
 
 export function ShopProvider({ children }) {
-    const { user, token, loading, logout: authLogout } = useAuth();
+    const { user, token, loading, logout: authLogout, authFetch } = useAuth();
     const apiBase = String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
     const cartKey = useMemo(() => getCartStorageKey(loading ? null : user), [
@@ -212,29 +212,31 @@ export function ShopProvider({ children }) {
 
             let lastErr = null;
 
-            for (const url of candidates) {
-                try {
-                    const res = await fetch(url, { credentials: "include" });
-                    const data = await res.json().catch(() => ({}));
+            try {
+                for (const url of candidates) {
+                    try {
+                        const res = await fetch(url, { credentials: "include" });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data?.message || `Errore prodotti (${res.status})`);
 
-                    if (!res.ok) throw new Error(data?.message || `Errore prodotti (${res.status})`);
+                        const list = extractProductsList(data);
+                        const normalized = (list || []).map(normalizeProductFromApi).filter(Boolean);
 
-                    const list = extractProductsList(data);
-                    const normalized = (list || []).map(normalizeProductFromApi).filter(Boolean);
-
-                    if (!alive) return;
-                    setProducts(normalized);
-                    setProductsLoading(false);
-                    return;
-                } catch (e) {
-                    lastErr = e;
+                        if (!alive) return;
+                        setProducts(normalized);
+                        return;
+                    } catch (e) {
+                        lastErr = e;
+                    }
                 }
-            }
 
-            if (!alive) return;
-            setProducts([]);
-            setProductsError(lastErr?.message || "Errore caricamento prodotti");
-            setProductsLoading(false);
+                if (!alive) return;
+                setProducts([]);
+                setProductsError(lastErr?.message || "Errore caricamento prodotti");
+            } finally {
+                if (!alive) return;
+                setProductsLoading(false);
+            }
         }
 
         fetchProducts();
@@ -269,10 +271,8 @@ export function ShopProvider({ children }) {
         return !!p && p.__active === true;
     }
 
-    // CART 
-    const [cartRaw, setCartRaw] = useState(() =>
-        hydrateCartFromStorage(getCartStorageKey(null), sessionStorage)
-    );
+    // CART
+    const [cartRaw, setCartRaw] = useState(() => hydrateCartFromStorage(getCartStorageKey(null), sessionStorage));
 
     const skipPersistRef = useRef(false);
     const prevCartKeyRef = useRef(cartKey);
@@ -332,15 +332,9 @@ export function ShopProvider({ children }) {
             const id = normalizeId(line.id);
             const prod = productsById.get(id);
 
-            if (!prod) {
-                return { id, qty: line.qty, name: "Prodotto", price: "", image: "", priceCents: 0 };
-            }
+            if (!prod) return { id, qty: line.qty, name: "Prodotto", price: "", image: "", priceCents: 0 };
 
-            return {
-                ...prod,
-                id: normalizeId(prod._id || prod.id),
-                qty: line.qty,
-            };
+            return { ...prod, id: normalizeId(prod._id || prod.id), qty: line.qty };
         });
     }, [cartRaw, productsById]);
 
@@ -388,7 +382,9 @@ export function ShopProvider({ children }) {
     function clearCart() {
         setCartRaw([]);
         setCouponCode("");
-        try { cartStorage.removeItem(couponKey); } catch { }
+        try {
+            cartStorage.removeItem(couponKey);
+        } catch { }
     }
 
     // TOTALS
@@ -416,13 +412,7 @@ export function ShopProvider({ children }) {
 
     useEffect(() => {
         if (!cartRaw.length) {
-            setQuote({
-                subtotalCents: 0,
-                discountCents: 0,
-                discountLabel: null,
-                shippingCents: null,
-                totalCents: 0,
-            });
+            setQuote({ subtotalCents: 0, discountCents: 0, discountLabel: null, shippingCents: null, totalCents: 0 });
             setQuoteLoading(false);
             setQuoteError("");
             setQuoteErrors({});
@@ -431,13 +421,7 @@ export function ShopProvider({ children }) {
 
         if (!user || !token) {
             const subtotalCents = totals.amountCents;
-            setQuote({
-                subtotalCents,
-                discountCents: 0,
-                discountLabel: null,
-                shippingCents: null,
-                totalCents: subtotalCents,
-            });
+            setQuote({ subtotalCents, discountCents: 0, discountLabel: null, shippingCents: null, totalCents: subtotalCents });
             setQuoteLoading(false);
             setQuoteError("");
             setQuoteErrors({});
@@ -448,26 +432,19 @@ export function ShopProvider({ children }) {
         if (!products.length) return;
 
         const validItems = cartRaw
-            .map(x => ({
-                productId: normalizeId(x.id),
-                qty: x.qty
-            }))
-            .filter(x => productsById.has(x.productId));
+            .map((x) => ({ productId: normalizeId(x.id), qty: x.qty }))
+            .filter((x) => productsById.has(x.productId));
 
         if (!validItems.length) return;
-        if (!apiBase) return;
         const controller = new AbortController();
 
         async function fetchQuote() {
             try {
                 setQuoteLoading(true);
 
-                const res = await fetch(`${apiBase}/api/orders/quote`, {
+                const res = await authFetch("/api/orders/quote", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         items: validItems,
                         ...(couponCode && String(couponCode).trim() ? { couponCode: String(couponCode).trim() } : {}),
@@ -478,24 +455,15 @@ export function ShopProvider({ children }) {
                 const data = await res.json().catch(() => ({}));
 
                 if (!res.ok) {
-                    const msg =
-                        data?.errors?.couponCode ||
-                        data?.message ||
-                        "Quote failed";
-
+                    const msg = data?.errors?.couponCode || data?.message || "Quote failed";
                     setQuoteError(msg);
-                    setQuoteErrors((data && typeof data.errors === "object") ? data.errors : {});
-
+                    setQuoteErrors(data && typeof data.errors === "object" ? data.errors : {});
                     return;
                 }
 
-                const bd = (data && typeof data.discountBreakdown === "object") ? data.discountBreakdown : {};
-
-                const couponDiscountCents =
-                    Number(data?.couponDiscountCents ?? bd?.couponDiscountCents) || 0;
-
-                const globalDiscountCents =
-                    Number(data?.globalDiscountCents ?? bd?.globalDiscountCents) || 0;
+                const bd = data && typeof data.discountBreakdown === "object" ? data.discountBreakdown : {};
+                const couponDiscountCents = Number(data?.couponDiscountCents ?? bd?.couponDiscountCents) || 0;
+                const globalDiscountCents = Number(data?.globalDiscountCents ?? bd?.globalDiscountCents) || 0;
 
                 setQuoteError("");
                 setQuoteErrors({});
@@ -509,15 +477,13 @@ export function ShopProvider({ children }) {
                         ? Number(data.totalCents)
                         : Math.max(0, (Number(data.subtotalCents) || 0) - (Number(data.discountCents) || 0)),
                     discountType: data.discountType || "none",
-
                     couponCodeApplied: data.couponCodeApplied || null,
                     couponDiscountCents,
                     globalDiscountCents,
-
                     discountBreakdown: { couponDiscountCents, globalDiscountCents },
                 });
-
             } catch (err) {
+                if (err?.code === "SESSION_EXPIRED") return;
                 if (err.name !== "AbortError") {
                     setQuoteError(err.message || "Errore quote");
                     setQuoteErrors({});
@@ -528,17 +494,15 @@ export function ShopProvider({ children }) {
         }
 
         fetchQuote();
-
         return () => controller.abort();
     }, [
-        apiBase,
         cartRaw,
         totals.amountCents,
         user,
         token,
         couponCode,
         productsLoading,
-        products.length
+        products.length,
     ]);
 
     // ORDERS / ADDRESSES
@@ -546,13 +510,11 @@ export function ShopProvider({ children }) {
         if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
 
-        const items = cartRaw
-            .filter(isCartLineValid)
-            .map((x) => ({ productId: resolveToMongoId(x.id), qty: x.qty }));
+        const items = cartRaw.filter(isCartLineValid).map((x) => ({ productId: resolveToMongoId(x.id), qty: x.qty }));
 
-        const res = await fetch(`${apiBase}/api/orders`, {
+        const res = await authFetch("/api/orders", {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 items,
                 ...(payload || {}),
@@ -572,7 +534,7 @@ export function ShopProvider({ children }) {
     async function fetchMyOrders() {
         if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
-        const res = await fetch(`${apiBase}/api/orders/me`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await authFetch("/api/orders/me");
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.message || "Errore caricamento ordini");
         return data.orders || [];
@@ -581,7 +543,7 @@ export function ShopProvider({ children }) {
     async function fetchMyAddresses() {
         if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
-        const res = await fetch(`${apiBase}/api/addresses/me`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await authFetch("/api/addresses/me");
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.message || "Errore caricamento indirizzi");
         return data.addresses || [];
@@ -590,11 +552,13 @@ export function ShopProvider({ children }) {
     async function createAddress(payload) {
         if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
-        const res = await fetch(`${apiBase}/api/addresses`, {
+
+        const res = await authFetch("/api/addresses", {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
         });
+
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
             const err = new Error(data?.message || "Creazione indirizzo fallita");
@@ -607,10 +571,8 @@ export function ShopProvider({ children }) {
     async function setDefaultAddress(addressId) {
         if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
-        const res = await fetch(`${apiBase}/api/addresses/${addressId}/default`, {
-            method: "PATCH",
-            headers: { Authorization: `Bearer ${token}` },
-        });
+
+        const res = await authFetch(`/api/addresses/${addressId}/default`, { method: "PATCH" });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
             const err = new Error(data?.message || "Impostazione indirizzo default fallita");
@@ -625,6 +587,7 @@ export function ShopProvider({ children }) {
             products,
             productsLoading,
             productsError,
+
             cart,
             addToCart,
             addToCartQty,
@@ -632,13 +595,16 @@ export function ShopProvider({ children }) {
             dec,
             removeFromCart,
             clearCart,
+
             totals,
             quote,
             quoteLoading,
             quoteError,
             quoteErrors,
+
             couponCode,
             setCouponCode,
+
             createOrder,
             fetchMyOrders,
             fetchMyAddresses,
@@ -648,8 +614,20 @@ export function ShopProvider({ children }) {
             user,
             logout: authLogout,
         }),
-        [products, productsLoading, productsError, cart, totals, quote, quoteLoading, quoteError, quoteErrors, couponCode, user, authLogout]
-
+        [
+            products,
+            productsLoading,
+            productsError,
+            cart,
+            totals,
+            quote,
+            quoteLoading,
+            quoteError,
+            quoteErrors,
+            couponCode,
+            user,
+            authLogout,
+        ]
     );
 
     return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;

@@ -7,10 +7,8 @@ import "./OrderSuccessShop.css";
 
 export default function OrderSuccessShop() {
     const navigate = useNavigate();
-    const { id } = useParams(); 
-    const { user, loading, token } = useAuth();
-
-    const apiBase = useMemo(() => import.meta.env.VITE_API_URL, []);
+    const { id } = useParams();
+    const { user, loading, authFetch } = useAuth();
 
     const [order, setOrder] = useState(null);
     const [fetching, setFetching] = useState(true);
@@ -18,8 +16,8 @@ export default function OrderSuccessShop() {
     const [paying, setPaying] = useState(false);
 
     const [bankSending, setBankSending] = useState(false);
-    const [bankInfo, setBankInfo] = useState(""); 
-    const [bankSent, setBankSent] = useState(null); 
+    const [bankInfo, setBankInfo] = useState("");
+    const [bankSent, setBankSent] = useState(null);
     const [bankCanResend, setBankCanResend] = useState(false);
 
     const bankAutoTriggeredRef = useRef(false);
@@ -32,7 +30,7 @@ export default function OrderSuccessShop() {
         beneficiary: "Q•BEAUTY",
         iban: "IT00X0000000000000000000000",
         bankName: "La tua banca (opzionale)",
-        bic: "", 
+        bic: "",
     };
 
     useEffect(() => {
@@ -58,25 +56,25 @@ export default function OrderSuccessShop() {
                 setFetching(false);
                 return;
             }
-            if (!apiBase) {
-                setError("VITE_API_URL non configurata.");
-                setFetching(false);
-                return;
-            }
-            if (!token) {
-                setError("Token mancante. Rifai login.");
-                setFetching(false);
-                return;
-            }
 
             setFetching(true);
             setError("");
 
             try {
-                const res = await fetch(`${apiBase}/api/orders/me`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                    credentials: "include",
-                });
+                let res;
+                try {
+                    res = await authFetch("/api/orders/me", {
+                        credentials: "include",
+                    });
+                } catch (e) {
+                    if (e?.code === "SESSION_EXPIRED") {
+                        if (alive) setFetching(false);
+                        navigate(`/shop/login?next=/shop/order-success/${id}`, { replace: true });
+                        return;
+                    }
+
+                    throw e;
+                }
 
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data?.message || "Errore lettura ordini");
@@ -105,25 +103,35 @@ export default function OrderSuccessShop() {
         return () => {
             alive = false;
         };
-    }, [id, user, loading, apiBase, token]);
+    }, [id, user, loading, authFetch, navigate]);
 
     async function requestBankInstructions(force = false) {
-        if (!apiBase || !token || !id) return;
+        if (!id) return;
 
         setBankSending(true);
         setBankInfo("");
         setBankCanResend(false);
 
         try {
-            const res = await fetch(`${apiBase}/api/payments/bank-transfer/send-instructions`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                credentials: "include",
-                body: JSON.stringify(force ? { orderId: id, force: true } : { orderId: id }),
-            });
+            let res;
+            try {
+                res = await authFetch("/api/payments/bank-transfer/send-instructions", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(force ? { orderId: id, force: true } : { orderId: id }),
+                });
+            } catch (e) {
+                if (e?.code === "SESSION_EXPIRED") {
+                    navigate(`/shop/login?next=/shop/order-success/${id}?pay=bank`, { replace: true });
+                    setBankSent(false);
+                    setBankCanResend(true);
+                    setBankInfo("Sessione scaduta. Rifai login e riprova.");
+                    setBankSending(false);
+                    return;
+                }
+                throw e;
+            }
 
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data?.message || "Errore invio istruzioni bonifico");
@@ -164,26 +172,33 @@ export default function OrderSuccessShop() {
         bankAutoTriggeredRef.current = true;
 
         requestBankInstructions(false);
-    }, [isBankTransfer, order?._id, order?.status]);
+    }, [isBankTransfer, order?._id, order?.status, id]);
+
 
     async function retryPayment() {
-        if (!apiBase) return;
-        if (!token) return;
         if (!id) return;
 
         setPaying(true);
         setError("");
 
         try {
-            const res = await fetch(`${apiBase}/api/payments/stripe/checkout-session`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                credentials: "include",
-                body: JSON.stringify({ orderId: id }),
-            });
+            let res;
+            try {
+                res = await authFetch("/api/payments/stripe/checkout-session", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ orderId: id }),
+                });
+            } catch (e) {
+                if (e?.code === "SESSION_EXPIRED") {
+                    navigate(`/shop/login?next=/shop/order-success/${id}`, { replace: true });
+                    setError("Sessione scaduta. Rifai login.");
+                    setPaying(false);
+                    return;
+                }
+                throw e;
+            }
 
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data?.message || "Errore creazione sessione Stripe");

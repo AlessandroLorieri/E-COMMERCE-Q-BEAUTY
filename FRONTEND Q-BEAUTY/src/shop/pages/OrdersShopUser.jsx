@@ -45,10 +45,8 @@ function statusMeta(status) {
 export default function OrdersShop() {
     const navigate = useNavigate();
 
-    const { user, loading, token } = useAuth();
+    const { user, loading, authFetch } = useAuth();
     const { fetchMyOrders } = useShop();
-
-    const apiBase = useMemo(() => import.meta.env.VITE_API_URL, []);
 
     const [orders, setOrders] = useState([]);
     const [pageLoading, setPageLoading] = useState(true);
@@ -78,13 +76,17 @@ export default function OrdersShop() {
                 const list = await fetchMyOrders();
                 setOrders(list);
             } catch (err) {
+                if (err?.code === "SESSION_EXPIRED") {
+                    navigate("/shop/login?next=/shop/orders", { replace: true });
+                    return;
+                }
                 setError(err.message || "Errore caricamento ordini");
             } finally {
                 if (silent) setRefreshing(false);
                 else setPageLoading(false);
             }
         },
-        [user, loading, fetchMyOrders]
+        [user, loading, fetchMyOrders, navigate]
     );
 
     useEffect(() => {
@@ -101,27 +103,18 @@ export default function OrdersShop() {
     }, [user, loading, loadOrders]);
 
     async function startStripePayment(orderId) {
-        if (!apiBase) {
-            setError("VITE_API_URL non configurata.");
-            return;
-        }
-        if (!token) {
-            setError("Token mancante. Rifai login.");
-            return;
-        }
-
         setError("");
         setPayingOrderId(orderId);
 
         try {
-            const res = await fetch(`${apiBase}/api/payments/stripe/checkout-session`, {
+            const oid = String(orderId || "").trim();
+            if (!oid) throw new Error("orderId mancante");
+
+            const res = await authFetch("/api/payments/stripe/checkout-session", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ orderId }),
+                body: JSON.stringify({ orderId: oid }),
             });
 
             const data = await res.json().catch(() => ({}));
@@ -130,6 +123,10 @@ export default function OrdersShop() {
 
             window.location.assign(data.url);
         } catch (e) {
+            if (e?.code === "SESSION_EXPIRED") {
+                navigate("/shop/login?next=/shop/orders", { replace: true });
+                return;
+            }
             setError(e?.message || "Errore avvio pagamento");
             setPayingOrderId(null);
         }

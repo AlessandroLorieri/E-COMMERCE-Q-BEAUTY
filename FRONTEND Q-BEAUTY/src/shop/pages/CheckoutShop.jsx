@@ -19,14 +19,12 @@ export default function CheckoutShop() {
         quoteLoading,
         quoteError,
         fetchMyAddresses,
+        fetchMyOrders,
         createAddress,
     } = useShop();
 
-    const { user, loading, token } = useAuth();
-    const apiBase = useMemo(
-        () => String(import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, ""),
-        []
-    );
+
+    const { user, loading, authFetch } = useAuth();
 
     const [form, setForm] = useState({
         name: "",
@@ -280,20 +278,6 @@ export default function CheckoutShop() {
         return e;
     }
 
-    async function fetchMyOrdersRaw() {
-        if (!apiBase) throw new Error("VITE_API_URL non configurata");
-        if (!token) throw new Error("Token mancante: riesegui login");
-
-        const res = await fetch(`${apiBase}/api/orders/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-            credentials: "include",
-        });
-
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.message || "Errore lettura ordini");
-        return data?.orders || [];
-    }
-
     async function resolveOrderIdFromCreateOrderResponse(created) {
         const direct =
             created?._id ||
@@ -307,7 +291,7 @@ export default function CheckoutShop() {
         const publicId = created?.publicId || created?.order?.publicId;
         if (!publicId) return null;
 
-        const orders = await fetchMyOrdersRaw();
+        const orders = await fetchMyOrders();
         const found = Array.isArray(orders)
             ? orders.find((o) => String(o.publicId) === String(publicId))
             : null;
@@ -316,18 +300,24 @@ export default function CheckoutShop() {
     }
 
     async function createStripeCheckoutSession(orderId) {
-        if (!apiBase) throw new Error("VITE_API_URL non configurata");
-        if (!token) throw new Error("Token mancante: riesegui login");
+        const oid = String(orderId || "").trim();
+        if (!oid) throw new Error("orderId mancante");
 
-        const res = await fetch(`${apiBase}/api/payments/stripe/checkout-session`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            credentials: "include",
-            body: JSON.stringify({ orderId }),
-        });
+        let res;
+        try {
+            res = await authFetch("/api/payments/stripe/checkout-session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ orderId: oid }),
+            });
+        } catch (err) {
+            if (err?.code === "SESSION_EXPIRED") {
+                navigate("/shop/login?next=/shop/checkout", { replace: true });
+                throw new Error("Sessione scaduta, rifai login");
+            }
+            throw err;
+        }
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.message || "Errore creazione sessione Stripe");

@@ -60,3 +60,11 @@
         text-align: center;
     }
 }
+
+.shop-footer-btnlink {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+}

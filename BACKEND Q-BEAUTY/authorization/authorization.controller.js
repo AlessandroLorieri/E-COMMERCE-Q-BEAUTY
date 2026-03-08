@@ -145,7 +145,16 @@ async function forgotPassword(req, res) {
         const r = await requestPasswordReset(email);
 
         if (r?.token && r?.to) {
-            const base = String(process.env.CLIENT_ORIGIN || "").replace(/\/$/, "");
+            const base =
+                String(
+                    process.env.PUBLIC_SITE_URL ||
+                    process.env.FRONTEND_URL ||
+                    String(process.env.CLIENT_ORIGIN || "").split(",")[0] ||
+                    "https://qbeautyshop.it"
+                )
+                    .trim()
+                    .replace(/\/+$/, "");
+
             const resetUrl = `${base}/shop/reset-password?token=${encodeURIComponent(r.token)}`;
 
             if (typeof sendPasswordResetEmail === "function") {
@@ -170,6 +179,14 @@ async function resetPassword(req, res) {
     try {
         const token = req.body?.token ? String(req.body.token).trim() : "";
         const newPassword = req.body?.newPassword ? String(req.body.newPassword) : "";
+
+        if (!token) {
+            return res.status(400).json({ message: "Token mancante" });
+        }
+
+        if (!newPassword || newPassword.length < 8) {
+            return res.status(400).json({ message: "Password non valida" });
+        }
 
         const result = await resetPasswordWithToken(token, newPassword);
         return res.json(result);

@@ -9,34 +9,55 @@ async function createAddress(userId, payload) {
     const a = normalizeShippingAddress(payload || {});
 
     const existingCount = await Address.countDocuments({ user: userId });
-    const isDefault = existingCount === 0 ? true : !!payload?.isDefault;
 
-    if (isDefault) {
-        await Address.updateMany({ user: userId }, { $set: { isDefault: false } });
-    }
+    // isDefault robusto (gestisce true/false anche se arrivano come stringhe)
+    const rawDefault = payload?.isDefault;
+    const wantsDefault =
+        rawDefault === true ||
+        rawDefault === "true" ||
+        rawDefault === 1 ||
+        rawDefault === "1";
+
+    const isDefault = existingCount === 0 ? true : wantsDefault;
 
     const created = await Address.create({
         user: userId,
+        ...a,
         label: String(payload?.label || "").trim(),
         isDefault,
-        ...a,
     });
+
+    // Se questo indirizzo è default, disattiva gli altri DOPO aver creato (così non resti mai senza default)
+    if (isDefault) {
+        await Address.updateMany(
+            { user: userId, _id: { $ne: created._id } },
+            { $set: { isDefault: false } }
+        );
+    }
 
     return created;
 }
 
 async function setDefaultAddress(userId, addressId) {
-    const addr = await Address.findOne({ _id: addressId, user: userId });
-    if (!addr) {
+    // prima settiamo QUESTO come default (se non esiste o non è dell’utente → 404)
+    const r = await Address.updateOne(
+        { _id: addressId, user: userId },
+        { $set: { isDefault: true } }
+    );
+
+    if (!r || r.matchedCount === 0) {
         const err = new Error("Address not found");
         err.status = 404;
         throw err;
     }
 
-    await Address.updateMany({ user: userId }, { $set: { isDefault: false } });
-    addr.isDefault = true;
-    await addr.save();
-    return addr;
+    // poi togliamo il default agli altri (così non resti mai senza default)
+    await Address.updateMany(
+        { user: userId, _id: { $ne: addressId } },
+        { $set: { isDefault: false } }
+    );
+
+    return Address.findOne({ _id: addressId, user: userId }).lean();
 }
 
 module.exports = { listMyAddresses, createAddress, setDefaultAddress };

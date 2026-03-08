@@ -54,7 +54,7 @@ function HomePage() {
                     href="https://www.instagram.com/queenhelene_nails/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: '#ffcc00', fontWeight: 'bold', textDecoration: 'underline' }}
+                    style={{ color: '#debe68', fontWeight: 'bold', textDecoration: 'underline' }}
                   >
                     Elena Santucci
                   </a>
@@ -133,15 +133,38 @@ function HomePage() {
         {/* Footer */}
         <footer className="site-footer">
           <p>
-            © {new Date().getFullYear()} Tutti i diritti riservati – Realizzato da{' '}
+            © {new Date().getFullYear()} Tutti i diritti riservati – Realizzato da{" "}
             <a
               href="https://sorted-beryl.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: '#ffcc00', fontWeight: 'bold', textDecoration: 'bold' }}
+              style={{ color: "#debe68", fontWeight: "bold", textDecoration: "bold" }}
             >
               Sorted
             </a>
+          </p>
+
+          <p style={{ marginTop: 8, fontSize: ".95rem", opacity: 0.9 }}>
+            <Link to="/privacy-policy" style={{ color: "#debe68", textDecoration: "underline" }}>
+              Privacy & Cookie
+            </Link>
+            {" · "}
+            <button
+              type="button"
+              onClick={() => window.qbeautyCookie?.open?.()}
+              style={{
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                color: "#debe68",
+                textDecoration: "underline",
+                cursor: "pointer",
+                font: "inherit",
+              }}
+              aria-label="Apri impostazioni cookie"
+            >
+              Impostazioni cookie
+            </button>
           </p>
         </footer>
       </main>

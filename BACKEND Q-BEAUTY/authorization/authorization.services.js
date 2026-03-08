@@ -35,7 +35,7 @@ async function registerUser(payload) {
     const {
         email,
         password,
-        customerType, 
+        customerType,
         firstName,
         lastName,
         phone,
@@ -194,7 +194,7 @@ async function updateMeUser(userId, payload) {
         phone,
         companyName,
         vatNumber,
-        billingAddressId, 
+        billingAddressId,
     } = payload || {};
 
     const errors = {};
@@ -264,7 +264,7 @@ async function requestPasswordReset(email) {
 
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-        return { ok: true }; 
+        return { ok: true };
     }
 
     const token = makeResetToken();
@@ -282,7 +282,7 @@ async function requestPasswordReset(email) {
         ok: true,
         to: user.email,
         name: user.firstName || "",
-        token, 
+        token,
     };
 }
 
@@ -302,28 +302,34 @@ async function resetPasswordWithToken(token, newPassword) {
         throw err;
     }
 
+    const now = new Date();
     const tokenHash = hashResetToken(t);
-
-    const user = await User.findOne({
-        resetPasswordTokenHash: tokenHash,
-        resetPasswordExpiresAt: { $gt: new Date() },
-    });
-
-    if (!user || user.resetPasswordUsedAt) {
-        const err = new Error("Token non valido o scaduto");
-        err.status = 400;
-        throw err;
-    }
 
     const saltRounds = getSaltRounds();
     const newHash = await bcrypt.hash(String(newPassword), saltRounds);
 
-    user.passwordHash = newHash;
-    user.resetPasswordTokenHash = null;
-    user.resetPasswordExpiresAt = null;
-    user.resetPasswordUsedAt = new Date();
+    const user = await User.findOneAndUpdate(
+        {
+            resetPasswordTokenHash: tokenHash,
+            resetPasswordExpiresAt: { $gt: now },
+            resetPasswordUsedAt: null,
+        },
+        {
+            $set: {
+                passwordHash: newHash,
+                resetPasswordUsedAt: now,
+                resetPasswordTokenHash: null,
+                resetPasswordExpiresAt: null,
+            },
+        },
+        { new: false }
+    );
 
-    await user.save();
+    if (!user) {
+        const err = new Error("Token non valido o scaduto");
+        err.status = 400;
+        throw err;
+    }
 
     return { ok: true };
 }

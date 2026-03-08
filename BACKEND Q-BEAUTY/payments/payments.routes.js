@@ -1,44 +1,11 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const jwt = require("jsonwebtoken");
+const { authRequired } = require("../middleware/auth.middleware");
 
 const { sendBankTransferInstructionsEmail } = require("../utils/mailer");
 
 module.exports = function makePaymentsRouter({ stripe }) {
     const router = express.Router();
-
-    function requireAuth(req, res, next) {
-        const auth = req.headers.authorization || "";
-        const token =
-            (auth.startsWith("Bearer ") ? auth.slice(7) : null) || req.cookies?.token;
-
-        if (!token) return res.status(401).json({ message: "Non autenticato" });
-        if (!process.env.JWT_SECRET)
-            return res.status(500).json({ message: "JWT_SECRET mancante" });
-
-        try {
-            const payload = jwt.verify(token, process.env.JWT_SECRET);
-
-            const uid =
-                payload?.id ||
-                payload?._id ||
-                payload?.userId ||
-                payload?.sub ||
-                payload?.uid;
-
-            const email = payload?.email || payload?.mail;
-
-            req.user = {
-                ...payload,
-                _uid: uid ? String(uid) : null,
-                _email: email ? String(email) : null,
-            };
-
-            next();
-        } catch {
-            return res.status(401).json({ message: "Token non valido" });
-        }
-    }
 
     function toObjectId(id) {
         try {
@@ -76,14 +43,15 @@ module.exports = function makePaymentsRouter({ stripe }) {
             orderEmail &&
             String(orderEmail).toLowerCase() === String(userEmail).toLowerCase();
 
+        // Anti-enumerazione: se non è tuo (e non sei admin) rispondi come se NON esistesse
         if (!isAdmin && !matchesUserId && !matchesEmail) {
-            return { status: 403, message: "Non autorizzato su questo ordine" };
+            return { status: 404, message: "Ordine non trovato" };
         }
 
         return null;
     }
 
-    router.post("/bank-transfer/send-instructions", requireAuth, async (req, res) => {
+    router.post("/bank-transfer/send-instructions", authRequired, async (req, res) => {
         try {
             const { orderId, force } = req.body || {};
             if (!orderId) return res.status(400).json({ message: "orderId mancante" });
@@ -170,12 +138,12 @@ module.exports = function makePaymentsRouter({ stripe }) {
                 resent: !!order.bankEmailSentAt,
             });
         } catch (err) {
-            console.error("❌ Bonifico: errore invio istruzioni:", err);
+            console.error("❌ Bonifico: errore invio istruzioni:", err?.message || err);
             return res.status(500).json({ message: "Errore invio istruzioni bonifico" });
         }
     });
 
-    router.post("/stripe/checkout-session", requireAuth, async (req, res) => {
+    router.post("/stripe/checkout-session", authRequired, async (req, res) => {
         try {
             if (!stripe) {
                 return res.status(500).json({ message: "Stripe non inizializzato (server.js)" });
@@ -260,7 +228,7 @@ module.exports = function makePaymentsRouter({ stripe }) {
 
             return res.json({ url: session.url });
         } catch (err) {
-            console.error("❌ Errore creazione checkout session:", err);
+            console.error("❌ Errore creazione checkout session:", err?.message || err);
             return res.status(500).json({ message: "Errore creazione checkout session" });
         }
     });

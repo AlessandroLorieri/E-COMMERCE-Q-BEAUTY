@@ -22,6 +22,29 @@ export function AuthProvider({ children }) {
         setLoading(false);
     }
 
+    async function authFetch(path, options = {}) {
+        const url = path.startsWith("http") ? path : `${apiBase}${path}`;
+
+        const headers = {
+            ...(options.headers || {}),
+        };
+
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
+        const res = await fetch(url, { ...options, headers });
+
+        if (res.status === 401 || res.status === 403) {
+            logout();
+            const err = new Error("SESSION_EXPIRED");
+            err.code = "SESSION_EXPIRED";
+            throw err;
+        }
+
+        return res;
+    }
+
     async function fetchMe(activeToken = token) {
         if (!activeToken) {
             setUser(null);
@@ -29,13 +52,21 @@ export function AuthProvider({ children }) {
             return;
         }
 
+        setLoading(true);
+
         try {
             const res = await fetch(`${apiBase}/api/auth/me`, {
                 headers: { Authorization: `Bearer ${activeToken}` },
             });
 
-            if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
                 logout();
+                return;
+            }
+
+            if (!res.ok) {
+                // server down / 500 / ecc: non forziamo logout
+                setUser(null);
                 return;
             }
 
@@ -43,6 +74,7 @@ export function AuthProvider({ children }) {
             setUser(data.user);
         } catch (err) {
             console.error("fetchMe error:", err);
+            // errore rete: non facciamo logout automatico
             setUser(null);
         } finally {
             setLoading(false);
@@ -81,7 +113,7 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         fetchMe(token);
-    }, []);
+    }, [token]);
 
     const value = useMemo(
         () => ({
@@ -92,6 +124,7 @@ export function AuthProvider({ children }) {
             register,
             logout,
             fetchMe,
+            authFetch,
             isAuthenticated: !!user,
             isAdmin: user?.role === "admin",
         }),

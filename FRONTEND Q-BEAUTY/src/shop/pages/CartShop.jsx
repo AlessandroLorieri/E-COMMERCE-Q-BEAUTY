@@ -25,7 +25,6 @@ export default function CartShop() {
         inc,
         dec,
         removeFromCart,
-        user: shopUser,
         quote,
         quoteLoading,
         quoteError,

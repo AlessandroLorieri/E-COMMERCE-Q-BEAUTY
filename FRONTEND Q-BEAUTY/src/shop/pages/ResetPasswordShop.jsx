@@ -24,6 +24,11 @@ export default function ResetPasswordShop() {
         e.preventDefault();
         setError("");
 
+        if (!apiBase) {
+            setError("Configurazione mancante. Riprova più tardi.");
+            return;
+        }
+
         if (!token) {
             setError("Token mancante o non valido.");
             return;
@@ -51,7 +56,15 @@ export default function ResetPasswordShop() {
             });
 
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data?.message || "Errore reset password");
+            if (!res.ok) {
+                const msg =
+                    data?.errors?.token ||
+                    data?.errors?.newPassword ||
+                    data?.message ||
+                    "Errore reset password";
+                throw new Error(msg);
+            }
+
 
             navigate(`/shop/login?reset=1&next=${encodeURIComponent(next)}`, { replace: true });
         } catch (err) {
@@ -91,7 +104,10 @@ export default function ResetPasswordShop() {
                                 className="form-control"
                                 type={showNew ? "text" : "password"}
                                 value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
+                                onChange={(e) => {
+                                    setNewPassword(e.target.value);
+                                    if (error) setError("");
+                                }}
                                 autoComplete="new-password"
                                 minLength={8}
                                 disabled={submitting || !token}
@@ -116,7 +132,10 @@ export default function ResetPasswordShop() {
                                 className="form-control"
                                 type={showConfirm ? "text" : "password"}
                                 value={confirm}
-                                onChange={(e) => setConfirm(e.target.value)}
+                                onChange={(e) => {
+                                    setConfirm(e.target.value);
+                                    if (error) setError("");
+                                }}
                                 autoComplete="new-password"
                                 minLength={8}
                                 disabled={submitting || !token}

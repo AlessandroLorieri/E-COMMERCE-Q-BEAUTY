@@ -41,9 +41,8 @@ function isValidHttpUrlString(s) {
 }
 
 export default function AdminProducts() {
-    const apiBase = import.meta.env.VITE_API_URL;
     const navigate = useNavigate();
-    const { token, logout } = useAuth();
+    const { authFetch } = useAuth();
 
     const [loading, setLoading] = useState(false);
     const [errMsg, setErrMsg] = useState("");
@@ -94,32 +93,31 @@ export default function AdminProducts() {
     }, [page, limit, q]);
 
     async function apiFetch(path, options = {}) {
-        const res = await fetch(`${apiBase}${path}`, {
-            ...options,
-            headers: {
-                ...(options.headers || {}),
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
-        });
+        let res;
 
-        if (res.status === 401) {
-            logout();
-            const next = encodeURIComponent("/admin/products");
-            navigate(`/shop/login?next=${next}`, { replace: true });
-            throw new Error("Sessione scaduta, rifai login");
-        }
-
-        if (res.status === 403) {
-            throw new Error("Forbidden: non sei admin");
+        try {
+            res = await authFetch(path, {
+                ...options,
+                headers: {
+                    ...(options.headers || {}),
+                    "Content-Type": "application/json",
+                },
+            });
+        } catch (e) {
+            if (e?.code === "SESSION_EXPIRED") {
+                const next = encodeURIComponent("/admin/products");
+                navigate(`/shop/login?next=${next}`, { replace: true });
+                throw new Error("Sessione scaduta, rifai login");
+            }
+            throw e;
         }
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
             const msg = data?.message || "Errore richiesta";
-            const e = new Error(msg);
-            e.payload = data;
-            throw e;
+            const err = new Error(msg);
+            err.payload = data;
+            throw err;
         }
 
         return data;
@@ -227,7 +225,7 @@ export default function AdminProducts() {
 
         const compareRaw = String(form.compareAtPriceEur ?? "").trim();
         let compareAtPriceCents = undefined;
-        let compareAtClear = false;          
+        let compareAtClear = false;
 
         if (compareRaw) {
             const v = eurosToCents(compareRaw);

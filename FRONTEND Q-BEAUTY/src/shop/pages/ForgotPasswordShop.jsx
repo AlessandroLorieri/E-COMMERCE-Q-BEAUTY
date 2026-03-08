@@ -11,7 +11,7 @@ export default function ForgotPasswordShop() {
     const [email, setEmail] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
-    const [ok, setOk] = useState(false);
+    const [ok, setOk] = useState("");
     const [sent, setSent] = useState(false);
 
 
@@ -20,6 +20,8 @@ export default function ForgotPasswordShop() {
 
         setError("");
         setOk("");
+        setSubmitting(true);
+
 
         try {
             const res = await fetch(`${apiBase}/api/auth/forgot-password`, {
@@ -38,6 +40,8 @@ export default function ForgotPasswordShop() {
             setSent(true);
         } catch (err) {
             setError(err.message || "Errore richiesta");
+        } finally {
+            setSubmitting(false);
         }
     }
 
@@ -52,12 +56,6 @@ export default function ForgotPasswordShop() {
             </div>
 
             <div className="card p-3 shop-card">
-                {error ? (
-                    <div className="alert alert-danger py-2" role="alert">
-                        {error}
-                    </div>
-                ) : null}
-
                 {error ? (
                     <div className="alert alert-danger py-2" role="alert">
                         {error}

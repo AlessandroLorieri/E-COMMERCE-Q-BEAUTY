@@ -39,7 +39,16 @@ function normalizeItems(items) {
 
     for (const it of items) {
         const productId = String(it?.productId || it?.id || "").trim();
-        const qty = Math.max(1, Number(it?.qty) || 1);
+
+        let qty = Number(it?.qty);
+        if (!Number.isFinite(qty)) qty = 1;
+
+        qty = Math.floor(qty);
+        if (qty < 1 || qty > 999) {
+            const err = new Error("Qty non valida");
+            err.status = 400;
+            throw err;
+        }
 
         if (!productId) {
             const err = new Error("Missing productId");
@@ -466,6 +475,12 @@ async function listMyOrders(userId) {
 }
 
 async function demoMarkPaid(userId, orderId) {
+    if (process.env.NODE_ENV === "production") {
+        const err = new Error("Not found");
+        err.status = 404;
+        throw err;
+    }
+
     const order = await Order.findOne({ _id: orderId, user: userId });
     if (!order) {
         const err = new Error("Order not found");
@@ -490,6 +505,33 @@ const ALLOWED_ORDER_STATUSES = new Set([
 
 function escapeRegExp(str) {
     return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function clipStr(v, maxLen) {
+    const s = String(v ?? "").trim();
+    if (!s) return "";
+    return s.length > maxLen ? s.slice(0, maxLen) : s;
+}
+
+function looksLikeUrl(s) {
+    const v = String(s || "").trim().toLowerCase();
+    return v.startsWith("http://") || v.startsWith("https://") || v.startsWith("www.");
+}
+
+function normalizeUrlInput(s) {
+    const v = String(s || "").trim();
+    if (!v) return "";
+    if (/^https?:\/\//i.test(v)) return v;
+    return `https://${v}`;
+}
+
+function isValidHttpUrl(s) {
+    try {
+        const u = new URL(String(s));
+        return u.protocol === "http:" || u.protocol === "https:";
+    } catch {
+        return false;
+    }
 }
 
 async function adminSetOrderStatus(orderId, newStatus, shipment) {
@@ -527,9 +569,26 @@ async function adminSetOrderStatus(orderId, newStatus, shipment) {
 
     const shipObj = shipment && typeof shipment === "object" ? shipment : null;
 
-    const inCarrierName = shipObj?.carrierName != null ? String(shipObj.carrierName).trim() : "";
-    const inTrackingCode = shipObj?.trackingCode != null ? String(shipObj.trackingCode).trim() : "";
-    const inTrackingUrl = shipObj?.trackingUrl != null ? String(shipObj.trackingUrl).trim() : "";
+    const inCarrierName = clipStr(shipObj?.carrierName, 60);
+    let inTrackingCode = clipStr(shipObj?.trackingCode, 120);
+    let inTrackingUrl = clipStr(shipObj?.trackingUrl, 500);
+
+    if (inTrackingCode && looksLikeUrl(inTrackingCode)) {
+        const err = new Error("Validation error");
+        err.status = 400;
+        err.errors = { shipment: "Il codice tracking non può essere un link" };
+        throw err;
+    }
+
+    if (inTrackingUrl) {
+        inTrackingUrl = normalizeUrlInput(inTrackingUrl);
+        if (!isValidHttpUrl(inTrackingUrl)) {
+            const err = new Error("Validation error");
+            err.status = 400;
+            err.errors = { shipment: "Link tracking non valido" };
+            throw err;
+        }
+    }
 
     const hasIncomingTracking = !!(inCarrierName || inTrackingCode || inTrackingUrl);
 

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const { listMyAddresses, createAddress, setDefaultAddress } = require("./addresses.services");
 
 async function me(req, res) {
@@ -29,7 +30,12 @@ async function setDefault(req, res) {
         const userId = req.user?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-        const updated = await setDefaultAddress(userId, req.params.id);
+        const id = String(req.params.id || "").trim();
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "ID non valido" });
+        }
+
+        const updated = await setDefaultAddress(userId, id);
         return res.json({ address: updated });
     } catch (err) {
         return res.status(err.status || 500).json({ message: err.message || "Server error" });
