@@ -1,5 +1,5 @@
 const express = require("express");
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const { authRequired, adminOnly } = require("../middleware/auth.middleware");
 const controller = require("./orders.controller");
 const mongoose = require("mongoose");
@@ -7,7 +7,9 @@ const mongoose = require("mongoose");
 const router = express.Router();
 
 function adminRateKey(req) {
-    return req.user?._uid || req.user?.sub || req.ip;
+    const userKey = req.user?._uid || req.user?.sub;
+    if (userKey) return userKey;
+    return ipKeyGenerator(req.ip);
 }
 
 const adminReadLimiter = rateLimit({

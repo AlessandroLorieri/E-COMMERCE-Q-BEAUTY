@@ -1,6 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const { authRequired, adminOnly } = require("../middleware/auth.middleware");
 const controller = require("./reviews.controller");
 
@@ -56,7 +56,9 @@ function validateCreateReviewBody(req, res, next) {
 }
 
 function adminRateKey(req) {
-    return req.user?._uid || req.user?.sub || req.ip;
+    const userKey = req.user?._uid || req.user?.sub;
+    if (userKey) return userKey;
+    return ipKeyGenerator(req.ip);
 }
 
 const adminReadLimiter = rateLimit({
