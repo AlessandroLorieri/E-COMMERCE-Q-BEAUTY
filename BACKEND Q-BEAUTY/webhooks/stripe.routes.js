@@ -435,7 +435,12 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
 
             return res.status(200).json({ received: true });
         } catch (err) {
-            console.error("❌ Stripe webhook handler error:", err?.message || err);
+            console.error("❌ Stripe webhook handler error:", {
+                eventId: maskStripeId(event?.id),
+                type: event?.type,
+                message: err?.message || String(err),
+                stack: err?.stack || null,
+            });
             return res.status(500).json({ message: "Webhook processing failed" });
         }
     });
