@@ -31,13 +31,57 @@ function normalizeUrlLines(text) {
     return out;
 }
 
-function isValidHttpUrlString(s) {
+
+const MAX_MEDIA_URL_LENGTH = 2048;
+const MAX_GALLERY_IMAGES = 12;
+
+const ALLOWED_MEDIA_HOSTS = new Set([
+    "cdn.qbeautyshop.it",
+]);
+
+const ALLOWED_MEDIA_EXTENSIONS = new Set([
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".avif",
+    ".gif",
+]);
+
+function hasAllowedImageExtension(pathname) {
+    const p = String(pathname || "").toLowerCase();
+    if (!p || p.endsWith("/")) return false;
+
+    for (const ext of ALLOWED_MEDIA_EXTENSIONS) {
+        if (p.endsWith(ext)) return true;
+    }
+    return false;
+}
+
+function isValidProductMediaUrl(s) {
+    const raw = String(s ?? "").trim();
+    if (!raw) return false;
+    if (raw.length > MAX_MEDIA_URL_LENGTH) return false;
+
     try {
-        const u = new URL(String(s).trim());
-        return u.protocol === "http:" || u.protocol === "https:";
+        const u = new URL(raw);
+
+        if (u.protocol !== "https:") return false;
+        if (u.username || u.password) return false;
+
+        const hostname = String(u.hostname || "").toLowerCase();
+        if (!ALLOWED_MEDIA_HOSTS.has(hostname)) return false;
+
+        if (!hasAllowedImageExtension(u.pathname)) return false;
+
+        return true;
     } catch {
         return false;
     }
+}
+
+function isValidHttpUrlString(s) {
+    return isValidProductMediaUrl(s);
 }
 
 export default function AdminProducts() {
@@ -236,18 +280,20 @@ export default function AdminProducts() {
             compareAtClear = true;
         }
 
-        if (String(form.imageUrl || "").trim()) {
-            try {
-                new URL(String(form.imageUrl).trim());
-            } catch {
-                errors.imageUrl = "URL immagine non valido";
-            }
+        const imageUrl = String(form.imageUrl || "").trim();
+
+        if (imageUrl && !isValidProductMediaUrl(imageUrl)) {
+            errors.imageUrl =
+                "L'immagine deve essere un URL https di cdn.qbeautyshop.it con estensione .jpg, .jpeg, .png, .webp, .avif o .gif";
         }
 
         const galleryUrls = normalizeUrlLines(form.galleryImageUrlsText);
 
-        if (galleryUrls.some((u) => !isValidHttpUrlString(u))) {
-            errors.galleryImageUrlsText = "Uno o più URL della gallery non sono validi (http/https)";
+        if (galleryUrls.length > MAX_GALLERY_IMAGES) {
+            errors.galleryImageUrlsText = `Massimo ${MAX_GALLERY_IMAGES} immagini nella gallery`;
+        } else if (galleryUrls.some((u) => !isValidProductMediaUrl(u))) {
+            errors.galleryImageUrlsText =
+                "Ogni URL gallery deve essere https, su cdn.qbeautyshop.it, e con estensione .jpg, .jpeg, .png, .webp, .avif o .gif";
         }
 
         setFormErrors(errors);
@@ -567,14 +613,20 @@ export default function AdminProducts() {
                         </div>
 
                         <div className="col-md-6">
-                            <label className="form-label">Immagine (URL)</label>
+                            <label className="form-label">Immagine (URL Cloudflare)</label>
                             <input
                                 className={`form-control ${formErrors.imageUrl ? "is-invalid" : ""}`}
-                                placeholder="https://..."
+                                placeholder="https://cdn.qbeautyshop.it/..."
                                 value={form.imageUrl}
                                 onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
                             />
-                            {formErrors.imageUrl ? <div className="invalid-feedback">{formErrors.imageUrl}</div> : null}
+                            {formErrors.imageUrl ? (
+                                <div className="invalid-feedback">{formErrors.imageUrl}</div>
+                            ) : (
+                                <div className="form-text">
+                                    Accettati solo URL https di cdn.qbeautyshop.it con estensione immagine supportata.
+                                </div>
+                            )}
                         </div>
 
                         <div className="col-12">
@@ -589,7 +641,9 @@ export default function AdminProducts() {
                             {formErrors.galleryImageUrlsText ? (
                                 <div className="invalid-feedback">{formErrors.galleryImageUrlsText}</div>
                             ) : (
-                                <div className="form-text">Queste immagini verranno usate nel carosello della pagina dettaglio prodotto.</div>
+                                <div className="form-text">
+                                    Una riga = un URL. Massimo {MAX_GALLERY_IMAGES} immagini. Accettati solo URL https di cdn.qbeautyshop.it.
+                                </div>
                             )}
                         </div>
 

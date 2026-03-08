@@ -145,15 +145,9 @@ async function forgotPassword(req, res) {
         const r = await requestPasswordReset(email);
 
         if (r?.token && r?.to) {
-            const base =
-                String(
-                    process.env.PUBLIC_SITE_URL ||
-                    process.env.FRONTEND_URL ||
-                    String(process.env.CLIENT_ORIGIN || "").split(",")[0] ||
-                    "https://qbeautyshop.it"
-                )
-                    .trim()
-                    .replace(/\/+$/, "");
+            const base = String(process.env.PUBLIC_SITE_URL || "")
+                .trim()
+                .replace(/\/+$/, "");
 
             const resetUrl = `${base}/shop/reset-password?token=${encodeURIComponent(r.token)}`;
 

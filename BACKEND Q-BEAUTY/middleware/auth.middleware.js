@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const User = require("../authorization/authorization.schema");
 
-function authRequired(req, res, next) {
+async function authRequired(req, res, next) {
     try {
         const header = req.headers.authorization || "";
         const [type, bearerToken] = header.split(" ");
@@ -19,10 +20,9 @@ function authRequired(req, res, next) {
             return res.status(500).json({ message: "JWT_SECRET mancante" });
         }
 
-        // ✅ blocca algoritmi strani: accetta solo HS256
+        // accetta solo HS256
         const payload = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
 
-        // campi compatibilità (usati da payments.routes.js)
         const uid =
             payload?.id ||
             payload?._id ||
@@ -30,12 +30,35 @@ function authRequired(req, res, next) {
             payload?.sub ||
             payload?.uid;
 
-        const email = payload?.email || payload?.mail;
+        if (!uid) {
+            return res.status(401).json({ message: "Invalid or expired token" });
+        }
+
+        const user = await User.findById(uid)
+            .select("_id email role passwordChangedAt")
+            .lean();
+
+        if (!user) {
+            return res.status(401).json({ message: "Invalid or expired token" });
+        }
+
+        const tokenIssuedAt = Number(payload?.iat || 0);
+        const passwordChangedAtSec = user.passwordChangedAt
+            ? Math.floor(new Date(user.passwordChangedAt).getTime() / 1000)
+            : 0;
+
+        // se la password è stata cambiata dopo l'emissione del token, il token non è più valido
+        if (passwordChangedAtSec && (!tokenIssuedAt || passwordChangedAtSec > tokenIssuedAt)) {
+            return res.status(401).json({ message: "Invalid or expired token" });
+        }
 
         req.user = {
             ...payload,
-            _uid: uid ? String(uid) : null,
-            _email: email ? String(email) : null,
+            sub: String(user._id),
+            role: user.role,
+            email: user.email,
+            _uid: String(user._id),
+            _email: String(user.email || ""),
         };
 
         return next();
@@ -43,7 +66,6 @@ function authRequired(req, res, next) {
         return res.status(401).json({ message: "Invalid or expired token" });
     }
 }
-
 
 function adminOnly(req, res, next) {
     if (req.user?.role !== "admin") {

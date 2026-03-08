@@ -1,9 +1,32 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const mongoose = require("mongoose");
 const { authRequired, adminOnly } = require("../middleware/auth.middleware");
 const controller = require("./coupons.controller");
 
 const router = express.Router();
+
+function adminRateKey(req) {
+    return req.user?._uid || req.user?.sub || req.ip;
+}
+
+const adminReadLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: adminRateKey,
+    message: { message: "Troppe richieste admin, riprova tra poco" },
+});
+
+const adminWriteLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: adminRateKey,
+    message: { message: "Troppe operazioni admin, riprova tra poco" },
+});
 
 function isObjectId(v) {
     return mongoose.Types.ObjectId.isValid(String(v || ""));
@@ -84,14 +107,43 @@ function normalizeCouponBody(req, res, next) {
     next();
 }
 
-router.get("/admin", authRequired, adminOnly, controller.adminList);
+router.get("/admin", authRequired, adminOnly, adminReadLimiter, controller.adminList);
 
-router.get("/admin/:id", authRequired, adminOnly, validateObjectIdParam("id"), controller.adminGet);
+router.get(
+    "/admin/:id",
+    authRequired,
+    adminOnly,
+    adminReadLimiter,
+    validateObjectIdParam("id"),
+    controller.adminGet
+);
 
-router.post("/admin", authRequired, adminOnly, normalizeCouponBody, controller.adminCreate);
+router.post(
+    "/admin",
+    authRequired,
+    adminOnly,
+    adminWriteLimiter,
+    normalizeCouponBody,
+    controller.adminCreate
+);
 
-router.patch("/admin/:id", authRequired, adminOnly, validateObjectIdParam("id"), normalizeCouponBody, controller.adminUpdate);
+router.patch(
+    "/admin/:id",
+    authRequired,
+    adminOnly,
+    adminWriteLimiter,
+    validateObjectIdParam("id"),
+    normalizeCouponBody,
+    controller.adminUpdate
+);
 
-router.delete("/admin/:id", authRequired, adminOnly, validateObjectIdParam("id"), controller.adminDelete);
+router.delete(
+    "/admin/:id",
+    authRequired,
+    adminOnly,
+    adminWriteLimiter,
+    validateObjectIdParam("id"),
+    controller.adminDelete
+);
 
 module.exports = router;

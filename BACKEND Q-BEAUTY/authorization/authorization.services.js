@@ -174,7 +174,16 @@ async function changePasswordUser(userId, currentPassword, newPassword) {
     const saltRounds = getSaltRounds();
     const newHash = await bcrypt.hash(String(newPassword), saltRounds);
 
+    const now = new Date();
+
     user.passwordHash = newHash;
+    user.passwordChangedAt = now;
+
+    // invalida eventuali reset token pendenti
+    user.resetPasswordTokenHash = null;
+    user.resetPasswordExpiresAt = null;
+    user.resetPasswordUsedAt = null;
+
     await user.save();
 
     return { ok: true };
@@ -317,10 +326,12 @@ async function resetPasswordWithToken(token, newPassword) {
         {
             $set: {
                 passwordHash: newHash,
+                passwordChangedAt: now,
                 resetPasswordUsedAt: now,
                 resetPasswordTokenHash: null,
                 resetPasswordExpiresAt: null,
             },
+
         },
         { new: false }
     );

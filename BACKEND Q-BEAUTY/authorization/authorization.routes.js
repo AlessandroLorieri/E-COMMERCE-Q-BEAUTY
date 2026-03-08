@@ -130,15 +130,15 @@ function validateRegister(req, res, next) {
     return next();
 }
 
-// RECUPERO PASSWORD 
-router.post("/forgot-password", controller.forgotPassword);
-router.post("/reset-password", controller.resetPassword);
+// RECUPERO PASSWORD
+router.post("/forgot-password", validateForgotPassword, controller.forgotPassword);
+router.post("/reset-password", validateResetPassword, controller.resetPassword);
 
 // register
-router.post("/register", controller.register);
+router.post("/register", validateRegister, controller.register);
 
 // login
-router.post("/login", controller.login);
+router.post("/login", validateLogin, controller.login);
 
 router.get("/me", authRequired, controller.me);
 // (protetta) - aggiorna profilo + fatturazione

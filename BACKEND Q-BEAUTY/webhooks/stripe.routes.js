@@ -1,4 +1,3 @@
-
 const express = require("express");
 const mongoose = require("mongoose");
 
@@ -22,7 +21,6 @@ function maskEmail(v) {
 }
 
 function maskStripeId(v) {
-    // es: cs_test_... -> cs_test_…abcd
     const s = String(v || "").trim();
     if (!s) return "-";
     const prefix = s.includes("_") ? s.split("_").slice(0, 2).join("_") : s.slice(0, 3);
@@ -35,6 +33,67 @@ function safeMetaKeys(obj) {
     } catch {
         return [];
     }
+}
+
+const STRIPE_EVENTS_TTL_DAYS = 30;
+const STRIPE_EVENTS_TTL_SECONDS = STRIPE_EVENTS_TTL_DAYS * 24 * 60 * 60;
+const STRIPE_EVENTS_TTL_INDEX_NAME = "receivedAt_ttl_30d";
+
+let stripeEventsIndexesReadyPromise = null;
+
+async function ensureStripeEventsIndexes(eventsCol) {
+    if (stripeEventsIndexesReadyPromise) {
+        return stripeEventsIndexesReadyPromise;
+    }
+
+    stripeEventsIndexesReadyPromise = (async () => {
+        const indexes = await eventsCol.indexes();
+
+        const receivedAtIndex = indexes.find((idx) => {
+            const key = idx?.key || {};
+            return key.receivedAt === 1 && Object.keys(key).length === 1;
+        });
+
+        // Nessun indice su receivedAt -> creo TTL
+        if (!receivedAtIndex) {
+            await eventsCol.createIndex(
+                { receivedAt: 1 },
+                {
+                    name: STRIPE_EVENTS_TTL_INDEX_NAME,
+                    expireAfterSeconds: STRIPE_EVENTS_TTL_SECONDS,
+                }
+            );
+
+            console.log("Stripe webhook: creato TTL index su stripe_events", {
+                index: STRIPE_EVENTS_TTL_INDEX_NAME,
+                days: STRIPE_EVENTS_TTL_DAYS,
+            });
+            return;
+        }
+
+        // Esiste già un TTL corretto -> tutto bene
+        if (
+            typeof receivedAtIndex.expireAfterSeconds === "number" &&
+            receivedAtIndex.expireAfterSeconds === STRIPE_EVENTS_TTL_SECONDS
+        ) {
+            return;
+        }
+
+        // Esiste già un indice su receivedAt ma non coincide col TTL voluto
+        console.warn("Stripe webhook: indice esistente su stripe_events.receivedAt non allineato al TTL atteso", {
+            existingIndexName: receivedAtIndex.name,
+            existingExpireAfterSeconds:
+                typeof receivedAtIndex.expireAfterSeconds === "number"
+                    ? receivedAtIndex.expireAfterSeconds
+                    : null,
+            expectedExpireAfterSeconds: STRIPE_EVENTS_TTL_SECONDS,
+        });
+    })().catch((err) => {
+        stripeEventsIndexesReadyPromise = null;
+        throw err;
+    });
+
+    return stripeEventsIndexesReadyPromise;
 }
 
 module.exports = function makeStripeWebhookRouter({ stripe }) {
@@ -76,8 +135,9 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
         setImmediate(async () => {
             try {
                 const ordersCol = mongoose.connection.collection("orders");
-
                 const eventsCol = mongoose.connection.collection("stripe_events");
+
+                await ensureStripeEventsIndexes(eventsCol);
 
                 try {
                     await eventsCol.insertOne({

@@ -1,9 +1,32 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const { authRequired, adminOnly } = require("../middleware/auth.middleware");
 const controller = require("./orders.controller");
 const mongoose = require("mongoose");
 
 const router = express.Router();
+
+function adminRateKey(req) {
+    return req.user?._uid || req.user?.sub || req.ip;
+}
+
+const adminReadLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: adminRateKey,
+    message: { message: "Troppe richieste admin, riprova tra poco" },
+});
+
+const adminWriteLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: adminRateKey,
+    message: { message: "Troppe operazioni admin, riprova tra poco" },
+});
 
 function isObjectId(v) {
     return mongoose.Types.ObjectId.isValid(String(v || ""));
@@ -154,16 +177,24 @@ router.get("/me", authRequired, controller.mine);
 router.patch("/:id/pay-demo", authRequired, validateObjectIdParam("id"), controller.payDemo);
 
 // ADMIN - gestione ordini
-router.get("/admin", authRequired, adminOnly, controller.adminList);
-router.get("/admin/stats", authRequired, adminOnly, controller.adminStats);
-router.get("/admin/stats/years", authRequired, adminOnly, controller.adminStatsYears);
+router.get("/admin", authRequired, adminOnly, adminReadLimiter, controller.adminList);
+router.get("/admin/stats", authRequired, adminOnly, adminReadLimiter, controller.adminStats);
+router.get("/admin/stats/years", authRequired, adminOnly, adminReadLimiter, controller.adminStatsYears);
 
-router.get("/admin/:id", authRequired, adminOnly, validateObjectIdParam("id"), controller.adminGet);
+router.get(
+    "/admin/:id",
+    authRequired,
+    adminOnly,
+    adminReadLimiter,
+    validateObjectIdParam("id"),
+    controller.adminGet
+);
 
 router.patch(
     "/admin/:id/status",
     authRequired,
     adminOnly,
+    adminWriteLimiter,
     validateObjectIdParam("id"),
     validateAdminStatusBody,
     controller.adminSetStatus
@@ -173,6 +204,7 @@ router.patch(
     "/admin/:id/cancel",
     authRequired,
     adminOnly,
+    adminWriteLimiter,
     validateObjectIdParam("id"),
     controller.adminCancel
 );

@@ -61,14 +61,77 @@ function normalizeStringArray(v) {
     return v.map((x) => String(x).trim()).filter(Boolean);
 }
 
+const MAX_MEDIA_URL_LENGTH = 2048;
+const MAX_GALLERY_IMAGE_URLS = 12;
+
+const ALLOWED_MEDIA_HOSTS = new Set([
+    "cdn.qbeautyshop.it",
+]);
+
+const ALLOWED_MEDIA_EXTENSIONS = new Set([
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".avif",
+    ".gif",
+]);
+
+function normalizeMediaUrl(v) {
+    if (v === undefined) return undefined;
+    if (v === null) return null;
+    const s = String(v).trim();
+    return s ? s : null;
+}
+
+function normalizeMediaUrlArray(v) {
+    if (v === undefined) return undefined;
+    if (v === null) return [];
+    if (!Array.isArray(v)) return null;
+
+    const out = [];
+    const seen = new Set();
+
+    for (const item of v) {
+        const s = normalizeMediaUrl(item);
+        if (!s) continue;
+        if (seen.has(s)) continue;
+        seen.add(s);
+        out.push(s);
+    }
+
+    return out;
+}
+
+function hasAllowedImageExtension(pathname) {
+    const p = String(pathname || "").toLowerCase();
+    if (!p || p.endsWith("/")) return false;
+
+    for (const ext of ALLOWED_MEDIA_EXTENSIONS) {
+        if (p.endsWith(ext)) return true;
+    }
+    return false;
+}
+
 function validateOptionalUrl(url) {
     if (url === undefined) return true;
     if (url === null) return true;
+
     const s = String(url).trim();
     if (!s) return true;
+    if (s.length > MAX_MEDIA_URL_LENGTH) return false;
+
     try {
         const u = new URL(s);
-        if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+
+        if (u.protocol !== "https:") return false;
+        if (u.username || u.password) return false;
+
+        const hostname = String(u.hostname || "").toLowerCase();
+        if (!ALLOWED_MEDIA_HOSTS.has(hostname)) return false;
+
+        if (!hasAllowedImageExtension(u.pathname)) return false;
+
         return true;
     } catch {
         return false;
@@ -78,18 +141,15 @@ function validateOptionalUrl(url) {
 function validateHttpUrlString(s) {
     const raw = String(s ?? "").trim();
     if (!raw) return false;
-    try {
-        const u = new URL(raw);
-        return u.protocol === "http:" || u.protocol === "https:";
-    } catch {
-        return false;
-    }
+    return validateOptionalUrl(raw);
 }
 
 function validateHttpUrlArray(arr) {
     if (arr === undefined) return true;
     if (arr === null) return true;
     if (!Array.isArray(arr)) return false;
+    if (arr.length > MAX_GALLERY_IMAGE_URLS) return false;
+
     for (const s of arr) {
         if (!validateHttpUrlString(s)) return false;
     }
@@ -215,8 +275,8 @@ async function createProduct(payload) {
             ? 9999
             : Number(sortOrderRaw);
 
-    const imageUrl = normalizeOptionalString(payload?.imageUrl);
-    const galleryNorm = normalizeStringArray(payload?.galleryImageUrls);
+    const imageUrl = normalizeMediaUrl(payload?.imageUrl);
+    const galleryNorm = normalizeMediaUrlArray(payload?.galleryImageUrls);
     const shortDesc = normalizeOptionalString(payload?.shortDesc);
     const description = normalizeOptionalString(payload?.description);
 
@@ -237,11 +297,18 @@ async function createProduct(payload) {
     }
     if (!Number.isFinite(stockQty) || stockQty < 0) errors.stockQty = "stockQty non valido";
     if (!Number.isFinite(sortOrder) || sortOrder < 0) errors.sortOrder = "sortOrder non valido";
-    if (!validateOptionalUrl(imageUrl)) errors.imageUrl = "URL immagine non valido";
+    if (!validateOptionalUrl(imageUrl)) {
+        errors.imageUrl =
+            "imageUrl deve essere un URL https di cdn.qbeautyshop.it con estensione .jpg, .jpeg, .png, .webp, .avif o .gif";
+    }
 
-    if (galleryNorm === null) errors.galleryImageUrls = "galleryImageUrls deve essere un array di stringhe";
-    else if (galleryNorm !== undefined && !validateHttpUrlArray(galleryNorm)) {
-        errors.galleryImageUrls = "Ogni URL in galleryImageUrls deve essere valido (http/https)";
+    if (galleryNorm === null) {
+        errors.galleryImageUrls = "galleryImageUrls deve essere un array di stringhe";
+    } else if (galleryNorm !== undefined && galleryNorm.length > MAX_GALLERY_IMAGE_URLS) {
+        errors.galleryImageUrls = `Massimo ${MAX_GALLERY_IMAGE_URLS} immagini in galleryImageUrls`;
+    } else if (galleryNorm !== undefined && !validateHttpUrlArray(galleryNorm)) {
+        errors.galleryImageUrls =
+            "Ogni URL in galleryImageUrls deve essere https, su cdn.qbeautyshop.it, e con estensione .jpg, .jpeg, .png, .webp, .avif o .gif";
     }
 
     if (howToNorm === null) errors.howTo = "howTo deve essere un array di stringhe";
@@ -382,17 +449,24 @@ async function updateProduct(idOrProductId, payload) {
     }
 
     if (payload?.imageUrl !== undefined) {
-        const v = normalizeOptionalString(payload.imageUrl);
-        if (!validateOptionalUrl(v)) errors.imageUrl = "URL immagine non valido";
-        else updates.imageUrl = v;
+        const v = normalizeMediaUrl(payload.imageUrl);
+        if (!validateOptionalUrl(v)) {
+            errors.imageUrl =
+                "imageUrl deve essere un URL https di cdn.qbeautyshop.it con estensione .jpg, .jpeg, .png, .webp, .avif o .gif";
+        } else {
+            updates.imageUrl = v;
+        }
     }
 
     if (payload?.galleryImageUrls !== undefined) {
-        const v = normalizeStringArray(payload.galleryImageUrls);
+        const v = normalizeMediaUrlArray(payload.galleryImageUrls);
         if (v === null) {
             errors.galleryImageUrls = "galleryImageUrls deve essere un array di stringhe";
+        } else if (v.length > MAX_GALLERY_IMAGE_URLS) {
+            errors.galleryImageUrls = `Massimo ${MAX_GALLERY_IMAGE_URLS} immagini in galleryImageUrls`;
         } else if (!validateHttpUrlArray(v)) {
-            errors.galleryImageUrls = "Ogni URL in galleryImageUrls deve essere valido (http/https)";
+            errors.galleryImageUrls =
+                "Ogni URL in galleryImageUrls deve essere https, su cdn.qbeautyshop.it, e con estensione .jpg, .jpeg, .png, .webp, .avif o .gif";
         } else {
             updates.galleryImageUrls = v;
         }

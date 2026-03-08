@@ -1,13 +1,110 @@
 
 require("dotenv").config();
 
-if (process.env.NODE_ENV === "production") {
-    const s = String(process.env.JWT_SECRET || "");
-    if (s.length < 32) {
-        console.error("❌ JWT_SECRET troppo corto (min 32 caratteri in produzione)");
-        process.exit(1);
+function failEnv(message) {
+    console.error(`❌ Config env non valida: ${message}`);
+    process.exit(1);
+}
+
+function parseAllowedOrigins(raw) {
+    return String(raw || "")
+        .split(",")
+        .map((s) => s.trim().replace(/\/+$/, ""))
+        .filter(Boolean);
+}
+
+function validateEnv() {
+    const env = process.env;
+
+    const requiredVars = [
+        "MONGO_URI",
+        "JWT_SECRET",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "CLIENT_ORIGIN",
+        "PUBLIC_SITE_URL",
+    ];
+
+    const missingVars = requiredVars.filter((key) => !String(env[key] || "").trim());
+
+    if (missingVars.length) {
+        failEnv(`variabili mancanti: ${missingVars.join(", ")}`);
+    }
+
+    const mongoUri = String(env.MONGO_URI || "").trim();
+    if (!/^mongodb(\+srv)?:\/\//.test(mongoUri)) {
+        failEnv("MONGO_URI deve iniziare con mongodb:// oppure mongodb+srv://");
+    }
+
+    const jwtSecret = String(env.JWT_SECRET || "");
+    if (env.NODE_ENV === "production" && jwtSecret.length < 32) {
+        failEnv("JWT_SECRET troppo corto (min 32 caratteri in produzione)");
+    }
+
+    const stripeSecretKey = String(env.STRIPE_SECRET_KEY || "").trim();
+    if (!/^sk_(test|live)_/.test(stripeSecretKey)) {
+        failEnv("STRIPE_SECRET_KEY non sembra valida (atteso prefisso sk_test_ o sk_live_)");
+    }
+
+    const stripeWebhookSecret = String(env.STRIPE_WEBHOOK_SECRET || "").trim();
+    if (!/^whsec_/.test(stripeWebhookSecret)) {
+        failEnv("STRIPE_WEBHOOK_SECRET non sembra valida (atteso prefisso whsec_)");
+    }
+
+    const allowedOrigins = parseAllowedOrigins(env.CLIENT_ORIGIN);
+
+    if (!allowedOrigins.length) {
+        failEnv("CLIENT_ORIGIN deve contenere almeno un origin valido");
+    }
+
+    for (const origin of allowedOrigins) {
+        if (origin === "*") {
+            failEnv("CLIENT_ORIGIN non può contenere '*'");
+        }
+
+        let url;
+        try {
+            url = new URL(origin);
+        } catch {
+            failEnv(`CLIENT_ORIGIN contiene un origin non valido: ${origin}`);
+        }
+
+        if (!/^https?:$/.test(url.protocol)) {
+            failEnv(`CLIENT_ORIGIN contiene un protocollo non valido: ${origin}`);
+        }
+
+        if (url.pathname !== "/" || url.search || url.hash) {
+            failEnv(`CLIENT_ORIGIN deve contenere solo origin senza path/query/hash: ${origin}`);
+        }
+
+        if (env.NODE_ENV === "production" && url.protocol !== "https:") {
+            failEnv(`In produzione CLIENT_ORIGIN deve usare https: ${origin}`);
+        }
+    }
+
+    const publicSiteUrlRaw = String(env.PUBLIC_SITE_URL || "").trim().replace(/\/+$/, "");
+    let publicSiteUrl;
+
+    try {
+        publicSiteUrl = new URL(publicSiteUrlRaw);
+    } catch {
+        failEnv("PUBLIC_SITE_URL non è un URL valido");
+    }
+
+    if (!/^https?:$/.test(publicSiteUrl.protocol)) {
+        failEnv("PUBLIC_SITE_URL deve usare http o https");
+    }
+
+    if (env.NODE_ENV === "production" && publicSiteUrl.protocol !== "https:") {
+        failEnv("In produzione PUBLIC_SITE_URL deve usare https");
+    }
+
+    if (publicSiteUrl.pathname !== "/" || publicSiteUrl.search || publicSiteUrl.hash) {
+        failEnv("PUBLIC_SITE_URL deve contenere solo origin senza path/query/hash");
     }
 }
+
+validateEnv();
 
 const express = require("express");
 const cors = require("cors");
@@ -113,10 +210,7 @@ app.use((req, res, next) => {
 });
 
 // --- CORS allowlist
-const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
-    .split(",")
-    .map((s) => s.trim().replace(/\/+$/, ""))
-    .filter(Boolean);
+const allowedOrigins = parseAllowedOrigins(process.env.CLIENT_ORIGIN);
 
 const corsOptions = {
     origin: (origin, cb) => {
