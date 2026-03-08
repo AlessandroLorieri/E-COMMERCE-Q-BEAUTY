@@ -47,14 +47,25 @@ async function ensureStripeEventsIndexes(eventsCol) {
     }
 
     stripeEventsIndexesReadyPromise = (async () => {
-        const indexes = await eventsCol.indexes();
+        let indexes = [];
+
+        try {
+            indexes = await eventsCol.indexes();
+        } catch (err) {
+            const msg = String(err?.message || err);
+
+            if (!msg.includes("ns does not exist")) {
+                throw err;
+            }
+
+            indexes = [];
+        }
 
         const receivedAtIndex = indexes.find((idx) => {
             const key = idx?.key || {};
             return key.receivedAt === 1 && Object.keys(key).length === 1;
         });
 
-        // Nessun indice su receivedAt -> creo TTL
         if (!receivedAtIndex) {
             await eventsCol.createIndex(
                 { receivedAt: 1 },
@@ -71,7 +82,6 @@ async function ensureStripeEventsIndexes(eventsCol) {
             return;
         }
 
-        // Esiste già un TTL corretto -> tutto bene
         if (
             typeof receivedAtIndex.expireAfterSeconds === "number" &&
             receivedAtIndex.expireAfterSeconds === STRIPE_EVENTS_TTL_SECONDS
@@ -79,7 +89,6 @@ async function ensureStripeEventsIndexes(eventsCol) {
             return;
         }
 
-        // Esiste già un indice su receivedAt ma non coincide col TTL voluto
         console.warn("Stripe webhook: indice esistente su stripe_events.receivedAt non allineato al TTL atteso", {
             existingIndexName: receivedAtIndex.name,
             existingExpireAfterSeconds:
