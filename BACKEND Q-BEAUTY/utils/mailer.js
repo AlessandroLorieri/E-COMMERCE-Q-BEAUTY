@@ -180,8 +180,8 @@ Q•BEAUTY
         <td align="center" style="padding:24px 12px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:560px;">
             <tr>
-              <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:left;">
-                <div style="font-family:Arial, sans-serif; font-size:16px; letter-spacing:0.6px; color:#DEBE68; font-weight:700;">
+              <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:center;">
+                <div style="font-family:Arial, sans-serif; font-size:22px; letter-spacing:0.8px; color:#debe68; font-weight:800;">
                   Q•BEAUTY
                 </div>
                 <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
@@ -1303,6 +1303,7 @@ Come promesso, ecco il tuo codice sconto del ${safePercent}%:
 ${safeCode}
 
 Puoi usarlo sul prossimo acquisto nello shop Q•BEAUTY.
+Il codice è valido per 30 giorni e poi scadrà automaticamente.
 
 Entra qui:
 ${shopUrl}
@@ -1370,6 +1371,7 @@ Q•BEAUTY
 
                     <p style="margin:14px 0 0; font-size:12px; color:#666;">
                       Conserva questo codice e inseriscilo al checkout sul tuo prossimo ordine.
+                      È valido per <strong>30 giorni</strong> e poi scadrà automaticamente.
                     </p>
                   </div>
                 </td>

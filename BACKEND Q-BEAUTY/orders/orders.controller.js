@@ -85,7 +85,15 @@ async function create(req, res) {
         }
 
         const { items, shippingAddress, shippingAddressId, couponCode, taxCode, paymentMethod } = req.body || {};
-        const { order, quote } = await createOrder(userId, items, shippingAddress, shippingAddressId, couponCode, taxCode);
+        const { order, quote } = await createOrder(
+            userId,
+            items,
+            shippingAddress,
+            shippingAddressId,
+            couponCode,
+            taxCode,
+            paymentMethod
+        );
 
         if (String(paymentMethod || "").trim().toLowerCase() === "bank_transfer") {
             setImmediate(async () => {

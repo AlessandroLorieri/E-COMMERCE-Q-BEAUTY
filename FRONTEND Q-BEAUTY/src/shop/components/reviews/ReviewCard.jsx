@@ -43,11 +43,9 @@ export default function ReviewCard({ review, index = 0, slotClass = "" }) {
             <div className="qb-review-card__quote">“</div>
 
             <div className="qb-review-card__top">
+                
                 <div>
                     <div className="qb-review-card__name">{review.name}</div>
-                    <div className="qb-review-card__meta">
-                        {[review.role, review.city].filter(Boolean).join(" · ")}
-                    </div>
                 </div>
 
                 <div className="qb-review-card__rating" aria-label={`${review.rating} su 5`}>

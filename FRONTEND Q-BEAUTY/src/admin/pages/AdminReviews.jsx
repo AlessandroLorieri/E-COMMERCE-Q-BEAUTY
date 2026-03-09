@@ -16,12 +16,6 @@ function formatDate(value) {
     }
 }
 
-function shortText(value, max = 120) {
-    const s = String(value || "").trim();
-    if (!s) return "—";
-    return s.length > max ? `${s.slice(0, max)}…` : s;
-}
-
 export default function AdminReviews() {
     const navigate = useNavigate();
     const { authFetch } = useAuth();
@@ -198,35 +192,53 @@ export default function AdminReviews() {
                 </div>
             </div>
 
-            <div className="table-responsive">
-                <table className="table table-sm align-middle">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Email</th>
-                            <th>Rating</th>
-                            <th>Ruolo / città</th>
-                            <th>Testo</th>
-                            <th>Stato</th>
-                            <th>Data</th>
-                            <th style={{ width: 220 }}>Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {reviews.map((r) => (
-                            <tr key={r._id}>
-                                <td>{r.name || "—"}</td>
-                                <td>{r.email || "—"}</td>
-                                <td>{r.rating ? `${r.rating}/5` : "—"}</td>
-                                <td>
-                                    {[r.role, r.city].filter(Boolean).join(" · ") || (
-                                        <span className="text-muted">—</span>
-                                    )}
-                                </td>
-                                <td>{shortText(r.text)}</td>
-                                <td>{r.approved ? "✅ Approvata" : "⏳ In attesa"}</td>
-                                <td>{formatDate(r.createdAt)}</td>
-                                <td className="d-flex gap-2">
+            <div className="d-flex flex-column gap-3">
+                {reviews.map((r) => (
+                    <div
+                        key={r._id}
+                        className="card border-0 shadow-sm"
+                        style={{ borderRadius: 16, overflow: "hidden" }}
+                    >
+                        <div className="card-body p-3 p-md-4">
+                            <div className="d-flex flex-column gap-3">
+                                <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <div className="fw-semibold fs-5">{r.name || "—"}</div>
+                                        <div className="text-muted small">{r.email || "—"}</div>
+                                    </div>
+
+                                    <div className="d-flex flex-column align-items-md-end gap-1">
+                                        <span className={`badge ${r.approved ? "text-bg-success" : "text-bg-warning"}`}>
+                                            {r.approved ? "Approvata" : "In attesa"}
+                                        </span>
+                                        <div className="text-muted small">{formatDate(r.createdAt)}</div>
+                                    </div>
+                                </div>
+
+                                <div className="row g-3">
+                                    <div className="col-12 col-md-4">
+                                        <div className="text-muted small mb-1">Valutazione</div>
+                                        <div className="fw-semibold">{r.rating ? `${r.rating}/5` : "—"}</div>
+                                    </div>
+
+                                    <div className="col-12 col-md-8">
+                                        <div className="text-muted small mb-1">Dettagli</div>
+                                        <div>
+                                            {[r.role, r.city].filter(Boolean).join(" · ") || (
+                                                <span className="text-muted">—</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="col-12">
+                                        <div className="text-muted small mb-1">Recensione</div>
+                                        <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>
+                                            {r.text || "—"}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="d-flex flex-wrap gap-2 pt-2 border-top">
                                     {!r.approved ? (
                                         <button
                                             className="btn btn-sm btn-outline-success"
@@ -244,21 +256,18 @@ export default function AdminReviews() {
                                     >
                                         Elimina
                                     </button>
-                                </td>
-                            </tr>
-                        ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
 
-                        {!loading && reviews.length === 0 ? (
-                            <tr>
-                                <td colSpan={8} className="text-muted py-4">
-                                    Nessuna recensione trovata.
-                                </td>
-                            </tr>
-                        ) : null}
-                    </tbody>
-                </table>
+                {!loading && reviews.length === 0 ? (
+                    <div className="card border-0 shadow-sm" style={{ borderRadius: 16 }}>
+                        <div className="card-body py-4 text-muted">Nessuna recensione trovata.</div>
+                    </div>
+                ) : null}
             </div>
-
             {loading ? <div className="text-muted mt-3">Caricamento...</div> : null}
         </div>
     );

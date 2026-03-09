@@ -88,6 +88,8 @@
     will-change: transform;
     transform-origin: center center;
     -webkit-tap-highlight-color: transparent;
+    display: flex;
+    flex-direction: column;
 }
 
 .qb-review-card::before {
@@ -208,6 +210,9 @@
     color: rgba(255, 255, 255, 0.88);
     line-height: 1.6;
     margin: 0;
+    flex: 1;
+    display: flex;
+    align-items: center;
 }
 
 .qb-review-card__bottom {

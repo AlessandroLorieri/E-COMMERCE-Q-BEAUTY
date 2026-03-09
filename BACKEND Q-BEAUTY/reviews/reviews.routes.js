@@ -25,8 +25,7 @@ function pickString(v, maxLen = 2000) {
 }
 
 function validateCreateReviewBody(req, res, next) {
-    const role = pickString(req.body?.role, 80);
-    const city = pickString(req.body?.city, 80);
+    const name = pickString(req.body?.name, 80);
     const text = pickString(req.body?.text, 2000);
     const ratingRaw = req.body?.rating;
 
@@ -48,8 +47,7 @@ function validateCreateReviewBody(req, res, next) {
     req.body = {
         rating: Math.round(rating),
         text,
-        ...(role ? { role } : {}),
-        ...(city ? { city } : {}),
+        ...(name ? { name } : {}),
     };
 
     next();

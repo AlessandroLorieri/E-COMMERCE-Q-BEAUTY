@@ -361,8 +361,12 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
     };
 }
 
-async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId, couponCode, taxCodeRaw) {
+async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId, couponCode, taxCodeRaw, paymentMethodRaw) {
+
     const quote = await computeQuote(userId, itemsRaw, couponCode);
+
+    const paymentMethod = String(paymentMethodRaw || "stripe").trim().toLowerCase();
+    const isBankTransfer = paymentMethod === "bank_transfer" || paymentMethod === "bonifico";
 
     function normalizeTaxCode(v) {
         return String(v || "").trim().toUpperCase();
@@ -468,8 +472,6 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
     const orderNumber = 99 + counter.seq;
     const publicId = `#${year}${orderNumber}`;
 
-
-
     const order = await Order.create({
         user: userId,
         publicId,
@@ -491,7 +493,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         discountType: quote.discountType,
     });
 
-    if (quote.couponCodeApplied) {
+    if (quote.couponCodeApplied && isBankTransfer) {
         await Coupon.updateOne(
             {
                 code: quote.couponCodeApplied,
@@ -1010,6 +1012,27 @@ async function adminCancelOrderAndRestock(id) {
             await Product.findOneAndUpdate(q, { $inc: { stockQty: it.qty } });
         }
     }
+
+    if (order.couponCodeApplied) {
+        await Coupon.updateOne(
+            {
+                code: order.couponCodeApplied,
+                isRewardCoupon: true,
+                usedByOrder: order._id,
+            },
+            {
+                $set: {
+                    isActive: true,
+                },
+                $unset: {
+                    usedAt: "",
+                    usedByOrder: "",
+                    usedByUser: "",
+                },
+            }
+        );
+    }
+
     order.status = "cancelled";
     await order.save();
     return order;

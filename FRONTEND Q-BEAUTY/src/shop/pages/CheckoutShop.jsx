@@ -330,9 +330,6 @@ export default function CheckoutShop() {
         setSubmitError("");
         try {
             const url = await createStripeCheckoutSession(orderId);
-
-            clearCart();
-
             window.location.assign(url);
         } catch (err) {
             setSubmitError(err?.message || "Errore avvio pagamento");
@@ -661,7 +658,7 @@ export default function CheckoutShop() {
 
                             {!isVatUser ? (
                                 <div className="col-12">
-                                    <label className="form-label">Codice Fiscale (per fattura)</label>
+                                    <label className="form-label">Codice Fiscale</label>
                                     <input
                                         className={`form-control ${fieldErrors.taxCode ? "is-invalid" : ""}`}
                                         name="taxCode"
@@ -681,7 +678,7 @@ export default function CheckoutShop() {
                                         ) : (addressMode === "saved" && selectedAddressId && form.taxCode) ? (
                                             <div className="form-text">Codice fiscale precompilato dall’indirizzo salvato.</div>
                                         ) : (
-                                            <div className="form-text">16 caratteri (persona fisica).</div>
+                                            <div className="form-text">16 caratteri.</div>
                                         )
                                     ) : null}
                                 </div>

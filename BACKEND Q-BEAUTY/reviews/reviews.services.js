@@ -51,6 +51,9 @@ async function createReviewRewardCoupon({ ownerUserId, reviewId }) {
         throw err;
     }
 
+    const now = new Date();
+    const endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
     for (let attempt = 0; attempt < 10; attempt++) {
         const code = buildReviewRewardCode();
 
@@ -59,8 +62,8 @@ async function createReviewRewardCoupon({ ownerUserId, reviewId }) {
                 code,
                 name: "Premio recensione 5%",
                 isActive: true,
-                startsAt: null,
-                endsAt: null,
+                startsAt: now,
+                endsAt,
                 rules,
                 ownerUser: new mongoose.Types.ObjectId(String(ownerUserId)),
                 sourceReview: new mongoose.Types.ObjectId(String(reviewId)),
@@ -191,8 +194,7 @@ async function createReviewForUser(userId, payload) {
         throw err;
     }
 
-    const role = pickString(payload?.role, 80);
-    const city = pickString(payload?.city, 80);
+    const name = pickString(payload?.name, 80);
     const text = pickString(payload?.text, 2000);
     const rating = Number(payload?.rating);
 
@@ -219,10 +221,8 @@ async function createReviewForUser(userId, payload) {
 
     const review = await Review.create({
         user: user._id,
-        name: fullName || user.email,
+        name: name || fullName || user.email,
         email: String(user.email || "").trim().toLowerCase(),
-        role: role || (user.customerType === "piva" ? "Cliente P.IVA" : "Cliente privata"),
-        city: city || null,
         rating: Math.round(rating),
         text,
         approved: false,

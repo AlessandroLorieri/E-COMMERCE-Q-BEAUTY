@@ -148,6 +148,16 @@ export default function AdminCoupons() {
     const selectedSet = useMemo(() => new Set(form.selectedProductIds || []), [form.selectedProductIds]);
     const selectedCount = (form.selectedProductIds || []).length;
 
+    const manualCoupons = useMemo(
+        () => (coupons || []).filter((c) => !c?.isRewardCoupon),
+        [coupons]
+    );
+
+    const rewardCoupons = useMemo(
+        () => (coupons || []).filter((c) => !!c?.isRewardCoupon),
+        [coupons]
+    );
+
     function resetForm() {
         setMode("create");
         setEditingId(null);
@@ -343,6 +353,108 @@ export default function AdminCoupons() {
         }
     }
 
+    function renderCouponsTable(list, emptyLabel) {
+        if (!loading && list.length === 0) {
+            return <div className="text-muted py-2">{emptyLabel}</div>;
+        }
+
+        return (
+            <div className="d-flex flex-column gap-3">
+                {list.map((c) => {
+                    const isReward = !!c.isRewardCoupon;
+                    const isUsed = !!c.usedAt;
+                    const usageCount = Number(c.usageCount || 0);
+
+                    return (
+                        <div
+                            key={c._id}
+                            className="border rounded-4 p-3 p-md-4"
+                            style={{ background: "#fff" }}
+                        >
+                            <div className="d-flex flex-column gap-3">
+                                <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <div className="d-flex flex-wrap align-items-center gap-2">
+                                            <code style={{ fontSize: 16, fontWeight: 700 }}>{c.code}</code>
+
+                                            {isReward ? (
+                                                <span className="badge text-bg-warning">Reward</span>
+                                            ) : (
+                                                <span className="badge text-bg-secondary">Manuale</span>
+                                            )}
+
+                                            {c.isActive ? (
+                                                <span className="badge text-bg-success">Attivo</span>
+                                            ) : (
+                                                <span className="badge text-bg-danger">Non attivo</span>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-2 fw-semibold">
+                                            {c.name || <span className="text-muted">—</span>}
+                                        </div>
+
+                                        <div className="text-muted small mt-1">
+                                            {isReward ? "Coupon recensione generato automaticamente" : "Coupon creato manualmente"}
+                                        </div>
+                                    </div>
+
+                                    <div className="d-flex flex-wrap gap-2">
+                                        <button
+                                            className="btn btn-sm btn-outline-primary"
+                                            onClick={() => startEdit(c)}
+                                            disabled={loading}
+                                        >
+                                            Modifica
+                                        </button>
+
+                                        <button
+                                            className="btn btn-sm btn-outline-danger"
+                                            onClick={() => deleteCoupon(c)}
+                                            disabled={loading}
+                                        >
+                                            Elimina
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="row g-3">
+                                    <div className="col-12 col-md-4">
+                                        <div className="text-muted small mb-1">Dettagli</div>
+                                        {isReward ? (
+                                            isUsed ? (
+                                                <div>
+                                                    <div>✅  Usato</div>
+                                                    <div className="text-muted small">{formatDate(c.usedAt)}</div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-muted">Non usato</div>
+                                            )
+                                        ) : (
+                                            <div>
+                                                <strong>{usageCount}</strong> utilizzi
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="col-12 col-md-4">
+                                        <div className="text-muted small mb-1">Regole</div>
+                                        <div>{Array.isArray(c.rules) ? c.rules.length : 0}</div>
+                                    </div>
+
+                                    <div className="col-12 col-md-4">
+                                        <div className="text-muted small mb-1">Scadenza</div>
+                                        <div>{c.endsAt ? formatDate(c.endsAt) : "—"}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
     return (
         <div>
             <div className="d-flex align-items-center justify-content-between mb-3">
@@ -409,7 +521,7 @@ export default function AdminCoupons() {
                     ) : null}
 
                     <form onSubmit={handleCreateOrUpdate} className="row g-3">
-                        <div className="col-md-3">
+                        <div className="col-md-4">
                             <label className="form-label">Code</label>
                             <input
                                 className={`form-control ${formErrors.code ? "is-invalid" : ""}`}
@@ -431,7 +543,7 @@ export default function AdminCoupons() {
                             />
                         </div>
 
-                        <div className="col-md-2 d-flex align-items-end">
+                        <div className="col-md-3 d-flex align-items-end">
                             <div className="form-check">
                                 <input
                                     className="form-check-input"
@@ -446,7 +558,7 @@ export default function AdminCoupons() {
                             </div>
                         </div>
 
-                        <div className="col-md-3">
+                        <div className="col-md-6">
                             <label className="form-label">Inizio (opzionale)</label>
                             <input
                                 type="datetime-local"
@@ -457,7 +569,7 @@ export default function AdminCoupons() {
                             {formErrors.startsAt ? <div className="invalid-feedback">{formErrors.startsAt}</div> : null}
                         </div>
 
-                        <div className="col-md-3">
+                        <div className="col-md-6">
                             <label className="form-label">Fine (opzionale)</label>
                             <input
                                 type="datetime-local"
@@ -473,7 +585,7 @@ export default function AdminCoupons() {
                             <h6 className="m-0">Valore coupon</h6>
                         </div>
 
-                        <div className="col-md-3">
+                        <div className="col-md-6">
                             <label className="form-label">Tipo</label>
                             <select
                                 className={`form-select ${formErrors.discountType ? "is-invalid" : ""}`}
@@ -487,7 +599,7 @@ export default function AdminCoupons() {
                             {formErrors.discountType ? <div className="invalid-feedback">{formErrors.discountType}</div> : null}
                         </div>
 
-                        <div className="col-md-3">
+                        <div className="col-md-6">
                             <label className="form-label">Valore</label>
                             <input
                                 className={`form-control ${formErrors.discountValue ? "is-invalid" : ""}`}
@@ -571,93 +683,32 @@ export default function AdminCoupons() {
                 </div>
             </div>
 
-            {/* Table coupons */}
-            <div className="table-responsive">
-                <table className="table table-sm align-middle">
-                    <thead>
-                        <tr>
-                            <th>Code</th>
-                            <th>Nome</th>
-                            <th>Tipo</th>
-                            <th>Attivo</th>
-                            <th>Usato</th>
-                            <th>Regole</th>
-                            <th style={{ width: 260 }}>Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {coupons.map((c) => {
-                            const isReward = !!c.isRewardCoupon;
-                            const isUsed = !!c.usedAt;
+            {/* Coupon manuali */}
+            <div className="card mb-4">
+                <div className="card-body">
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                        <h5 className="m-0">Coupon manuali</h5>
+                        <div className="text-muted" style={{ fontSize: 13 }}>
+                            {manualCoupons.length} in questa pagina
+                        </div>
+                    </div>
 
-                            return (
-                                <tr key={c._id}>
-                                    <td><code>{c.code}</code></td>
+                    {renderCouponsTable(manualCoupons, "Nessun coupon manuale trovato in questa pagina.")}
+                </div>
+            </div>
 
-                                    <td>
-                                        {c.name || <span className="text-muted">—</span>}
-                                        {isReward && (
-                                            <div className="text-muted" style={{ fontSize: 12 }}>
-                                                Coupon recensione
-                                            </div>
-                                        )}
-                                    </td>
+            {/* Coupon automatici */}
+            <div className="card">
+                <div className="card-body">
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                        <h5 className="m-0">Coupon automatici</h5>
+                        <div className="text-muted" style={{ fontSize: 13 }}>
+                            {rewardCoupons.length} in questa pagina
+                        </div>
+                    </div>
 
-                                    <td>
-                                        {isReward ? (
-                                            <span className="badge text-bg-warning">Reward</span>
-                                        ) : (
-                                            <span className="badge text-bg-secondary">Manuale</span>
-                                        )}
-                                    </td>
-
-                                    <td>{c.isActive ? "✅" : "⛔️"}</td>
-
-                                    <td>
-                                        {isUsed ? (
-                                            <div>
-                                                <div>✅ Usato</div>
-                                                <div className="text-muted" style={{ fontSize: 12 }}>
-                                                    {formatDate(c.usedAt)}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            "—"
-                                        )}
-                                    </td>
-
-                                    <td className="text-muted">{Array.isArray(c.rules) ? c.rules.length : 0}</td>
-
-                                    <td className="d-flex gap-2">
-                                        <button
-                                            className="btn btn-sm btn-outline-primary"
-                                            onClick={() => startEdit(c)}
-                                            disabled={loading}
-                                        >
-                                            Modifica
-                                        </button>
-
-                                        <button
-                                            className="btn btn-sm btn-outline-danger"
-                                            onClick={() => deleteCoupon(c)}
-                                            disabled={loading}
-                                        >
-                                            Elimina
-                                        </button>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-
-                        {!loading && coupons.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} className="text-muted py-4">
-                                    Nessun coupon trovato.
-                                </td>
-                            </tr>
-                        ) : null}
-                    </tbody>
-                </table>
+                    {renderCouponsTable(rewardCoupons, "Nessun coupon automatico trovato in questa pagina.")}
+                </div>
             </div>
 
             {loading ? <div className="text-muted mt-3">Caricamento...</div> : null}

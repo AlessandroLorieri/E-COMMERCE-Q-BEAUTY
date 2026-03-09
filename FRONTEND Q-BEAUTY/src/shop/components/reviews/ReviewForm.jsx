@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const INITIAL_FORM = {
-    role: "",
-    city: "",
+    name: "",
     rating: 5,
     text: "",
 };
@@ -26,8 +25,7 @@ export default function ReviewForm({ onCreated }) {
         setError("");
         setSuccess("");
 
-        const role = String(form.role || "").trim();
-        const city = String(form.city || "").trim();
+        const name = String(form.name || "").trim();
         const text = String(form.text || "").trim();
         const rating = Math.max(1, Math.min(5, Number(form.rating) || 5));
 
@@ -45,8 +43,7 @@ export default function ReviewForm({ onCreated }) {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    role,
-                    city,
+                    name,
                     rating,
                     text,
                 }),
@@ -104,24 +101,14 @@ export default function ReviewForm({ onCreated }) {
             {success ? <div className="qb-review-form__alert qb-review-form__alert--success">{success}</div> : null}
 
             <div className="qb-review-form__grid">
-                <div>
-                    <label className="qb-review-form__label">Ruolo</label>
+                
+                <div className="qb-review-form__full">
+                    <label className="qb-review-form__label">Nome</label>
                     <input
                         className="qb-review-form__input"
-                        value={form.role}
-                        onChange={(e) => setField("role", e.target.value)}
-                        placeholder="Cliente privata, onicotecnica..."
-                        disabled={sending}
-                    />
-                </div>
-
-                <div>
-                    <label className="qb-review-form__label">Città</label>
-                    <input
-                        className="qb-review-form__input"
-                        value={form.city}
-                        onChange={(e) => setField("city", e.target.value)}
-                        placeholder="Milano, Verona..."
+                        value={form.name}
+                        onChange={(e) => setField("name", e.target.value)}
+                        placeholder="Il tuo nome"
                         disabled={sending}
                     />
                 </div>

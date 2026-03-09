@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Coupon = require("./coupons.schema");
 const Product = require("../products/products.schema");
+const Order = require("../orders/orders.schema");
 
 function normalizeCode(raw) {
     return String(raw || "").trim().toUpperCase();
@@ -194,9 +195,52 @@ async function listCoupons({ page = 1, limit = 20, q } = {}) {
     const skip = (p - 1) * l;
 
     const total = await Coupon.countDocuments(filter);
-    const coupons = await Coupon.find(filter).sort({ createdAt: -1 }).skip(skip).limit(l).lean();
+    const coupons = await Coupon.find(filter).sort({ isRewardCoupon: 1, createdAt: -1 }).skip(skip).limit(l).lean();
 
-    return { page: p, limit: l, total, pages: Math.max(1, Math.ceil(total / l)), coupons };
+    const manualCodes = coupons
+        .filter((c) => !c?.isRewardCoupon)
+        .map((c) => String(c?.code || "").trim())
+        .filter(Boolean);
+
+    let usageMap = new Map();
+
+    if (manualCodes.length) {
+        const usageRows = await Order.aggregate([
+            {
+                $match: {
+                    couponCodeApplied: { $in: manualCodes },
+                    status: { $nin: ["cancelled", "refunded"] },
+                },
+            },
+            {
+                $group: {
+                    _id: "$couponCodeApplied",
+                    usageCount: { $sum: 1 },
+                },
+            },
+        ]);
+
+        usageMap = new Map(
+            usageRows.map((row) => [String(row?._id || "").trim(), Number(row?.usageCount || 0)])
+        );
+    }
+
+    const enrichedCoupons = coupons.map((c) => {
+        const code = String(c?.code || "").trim();
+
+        return {
+            ...c,
+            usageCount: c?.isRewardCoupon ? 0 : (usageMap.get(code) || 0),
+        };
+    });
+
+    return {
+        page: p,
+        limit: l,
+        total,
+        pages: Math.max(1, Math.ceil(total / l)),
+        coupons: enrichedCoupons,
+    };
 }
 
 async function getCoupon(id) {

@@ -142,6 +142,7 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
         try {
             const ordersCol = mongoose.connection.collection("orders");
             const eventsCol = mongoose.connection.collection("stripe_events");
+            const couponsCol = mongoose.connection.collection("coupons");
 
             await ensureStripeEventsIndexes(eventsCol);
 
@@ -190,6 +191,51 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                 await ordersCol.updateOne({ _id }, { $unset: { [lockField]: "" } });
             };
 
+            const markRewardCouponUsedForOrder = async (order) => {
+                const couponCode = String(order?.couponCodeApplied || "").trim();
+                if (!couponCode) return;
+
+                await couponsCol.updateOne(
+                    {
+                        code: couponCode,
+                        ownerUser: order.user,
+                        isRewardCoupon: true,
+                        usedAt: null,
+                    },
+                    {
+                        $set: {
+                            isActive: false,
+                            usedAt: new Date(),
+                            usedByOrder: order._id,
+                            usedByUser: order.user,
+                        },
+                    }
+                );
+            };
+
+            const restoreRewardCouponForOrder = async (orderId) => {
+                if (!mongoose.Types.ObjectId.isValid(String(orderId || ""))) return;
+
+                const _id = new mongoose.Types.ObjectId(String(orderId));
+
+                await couponsCol.updateOne(
+                    {
+                        isRewardCoupon: true,
+                        usedByOrder: _id,
+                    },
+                    {
+                        $set: {
+                            isActive: true,
+                        },
+                        $unset: {
+                            usedAt: "",
+                            usedByOrder: "",
+                            usedByUser: "",
+                        },
+                    }
+                );
+            };
+
             const markCancelledByOrderId = async (orderId) => {
                 if (!orderId) return;
                 if (!mongoose.Types.ObjectId.isValid(String(orderId))) return;
@@ -199,6 +245,10 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                     { _id, status: { $in: ["pending_payment", "draft"] } },
                     { $set: { status: "cancelled", updatedAt: new Date() } }
                 );
+
+                if (r?.modifiedCount === 1) {
+                    await restoreRewardCouponForOrder(_id);
+                }
 
                 console.log("Stripe webhook: ordine cancellato (se presente)", {
                     orderId: String(orderId),
@@ -277,6 +327,8 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                         });
                         break;
                     }
+
+                    await markRewardCouponUsedForOrder(order);
 
                     if (!order.adminEmailSentAt) {
                         const adminLocked = await claimEmailLock({
