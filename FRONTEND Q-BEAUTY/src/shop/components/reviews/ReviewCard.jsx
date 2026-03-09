@@ -61,7 +61,7 @@ export default function ReviewCard({ review, index = 0, slotClass = "" }) {
 
             <div className="qb-review-card__bottom">
                 <span className="qb-review-card__date">{formatReviewDate(review.createdAt)}</span>
-                <span className="qb-review-card__verified">Recensione verificata</span>
+                <span className="qb-review-card__verified">✦ Recensione verificata</span>
             </div>
         </motion.article>
     );

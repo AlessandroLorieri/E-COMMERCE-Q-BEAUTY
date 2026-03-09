@@ -164,8 +164,30 @@ function validateAdminStatusBody(req, res, next) {
         return res.status(400).json({ message: "Status non valido" });
     }
 
-    // whitelist (lasciamo solo status per evitare update strani)
-    req.body = { status };
+    const rawShipment =
+        req.body?.shipment &&
+            typeof req.body.shipment === "object" &&
+            !Array.isArray(req.body.shipment)
+            ? req.body.shipment
+            : null;
+
+    const carrierName = pickString(rawShipment?.carrierName, 60);
+    const trackingCode = pickString(rawShipment?.trackingCode, 120);
+    const trackingUrl = pickString(rawShipment?.trackingUrl, 500);
+
+    const shipment = rawShipment
+        ? {
+            ...(carrierName ? { carrierName } : {}),
+            ...(trackingCode ? { trackingCode } : {}),
+            ...(trackingUrl ? { trackingUrl } : {}),
+        }
+        : undefined;
+
+    req.body = {
+        status,
+        ...(shipment ? { shipment } : {}),
+    };
+
     next();
 }
 
