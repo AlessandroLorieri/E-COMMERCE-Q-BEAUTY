@@ -20,12 +20,21 @@ export default function ReviewForm({ onCreated }) {
         setForm((prev) => ({ ...prev, [key]: value }));
     }
 
+    function normalizeDisplayName(value) {
+        return String(value || "")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .join(" ");
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         setError("");
         setSuccess("");
 
-        const name = String(form.name || "").trim();
+        const name = normalizeDisplayName(form.name);
         const text = String(form.text || "").trim();
         const rating = Math.max(1, Math.min(5, Number(form.rating) || 5));
 
@@ -101,13 +110,14 @@ export default function ReviewForm({ onCreated }) {
             {success ? <div className="qb-review-form__alert qb-review-form__alert--success">{success}</div> : null}
 
             <div className="qb-review-form__grid">
-                
+
                 <div className="qb-review-form__full">
                     <label className="qb-review-form__label">Nome</label>
                     <input
                         className="qb-review-form__input"
                         value={form.name}
                         onChange={(e) => setField("name", e.target.value)}
+                        onBlur={(e) => setField("name", normalizeDisplayName(e.target.value))}
                         placeholder="Il tuo nome"
                         disabled={sending}
                     />

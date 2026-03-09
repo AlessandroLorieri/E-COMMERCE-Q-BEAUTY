@@ -52,6 +52,14 @@ export default function LoginShop() {
         setProfileOk("");
     }
 
+    function normalizeHumanText(value) {
+        return String(value || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .replace(/(^|[\s'-])([a-zà-öø-ÿ])/g, (_, sep, ch) => `${sep}${ch.toUpperCase()}`);
+    }
+
     function startEditProfile() {
         if (!user) return;
         setProfile({
@@ -102,8 +110,8 @@ export default function LoginShop() {
                     Authorization: `Bearer ${authToken}`,
                 },
                 body: JSON.stringify({
-                    firstName: profile.firstName,
-                    lastName: profile.lastName,
+                    firstName: normalizeHumanText(profile.firstName),
+                    lastName: normalizeHumanText(profile.lastName),
                     phone: profile.phone,
                     companyName: profile.companyName,
                     vatNumber: profile.vatNumber,
@@ -239,12 +247,12 @@ export default function LoginShop() {
         setNewAddrSubmitting(true);
         try {
             const created = await createAddress({
-                name: newAddr.name.trim(),
-                surname: newAddr.surname.trim(),
+                name: normalizeHumanText(newAddr.name),
+                surname: normalizeHumanText(newAddr.surname),
                 phone: newAddr.phone.trim(),
                 address: newAddr.address.trim(),
                 streetNumber: newAddr.streetNumber.trim(),
-                city: newAddr.city.trim(),
+                city: normalizeHumanText(newAddr.city),
                 cap: newAddr.cap.trim(),
                 email: user?.email || "",
             });
@@ -483,12 +491,34 @@ export default function LoginShop() {
                             <div className="row g-2">
                                 <div className="col-12 col-md-6">
                                     <label className="form-label">Nome</label>
-                                    <input className="form-control" name="firstName" value={profile.firstName} onChange={onProfileChange} />
+                                    <input
+                                        className="form-control"
+                                        name="firstName"
+                                        value={profile.firstName}
+                                        onChange={onProfileChange}
+                                        onBlur={(e) =>
+                                            setProfile((prev) => ({
+                                                ...prev,
+                                                firstName: normalizeHumanText(e.target.value),
+                                            }))
+                                        }
+                                    />
                                 </div>
 
                                 <div className="col-12 col-md-6">
                                     <label className="form-label">Cognome</label>
-                                    <input className="form-control" name="lastName" value={profile.lastName} onChange={onProfileChange} />
+                                    <input
+                                        className="form-control"
+                                        name="lastName"
+                                        value={profile.lastName}
+                                        onChange={onProfileChange}
+                                        onBlur={(e) =>
+                                            setProfile((prev) => ({
+                                                ...prev,
+                                                lastName: normalizeHumanText(e.target.value),
+                                            }))
+                                        }
+                                    />
                                 </div>
 
                                 <div className="col-12">
@@ -644,12 +674,34 @@ export default function LoginShop() {
                                 <div className="row g-2">
                                     <div className="col-12 col-md-6">
                                         <label className="form-label">Nome</label>
-                                        <input className="form-control" name="name" value={newAddr.name} onChange={onNewAddrChange} />
+                                        <input
+                                            className="form-control"
+                                            name="name"
+                                            value={newAddr.name}
+                                            onChange={onNewAddrChange}
+                                            onBlur={(e) =>
+                                                setNewAddr((prev) => ({
+                                                    ...prev,
+                                                    name: normalizeHumanText(e.target.value),
+                                                }))
+                                            }
+                                        />
                                     </div>
 
                                     <div className="col-12 col-md-6">
                                         <label className="form-label">Cognome</label>
-                                        <input className="form-control" name="surname" value={newAddr.surname} onChange={onNewAddrChange} />
+                                        <input
+                                            className="form-control"
+                                            name="surname"
+                                            value={newAddr.surname}
+                                            onChange={onNewAddrChange}
+                                            onBlur={(e) =>
+                                                setNewAddr((prev) => ({
+                                                    ...prev,
+                                                    surname: normalizeHumanText(e.target.value),
+                                                }))
+                                            }
+                                        />
                                     </div>
 
                                     <div className="col-12">
@@ -669,7 +721,18 @@ export default function LoginShop() {
 
                                     <div className="col-12 col-md-5">
                                         <label className="form-label">Città</label>
-                                        <input className="form-control" name="city" value={newAddr.city} onChange={onNewAddrChange} />
+                                        <input
+                                            className="form-control"
+                                            name="city"
+                                            value={newAddr.city}
+                                            onChange={onNewAddrChange}
+                                            onBlur={(e) =>
+                                                setNewAddr((prev) => ({
+                                                    ...prev,
+                                                    city: normalizeHumanText(e.target.value),
+                                                }))
+                                            }
+                                        />
                                     </div>
 
                                     <div className="col-12 col-md-3">

@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useShop } from "../context/ShopContext";
 import BrandSpinner from "../components/BrandSpinner";
 
 import "./OrderSuccessShop.css";
@@ -9,6 +10,7 @@ export default function OrderSuccessShop() {
     const navigate = useNavigate();
     const { id } = useParams();
     const { user, loading, authFetch } = useAuth();
+    const { clearCart } = useShop();
 
     const [order, setOrder] = useState(null);
     const [fetching, setFetching] = useState(true);
@@ -23,7 +25,9 @@ export default function OrderSuccessShop() {
     const bankAutoTriggeredRef = useRef(false);
 
     const location = useLocation();
-    const pay = new URLSearchParams(location.search).get("pay");
+    const searchParams = new URLSearchParams(location.search);
+    const pay = searchParams.get("pay");
+    const sessionId = searchParams.get("session_id");
     const isBankTransfer = pay === "bank";
 
     const BANK = {
@@ -173,6 +177,20 @@ export default function OrderSuccessShop() {
 
         requestBankInstructions(false);
     }, [isBankTransfer, order?._id, order?.status, id]);
+
+    useEffect(() => {
+        if (isBankTransfer) return;
+        if (!sessionId) return;
+        if (!order?._id) return;
+        if (order.status !== "paid") return;
+
+        const clearedKey = `qbeauty_stripe_cleared:${order._id}`;
+        const alreadyCleared = sessionStorage.getItem(clearedKey) === "1";
+        if (alreadyCleared) return;
+
+        clearCart();
+        sessionStorage.setItem(clearedKey, "1");
+    }, [isBankTransfer, sessionId, order?._id, order?.status, clearCart]);
 
 
     async function retryPayment() {

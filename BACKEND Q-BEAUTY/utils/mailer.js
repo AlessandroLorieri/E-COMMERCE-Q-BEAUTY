@@ -526,7 +526,7 @@ Q•BEAUTY
           Articoli acquistati
         </div>
 
-        <table role="presentation" style="width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
+        <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
           <thead>
             <tr>
               <th style="text-align:left; padding:8px 0; border-bottom:1px solid #ececef; color:#666; font-weight:700;">Prodotto</th>
@@ -548,32 +548,31 @@ Q•BEAUTY
           Riepilogo pagamento
         </div>
 
-        <table role="presentation" style="width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
+        <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
           <tbody>
             <tr>
-              <td style="padding:6px 0; color:#666;">Subtotale</td>
-              <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(subtotal)}</td>
+              <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Subtotale</td>
+              <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(subtotal)}</td>
             </tr>
 
             ${discountCents > 0
       ? `<tr>
-                     <td style="padding:6px 0; color:#666;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""
-      }</td>
-                     <td style="padding:6px 0; text-align:right; font-weight:700;">- ${escapeHtml(
+                  <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
+                  <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">- ${escapeHtml(
         formatEURFromCents(discountCents)
       )}</td>
-                   </tr>`
+                </tr>`
       : ""
     }
 
             <tr>
-              <td style="padding:6px 0; color:#666;">Spedizione</td>
-              <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(shipping)}</td>
+              <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Spedizione</td>
+              <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(shipping)}</td>
             </tr>
 
             <tr>
-              <td style="padding:10px 0 0; font-weight:700; border-top:1px solid #f0f0f2;">Totale</td>
-              <td style="padding:10px 0 0; text-align:right; font-weight:800; border-top:1px solid #f0f0f2;">${escapeHtml(
+              <td style="padding:10px 12px 0 0; font-weight:700; border-top:1px solid #f0f0f2; word-break:break-word;">Totale</td>
+              <td style="width:120px; padding:10px 0 0; text-align:right; font-weight:800; border-top:1px solid #f0f0f2; white-space:nowrap; vertical-align:top;">${escapeHtml(
       total
     )}</td>
             </tr>
@@ -1137,29 +1136,29 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
         Riepilogo
       </div>
 
-      <table role="presentation" style="width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
+      <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
         <tbody>
           <tr>
-            <td style="padding:6px 0; color:#666;">Subtotale</td>
-            <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(subtotal)}</td>
+            <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Subtotale</td>
+            <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(subtotal)}</td>
           </tr>
 
           ${discountCents > 0
       ? `<tr>
-                   <td style="padding:6px 0; color:#666;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
-                   <td style="padding:6px 0; text-align:right; font-weight:700;">- ${escapeHtml(formatEURFromCents(discountCents))}</td>
+                   <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
+                   <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">- ${escapeHtml(formatEURFromCents(discountCents))}</td>
                  </tr>`
       : ""
     }
 
           <tr>
-            <td style="padding:6px 0; color:#666;">Spedizione</td>
-            <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(shipping)}</td>
+            <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Spedizione</td>
+            <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(shipping)}</td>
           </tr>
 
           <tr>
-            <td style="padding:10px 0 0; font-weight:800; border-top:1px solid #f0f0f2;">Totale</td>
-            <td style="padding:10px 0 0; text-align:right; font-weight:900; border-top:1px solid #f0f0f2;">${escapeHtml(total)}</td>
+            <td style="padding:10px 12px 0 0; font-weight:800; border-top:1px solid #f0f0f2; word-break:break-word;">Totale</td>
+            <td style="width:120px; padding:10px 0 0; text-align:right; font-weight:900; border-top:1px solid #f0f0f2; white-space:nowrap; vertical-align:top;">${escapeHtml(total)}</td>
           </tr>
         </tbody>
       </table>
@@ -1426,18 +1425,16 @@ async function sendAdminNewReviewEmail({ review }) {
 
   const name = coalesceStr(review?.name) || "Utente";
   const email = coalesceStr(review?.email) || "-";
-  const role = coalesceStr(review?.role) || "-";
-  const city = coalesceStr(review?.city) || "-";
   const text = coalesceStr(review?.text) || "-";
   const rating = Number(review?.rating) || 0;
   const createdAt = review?.createdAt
     ? new Date(review.createdAt).toLocaleString("it-IT", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
     : "-";
 
   const stars = rating > 0 ? `${rating}/5` : "—";
@@ -1449,8 +1446,6 @@ async function sendAdminNewReviewEmail({ review }) {
 
 Nome: ${name}
 Email: ${email}
-Ruolo: ${role}
-Città: ${city}
 Valutazione: ${stars}
 Data: ${createdAt}
 
@@ -1497,14 +1492,6 @@ ${text}
                           <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(email)}</td>
                         </tr>
                         <tr>
-                          <td style="padding:6px 0; width:120px; color:#666;">Ruolo</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(role)}</td>
-                        </tr>
-                        <tr>
-                          <td style="padding:6px 0; width:120px; color:#666;">Città</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(city)}</td>
-                        </tr>
-                        <tr>
                           <td style="padding:6px 0; width:120px; color:#666;">Valutazione</td>
                           <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(stars)}</td>
                         </tr>
@@ -1548,7 +1535,6 @@ ${text}
 
   return sendMail({ to: adminTo, subject, html, text: textBody });
 }
-
 
 module.exports = {
   sendMail,

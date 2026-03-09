@@ -93,13 +93,13 @@ export default function CheckoutShop() {
 
                     setForm((prev) => ({
                         ...prev,
-                        name: def.name || prev.name,
-                        surname: def.surname || prev.surname,
+                        name: normalizeHumanText(def.name || prev.name),
+                        surname: normalizeHumanText(def.surname || prev.surname),
                         taxCode: normalizeTaxCode(prev.taxCode || def.taxCode || def.codiceFiscale || def.fiscalCode || ""),
                         phone: def.phone || prev.phone,
                         address: def.address || prev.address,
                         streetNumber: def.streetNumber || prev.streetNumber,
-                        city: def.city || prev.city,
+                        city: normalizeHumanText(def.city || prev.city),
                         cap: def.cap || prev.cap,
                     }));
                 } else {
@@ -128,13 +128,13 @@ export default function CheckoutShop() {
 
         setForm((prev) => ({
             ...prev,
-            name: a.name || "",
-            surname: a.surname || "",
+            name: normalizeHumanText(a.name || ""),
+            surname: normalizeHumanText(a.surname || ""),
             taxCode: normalizeTaxCode(prev.taxCode || a.taxCode || a.codiceFiscale || a.fiscalCode || ""),
             phone: a.phone || "",
             address: a.address || "",
             streetNumber: a.streetNumber || "",
-            city: a.city || "",
+            city: normalizeHumanText(a.city || ""),
             cap: a.cap || "",
         }));
 
@@ -171,6 +171,14 @@ export default function CheckoutShop() {
             delete next[name];
             return next;
         });
+    }
+
+    function normalizeHumanText(value) {
+        return String(value || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .replace(/(^|[\s'-])([a-zà-öø-ÿ])/g, (_, sep, ch) => `${sep}${ch.toUpperCase()}`);
     }
 
     function normalizeTaxCode(v) {
@@ -381,14 +389,14 @@ export default function CheckoutShop() {
             }
 
             const payload = {
-                name: form.name.trim(),
-                surname: form.surname.trim(),
+                name: normalizeHumanText(form.name),
+                surname: normalizeHumanText(form.surname),
                 taxCode,
                 phone: form.phone.trim(),
                 email: user?.email || "",
                 address: form.address.trim(),
                 streetNumber: form.streetNumber.trim(),
-                city: form.city.trim(),
+                city: normalizeHumanText(form.city),
                 cap: form.cap.trim(),
             };
 
@@ -467,14 +475,14 @@ export default function CheckoutShop() {
             }
 
             const payload = {
-                name: form.name.trim(),
-                surname: form.surname.trim(),
+                name: normalizeHumanText(form.name),
+                surname: normalizeHumanText(form.surname),
                 taxCode,
                 phone: form.phone.trim(),
                 email: user?.email || "",
                 address: form.address.trim(),
                 streetNumber: form.streetNumber.trim(),
-                city: form.city.trim(),
+                city: normalizeHumanText(form.city),
                 cap: form.cap.trim(),
             };
 
@@ -639,6 +647,12 @@ export default function CheckoutShop() {
                                     name="name"
                                     value={form.name}
                                     onChange={onChange}
+                                    onBlur={(e) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            name: normalizeHumanText(e.target.value),
+                                        }))
+                                    }
                                     disabled={busy || (addressMode === "saved" && selectedAddressId)}
                                 />
                                 {fieldErrors.name && <div className="invalid-feedback">{fieldErrors.name}</div>}
@@ -651,6 +665,12 @@ export default function CheckoutShop() {
                                     name="surname"
                                     value={form.surname}
                                     onChange={onChange}
+                                    onBlur={(e) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            surname: normalizeHumanText(e.target.value),
+                                        }))
+                                    }
                                     disabled={busy || (addressMode === "saved" && selectedAddressId)}
                                 />
                                 {fieldErrors.surname && <div className="invalid-feedback">{fieldErrors.surname}</div>}
@@ -727,6 +747,13 @@ export default function CheckoutShop() {
                                     name="city"
                                     value={form.city}
                                     onChange={onChange}
+                                    onBlur={(e) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            city: normalizeHumanText(e.target.value),
+                                        }))
+                                    }
+
                                     disabled={busy || (addressMode === "saved" && selectedAddressId)}
                                 />
                                 {fieldErrors.city && <div className="invalid-feedback">{fieldErrors.city}</div>}

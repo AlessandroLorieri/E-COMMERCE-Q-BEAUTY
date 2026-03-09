@@ -32,6 +32,15 @@ export default function RegisterShop() {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     }
 
+    function normalizeDisplayName(value) {
+        return String(value || "")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .join(" ");
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         setError("");
@@ -46,8 +55,8 @@ export default function RegisterShop() {
         try {
             const payload = {
                 customerType,
-                firstName: form.firstName,
-                lastName: form.lastName,
+                firstName: normalizeDisplayName(form.firstName),
+                lastName: normalizeDisplayName(form.lastName),
                 phone: form.phone,
                 email: form.email,
                 password: form.password,
@@ -124,11 +133,35 @@ export default function RegisterShop() {
                 <div className="row g-2">
                     <div className="col-12 col-md-6">
                         <label className="form-label">Nome</label>
-                        <input className="form-control" name="firstName" value={form.firstName} onChange={onChange} required />
+                        <input
+                            className="form-control"
+                            name="firstName"
+                            value={form.firstName}
+                            onChange={onChange}
+                            onBlur={(e) =>
+                                setForm((prev) => ({
+                                    ...prev,
+                                    firstName: normalizeDisplayName(e.target.value),
+                                }))
+                            }
+                            required
+                        />
                     </div>
                     <div className="col-12 col-md-6">
                         <label className="form-label">Cognome</label>
-                        <input className="form-control" name="lastName" value={form.lastName} onChange={onChange} required />
+                        <input
+                            className="form-control"
+                            name="lastName"
+                            value={form.lastName}
+                            onChange={onChange}
+                            onBlur={(e) =>
+                                setForm((prev) => ({
+                                    ...prev,
+                                    lastName: normalizeDisplayName(e.target.value),
+                                }))
+                            }
+                            required
+                        />
                     </div>
 
                     <div className="col-12">
