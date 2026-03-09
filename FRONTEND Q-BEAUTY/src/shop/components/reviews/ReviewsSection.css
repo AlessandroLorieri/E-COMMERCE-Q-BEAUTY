@@ -217,6 +217,10 @@
 
 .qb-review-card__bottom {
     margin-top: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .qb-review-card__date {
@@ -224,6 +228,15 @@
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+}
+
+.qb-review-card__verified {
+    color: #debe68;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    text-align: right;
 }
 
 @media (hover: hover) and (pointer: fine) {
