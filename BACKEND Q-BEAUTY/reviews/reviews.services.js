@@ -92,27 +92,45 @@ async function listPublicReviews({ page = 1, limit = 7 } = {}) {
 
     const filter = { approved: true };
 
-    const total = await Review.countDocuments(filter);
+    const [total, reviews, avgRows] = await Promise.all([
+        Review.countDocuments(filter),
 
-    const reviews = await Review.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(safeLimit)
-        .select({
-            name: 1,
-            role: 1,
-            city: 1,
-            rating: 1,
-            text: 1,
-            createdAt: 1,
-        })
-        .lean();
+        Review.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(safeLimit)
+            .select({
+                name: 1,
+                role: 1,
+                city: 1,
+                rating: 1,
+                text: 1,
+                createdAt: 1,
+            })
+            .lean(),
+
+        Review.aggregate([
+            { $match: filter },
+            {
+                $group: {
+                    _id: null,
+                    averageRating: { $avg: "$rating" },
+                },
+            },
+        ]),
+    ]);
+
+    const averageRatingRaw = Number(avgRows?.[0]?.averageRating);
+    const averageRating = Number.isFinite(averageRatingRaw)
+        ? Math.round(averageRatingRaw * 10) / 10
+        : null;
 
     return {
         page: safePage,
         limit: safeLimit,
         total,
         pages: Math.max(1, Math.ceil(total / safeLimit)),
+        averageRating,
         reviews,
     };
 }

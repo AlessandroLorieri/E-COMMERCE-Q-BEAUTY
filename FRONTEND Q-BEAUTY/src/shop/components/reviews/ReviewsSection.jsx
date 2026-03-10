@@ -24,6 +24,7 @@ export default function ReviewsSection() {
     const [page, setPage] = useState(1);
     const [pages, setPages] = useState(1);
     const [total, setTotal] = useState(0);
+    const [averageRating, setAverageRating] = useState("—");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [refreshKey, setRefreshKey] = useState(0);
@@ -49,6 +50,11 @@ export default function ReviewsSection() {
                 setPage(data?.page || 1);
                 setPages(data?.pages || 1);
                 setTotal(data?.total || 0);
+                setAverageRating(
+                    Number.isFinite(Number(data?.averageRating))
+                        ? Number(data.averageRating).toFixed(1)
+                        : "—"
+                );
             } catch (err) {
                 if (!alive) return;
                 setError(err.message || "Errore caricamento recensioni");
@@ -73,12 +79,10 @@ export default function ReviewsSection() {
     return (
         <section className="qb-reviews-section">
             <div className="qb-reviews-section__intro">
-                <div>
-                    <div className="qb-reviews-section__eyebrow">Recensioni reali</div>
-                    <h2 className="qb-reviews-section__title">Cosa dicono di Q-BEAUTY</h2>
-                    <p className="qb-reviews-section__text">
-                        Esperienze vere, approvate manualmente e mostrate con una UI un po’ più viva del solito muro di card.
-                    </p>
+                <div className="qb-reviews-section__intro-main">
+                    <h1 className="qb-reviews-section__title">
+                        ⟡ COSA DICONO DI Q<span className="diamond-small"></span>BEAUTY ⟡
+                    </h1>
                 </div>
 
                 <div className="qb-reviews-section__stats">
@@ -87,10 +91,8 @@ export default function ReviewsSection() {
                         <span className="qb-reviews-section__stat-label">recensioni pubblicate</span>
                     </div>
                     <div className="qb-reviews-section__stat">
-                        <span className="qb-reviews-section__stat-value">
-                            {pages > 0 ? `${page}/${pages}` : "1/1"}
-                        </span>
-                        <span className="qb-reviews-section__stat-label">pagina corrente</span>
+                        <span className="qb-reviews-section__stat-value">{averageRating}</span>
+                        <span className="qb-reviews-section__stat-label">valutazione media</span>
                     </div>
                 </div>
             </div>

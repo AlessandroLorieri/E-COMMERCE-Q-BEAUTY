@@ -100,9 +100,9 @@ export default function ReviewForm({ onCreated }) {
     return (
         <form className="qb-review-form" onSubmit={handleSubmit}>
             <div className="qb-review-form__head">
-                <h3 className="qb-review-form__title">Lascia la tua esperienza</h3>
+                <h3 className="qb-review-form__title">Lascia la tua recensione</h3>
                 <p className="qb-review-form__subtitle">
-                    La recensione sarà verificata prima della pubblicazione.
+                    Facci sapere cosa ne pensi dei prodotti Q∙BEAUTY e riceverai un codice sconto esclusivo.
                 </p>
             </div>
 

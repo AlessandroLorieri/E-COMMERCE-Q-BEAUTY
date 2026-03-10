@@ -14,7 +14,7 @@ export default function ReviewsMasonry({ reviews, pageKey }) {
             >
                 {reviews.map((review, index) => (
                     <ReviewCard
-                        key={review.id}
+                        key={String(review?._id || review?.id || `${pageKey}-${index}`)}
                         review={review}
                         index={index}
                         slotClass={`qb-review-card--slot-${index + 1}`}

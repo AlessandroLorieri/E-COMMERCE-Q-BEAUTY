@@ -105,7 +105,7 @@ async function verifySmtp() {
   return false;
 }
 
-// EMAIL DI BENVENUTO
+// EMAIL DI BENVENUTO ✔️
 async function sendWelcomeEmail({ to, name }) {
   const safeNameRaw = String(name || "").trim().replace(/\s+/g, " ");
 
@@ -150,17 +150,20 @@ async function sendWelcomeEmail({ to, name }) {
 
   const baseUrl = (process.env.FRONTEND_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
   const shopUrl = `${baseUrl}/shop`;
+  const logoUrl = `${baseUrl}/img/qbeautyshop-logo.png`;
 
   const preheader = "Il tuo account è pronto. Entra nello shop e scopri i prodotti Q•BEAUTY.";
 
   const text = `${helloText}
 
-${welcomeWord} in Q•BEAUTY! Il tuo account è stato creato correttamente.
+${welcomeWord} in Q•BEAUTY!
 
-Da ora puoi:
+Il tuo account è stato creato correttamente.
+
+Da questo momento puoi:
 - accedere allo shop quando vuoi
-- completare i tuoi acquisti in pochi click
-- tenere traccia dei tuoi ordini
+- salvare e gestire i tuoi dati
+- seguire i tuoi ordini in modo semplice
 
 Entra qui:
 ${shopUrl}
@@ -169,73 +172,138 @@ A presto,
 Q•BEAUTY
 `;
 
+  const colors = {
+    pageBg: "#fdfbf8",
+    cardBg: "#fffefd",
+    border: "#f0e9de",
+    divider: "#f3ede4",
+    text: "#1a1a1a",
+    textSoft: "#5a534b",
+    muted: "#857d74",
+    panelBg: "#fdfaf6",
+    panelBorder: "#f0e9de",
+    panelText: "#3d3731",
+    accent: "#DEBE68",
+    buttonText: "#1a1a1a",
+    eyebrow: "#9a8760",
+  };
+
   const html = `
-  <div style="margin:0; padding:0; background:#f6f6f7;">
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>${esc(subject)}</title>
+  </head>
+  <body style="margin:0; padding:0; background:${colors.pageBg};">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       ${esc(preheader)}
     </div>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#f6f6f7; padding:24px 0;">
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="${colors.pageBg}"
+      style="border-collapse:collapse; background:${colors.pageBg};"
+    >
       <tr>
-        <td align="center" style="padding:24px 12px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:560px;">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="border-collapse:collapse; max-width:560px;"
+          >
             <tr>
-              <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:center;">
-                <div style="font-family:Arial, sans-serif; font-size:22px; letter-spacing:0.8px; color:#debe68; font-weight:800;">
-                  Q•BEAUTY
-                </div>
-                <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
-                  Cura, qualità, risultati. Senza drammi.
-                </div>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border:1px solid ${colors.border}; border-bottom:none; border-radius:22px 22px 0 0; padding:26px 28px 16px; text-align:center;"
+              >
+                <img
+                  src="${logoUrl}"
+                  alt="Q-BEAUTY"
+                  width="190"
+                  style="display:block; width:100%; max-width:190px; height:auto; margin:0 auto; border:0; outline:none; text-decoration:none;"
+                />
               </td>
             </tr>
 
             <tr>
-              <td style="background:#ffffff; padding:22px; border-left:1px solid #ececef; border-right:1px solid #ececef;">
-                <div style="font-family:Arial, sans-serif; color:#121212; line-height:1.55;">
-                  <h1 style="margin:0 0 10px; font-size:20px; letter-spacing:0.2px;">
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 26px;"
+              >
+                <div style="height:1px; background:${colors.divider};"></div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; padding:0 28px 24px; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border};"
+              >
+                <div style="font-family:Arial, sans-serif; color:${colors.text}; line-height:1.62;">
+                  <div style="margin:0 0 10px; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:${colors.eyebrow};">
+                    Il tuo account è attivo
+                  </div>
+
+                  <h1 style="margin:0 0 14px; font-size:24px; line-height:1.25; letter-spacing:0.2px; color:${colors.text}; font-weight:700;">
                     ${esc(welcomeWord)} su Q•BEAUTY ✨
                   </h1>
 
-                  <p style="margin:0 0 12px; font-size:14px;">
-                    ${helloHtml}<br/>
-                    il tuo account è stato creato correttamente. Da qui in poi è tutto più semplice.
+                  <p style="margin:0 0 14px; font-size:15px; color:${colors.textSoft};">
+                    ${helloHtml}
                   </p>
 
-                  <div style="margin:14px 0 16px; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
-                    <div style="font-size:13px; color:#2b2b2b; margin-bottom:8px; font-weight:700;">
-                      Cosa puoi fare ora:
+                  <p style="margin:0 0 16px; font-size:15px; color:${colors.textSoft};">
+                    il tuo account è stato creato correttamente. Da ora puoi entrare nello shop, gestire i tuoi dati e seguire i tuoi ordini.
+                  </p>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin:18px 0 20px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+                      Da qui puoi:
                     </div>
-                    <ul style="margin:0; padding-left:18px; font-size:13px; color:#2b2b2b;">
-                      <li style="margin:0 0 6px;">Accedere allo shop e scegliere i prodotti.</li>
-                      <li style="margin:0 0 6px;">Gestire indirizzi e dati per la spedizione.</li>
-                      <li style="margin:0;">Tenere traccia dei tuoi ordini in area personale.</li>
+                    <ul style="margin:0; padding-left:18px; font-size:13px; line-height:1.65; color:${colors.panelText};">
+                      <li style="margin:0 0 6px;">Scoprire i prodotti Q•BEAUTY nello shop.</li>
+                      <li style="margin:0 0 6px;">Salvare indirizzi e informazioni utili per i prossimi ordini.</li>
+                      <li style="margin:0;">Controllare lo stato dei tuoi acquisti nella tua area personale.</li>
                     </ul>
                   </div>
 
-                  <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin:18px 0 10px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin:22px 0 12px;">
                     <tr>
                       <td>
-                        <a href="${shopUrl}"
-                           style="display:inline-block; background:#DEBE68; color:#0b0b0c; text-decoration:none; font-family:Arial, sans-serif;
-                                  font-size:14px; font-weight:700; padding:12px 16px; border-radius:12px;">
+                        <a
+                          href="${shopUrl}"
+                          style="display:inline-block; background:${colors.accent}; color:${colors.buttonText}; text-decoration:none; font-family:Arial, sans-serif; font-size:14px; font-weight:700; padding:13px 18px; border-radius:14px;"
+                        >
                           Entra nello shop
                         </a>
                       </td>
                     </tr>
                   </table>
-
-                  <p style="margin:12px 0 0; font-size:12px; color:#666;">
-                    Se non sei stato tu a creare questo account, puoi ignorare questa email.
-                  </p>
                 </div>
               </td>
             </tr>
 
             <tr>
-              <td style="background:#ffffff; border-left:1px solid #ececef; border-right:1px solid #ececef; padding:0 22px 18px;">
-                <div style="height:1px; background:#f0f0f2; margin:10px 0 14px;"></div>
-                <div style="font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.45;">
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 20px;"
+              >
+                <div style="height:1px; background:${colors.divider}; margin:0 0 14px;"></div>
+                <div style="font-family:Arial, sans-serif; font-size:12px; color:${colors.muted}; line-height:1.5;">
                   <div style="margin:0 0 6px;">Q•BEAUTY</div>
                   <div style="margin:0;">Questa è una comunicazione automatica legata al tuo account.</div>
                 </div>
@@ -243,19 +311,23 @@ Q•BEAUTY
             </tr>
 
             <tr>
-              <td style="background:#ffffff; border-radius:0 0 18px 18px; border:1px solid #ececef; border-top:none; height:12px;"></td>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
+              ></td>
             </tr>
           </table>
         </td>
       </tr>
     </table>
-  </div>`;
+  </body>
+</html>`;
 
   return sendMail({ to, subject, html, text });
 }
 
 
-//  MAIL SPEDIZIONE 
+//  MAIL SPEDIZIONE ✔️ 
 async function sendShipmentEmail({ to, name, publicId, carrierName, trackingCode, trackingUrl }) {
   const safeNameRaw = String(name || "").trim().replace(/\s+/g, " ");
 
@@ -285,125 +357,202 @@ async function sendShipmentEmail({ to, name, publicId, carrierName, trackingCode
   const subject = `Q•BEAUTY | Ordine ${pid} spedito 📦`;
   const preheader = `Il tuo ordine ${pid} è in viaggio. Traccialo in un click.`;
 
+  const baseUrl = (process.env.FRONTEND_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
+  const logoUrl = `${baseUrl}/img/qbeautyshop-logo.png`;
+
   const text = `${helloText}
 
-Buone notizie: l’ordine ${pid} è stato spedito con ${carrier}.
+Buone notizie! L’ordine ${pid} è stato affidato al corriere ${carrier}.
 
 ${code ? `Codice tracking: ${code}\n` : ""}${url ? `Traccia la spedizione: ${url}\n` : ""}
 
 Grazie per aver scelto Q•BEAUTY.
 `;
 
+  const colors = {
+    pageBg: "#fdfbf8",
+    cardBg: "#fffefd",
+    border: "#f0e9de",
+    divider: "#f3ede4",
+    text: "#1a1a1a",
+    textSoft: "#5a534b",
+    muted: "#857d74",
+    panelBg: "#fdfaf6",
+    panelBorder: "#f0e9de",
+    panelText: "#3d3731",
+    accent: "#DEBE68",
+    buttonText: "#1a1a1a",
+    eyebrow: "#9a8760",
+  };
+
   const html = `
-  <div style="margin:0; padding:0; background:#f6f6f7;">
-    <!-- Preheader -->
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>${esc(subject)}</title>
+  </head>
+  <body style="margin:0; padding:0; background:${colors.pageBg};">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       ${esc(preheader)}
     </div>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#f6f6f7; padding:24px 0;">
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="${colors.pageBg}"
+      style="border-collapse:collapse; background:${colors.pageBg};"
+    >
       <tr>
-        <td align="center" style="padding:24px 12px;">
-
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:560px;">
-            <!-- Header brand -->
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="border-collapse:collapse; max-width:560px;"
+          >
             <tr>
-              <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:left;">
-                <div style="font-family:Arial, sans-serif; font-size:16px; letter-spacing:0.6px; color:#DEBE68; font-weight:700;">
-                  Q•BEAUTY
-                </div>
-                <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
-                  Il tuo ordine è in viaggio 📦
-                </div>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border:1px solid ${colors.border}; border-bottom:none; border-radius:22px 22px 0 0; padding:26px 28px 16px; text-align:center;"
+              >
+                <img
+                  src="${logoUrl}"
+                  alt="Q-BEAUTY"
+                  width="190"
+                  style="display:block; width:100%; max-width:190px; height:auto; margin:0 auto; border:0; outline:none; text-decoration:none;"
+                />
               </td>
             </tr>
 
-            <!-- Body -->
             <tr>
-              <td style="background:#ffffff; padding:22px; border-left:1px solid #ececef; border-right:1px solid #ececef;">
-                <div style="font-family:Arial, sans-serif; color:#121212; line-height:1.55;">
-                  <h1 style="margin:0 0 10px; font-size:20px; letter-spacing:0.2px;">
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 26px;"
+              >
+                <div style="height:1px; background:${colors.divider};"></div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; padding:0 28px 24px; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border};"
+              >
+                <div style="font-family:Arial, sans-serif; color:${colors.text}; line-height:1.62;">
+                  <div style="margin:0 0 10px; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:${colors.eyebrow};">
+                    Il tuo ordine è in viaggio
+                  </div>
+
+                  <h1 style="margin:0 0 14px; font-size:24px; line-height:1.25; letter-spacing:0.2px; color:${colors.text}; font-weight:700;">
                     Ordine ${esc(pid)} spedito 📦
                   </h1>
 
-                  <p style="margin:0 0 12px; font-size:14px;">
-                    ${helloHtml}<br/>
-                    buone notizie: il tuo ordine <strong>${esc(pid)}</strong> è stato affidato a <strong>${esc(carrier)}</strong>.
+                  <p style="margin:0 0 14px; font-size:15px; color:${colors.textSoft};">
+                    ${helloHtml}
                   </p>
 
-                  <div style="margin:14px 0 16px; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
-                    <div style="font-size:13px; color:#2b2b2b; margin-bottom:8px; font-weight:700;">
+                  <p style="margin:0 0 16px; font-size:15px; color:${colors.textSoft};">
+                    Buone notizie! Il tuo ordine <strong>${esc(pid)}</strong> è stato affidato al corriere <strong>${esc(carrier)}</strong>.
+                  </p>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin:18px 0 20px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
                       Dettagli spedizione
                     </div>
 
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; color:#2b2b2b;">
+                    <table
+                      role="presentation"
+                      width="100%"
+                      cellpadding="0"
+                      cellspacing="0"
+                      border="0"
+                      style="border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; color:${colors.panelText};"
+                    >
                       <tr>
-                        <td style="padding:4px 0; width:140px; color:#666;">Corriere</td>
-                        <td style="padding:4px 0; font-weight:700;">${esc(carrier)}</td>
+                        <td style="padding:5px 0; width:120px; color:${colors.muted};">Corriere</td>
+                        <td style="padding:5px 0; text-align:right; font-weight:700;">${esc(carrier)}</td>
                       </tr>
                       ${code
-      ? `<tr>
-                              <td style="padding:4px 0; width:140px; color:#666;">Tracking</td>
-                              <td style="padding:4px 0; font-weight:700;">${esc(code)}</td>
-                            </tr>`
-      : ""
-    }
+                        ? `<tr>
+                            <td style="padding:5px 0; width:120px; color:${colors.muted};">Tracking</td>
+                            <td style="padding:5px 0; text-align:right; font-weight:700;">${esc(code)}</td>
+                          </tr>`
+                        : ""}
                     </table>
                   </div>
 
-                  ${url
-      ? `
-                      <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin:18px 0 10px;">
-                        <tr>
-                          <td>
-                            <a href="${esc(url)}"
-                               style="display:inline-block; background:#DEBE68; color:#0b0b0c; text-decoration:none; font-family:Arial, sans-serif;
-                                      font-size:14px; font-weight:700; padding:12px 16px; border-radius:12px;">
-                              Segui la spedizione
-                            </a>
-                          </td>
-                        </tr>
-                      </table>
-                      <p style="margin:10px 0 0; font-size:12px; color:#666;">
-                        Se il pulsante non funziona, copia e incolla questo link nel browser:<br/>
-                        <span style="word-break:break-all;">${esc(url)}</span>
-                      </p>
-                      `
-      : `
-                      <p style="margin:12px 0 0; font-size:12px; color:#666;">
-                        Appena disponibile un link di tracciamento, lo troverai anche nell’area ordini.
-                      </p>
-                      `
-    }
+                  ${
+                    url
+                      ? `
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin:22px 0 12px;">
+                          <tr>
+                            <td>
+                              <a
+                                href="${esc(url)}"
+                                style="display:inline-block; background:${colors.accent}; color:${colors.buttonText}; text-decoration:none; font-family:Arial, sans-serif; font-size:14px; font-weight:700; padding:13px 18px; border-radius:14px;"
+                              >
+                                Segui la spedizione
+                              </a>
+                            </td>
+                          </tr>
+                        </table>
 
-                  <p style="margin:14px 0 0; font-size:12px; color:#666;">
+                        <p style="margin:12px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
+                          Se il pulsante non funziona, copia e incolla questo link nel browser:<br/>
+                          <span style="word-break:break-all;">${esc(url)}</span>
+                        </p>
+                      `
+                      : `
+                        <p style="margin:12px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
+                          Appena disponibile un link di tracciamento, lo troverai anche nella tua area ordini.
+                        </p>
+                      `
+                  }
+
+                  <p style="margin:14px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
                     Grazie per aver scelto Q•BEAUTY.
                   </p>
                 </div>
               </td>
             </tr>
 
-            <!-- Footer -->
             <tr>
-              <td style="background:#ffffff; border-left:1px solid #ececef; border-right:1px solid #ececef; padding:0 22px 18px;">
-                <div style="height:1px; background:#f0f0f2; margin:10px 0 14px;"></div>
-                <div style="font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.45;">
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 20px;"
+              >
+                <div style="height:1px; background:${colors.divider}; margin:0 0 14px;"></div>
+                <div style="font-family:Arial, sans-serif; font-size:12px; color:${colors.muted}; line-height:1.5;">
                   <div style="margin:0 0 6px;">Q•BEAUTY</div>
-                  <div style="margin:0;">Email automatica legata al tuo ordine.</div>
+                  <div style="margin:0;">Questa è una comunicazione automatica legata al tuo ordine.</div>
                 </div>
               </td>
             </tr>
 
-            <!-- Bottom radius -->
             <tr>
-              <td style="background:#ffffff; border-radius:0 0 18px 18px; border:1px solid #ececef; border-top:none; height:12px;"></td>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
+              ></td>
             </tr>
           </table>
-
         </td>
       </tr>
     </table>
-  </div>`;
+  </body>
+</html>`;
 
   return sendMail({ to, subject, html, text });
 }
@@ -450,7 +599,7 @@ function buildItemsRowsHtml(items) {
     .join("");
 }
 
-//EMAIL CONFERMA PAGAMENTO
+//EMAIL CONFERMA PAGAMENTO ✔️
 async function sendOrderPaymentConfirmedEmail({ to, order, includeItems = false }) {
   if (!to) throw new Error("Recipient mancante (to)");
 
@@ -458,7 +607,6 @@ async function sendOrderPaymentConfirmedEmail({ to, order, includeItems = false 
   const orderIdFallback = String(order?._id || "").trim();
   const orderLabel = publicId || orderIdFallback || "ordine";
 
-  // Nome (se disponibile) per rendere la mail meno “robotica”
   const firstNameRaw =
     String(order?.shippingAddress?.name || order?.billingAddress?.name || "").trim();
 
@@ -519,19 +667,41 @@ Ti aggiorneremo appena la spedizione sarà affidata al corriere.
 Q•BEAUTY
 `;
 
+  const baseUrl = (process.env.FRONTEND_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
+  const logoUrl = `${baseUrl}/img/qbeautyshop-logo.png`;
+
+  const colors = {
+    pageBg: "#fdfbf8",
+    cardBg: "#fffefd",
+    border: "#f0e9de",
+    divider: "#f3ede4",
+    text: "#1a1a1a",
+    textSoft: "#5a534b",
+    muted: "#857d74",
+    panelBg: "#fdfaf6",
+    panelBorder: "#f0e9de",
+    panelText: "#3d3731",
+    accent: "#DEBE68",
+    buttonText: "#1a1a1a",
+    eyebrow: "#9a8760",
+  };
+
   const itemsTableHtml = hasItems
     ? `
-      <div style="margin-top:14px; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
-        <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; margin-bottom:10px; font-weight:700;">
+      <div
+        bgcolor="${colors.panelBg}"
+        style="margin:18px 0 0; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+      >
+        <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
           Articoli acquistati
         </div>
 
-        <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
+        <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText};">
           <thead>
             <tr>
-              <th style="text-align:left; padding:8px 0; border-bottom:1px solid #ececef; color:#666; font-weight:700;">Prodotto</th>
-              <th style="text-align:center; padding:8px 0; border-bottom:1px solid #ececef; color:#666; font-weight:700; width:60px;">Qta</th>
-              <th style="text-align:right; padding:8px 0; border-bottom:1px solid #ececef; color:#666; font-weight:700; width:100px;">Totale</th>
+              <th style="text-align:left; padding:8px 0; border-bottom:1px solid ${colors.border}; color:${colors.muted}; font-weight:700;">Prodotto</th>
+              <th style="text-align:center; padding:8px 0; border-bottom:1px solid ${colors.border}; color:${colors.muted}; font-weight:700; width:60px;">Qta</th>
+              <th style="text-align:right; padding:8px 0; border-bottom:1px solid ${colors.border}; color:${colors.muted}; font-weight:700; width:100px;">Totale</th>
             </tr>
           </thead>
           <tbody>
@@ -543,38 +713,41 @@ Q•BEAUTY
     : "";
 
   const breakdownHtml = `
-      <div style="margin-top:14px; padding:12px 14px; background:#ffffff; border:1px solid #ececef; border-radius:12px;">
-        <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; margin-bottom:10px; font-weight:700;">
+      <div
+        bgcolor="${colors.panelBg}"
+        style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+      >
+        <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
           Riepilogo pagamento
         </div>
 
-        <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
+        <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText};">
           <tbody>
             <tr>
-              <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Subtotale</td>
+              <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Subtotale</td>
               <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(subtotal)}</td>
             </tr>
 
             ${discountCents > 0
-      ? `<tr>
-                  <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
+              ? `<tr>
+                  <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
                   <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">- ${escapeHtml(
-        formatEURFromCents(discountCents)
-      )}</td>
+                    formatEURFromCents(discountCents)
+                  )}</td>
                 </tr>`
-      : ""
-    }
+              : ""
+            }
 
             <tr>
-              <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Spedizione</td>
+              <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Spedizione</td>
               <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(shipping)}</td>
             </tr>
 
             <tr>
-              <td style="padding:10px 12px 0 0; font-weight:700; border-top:1px solid #f0f0f2; word-break:break-word;">Totale</td>
-              <td style="width:120px; padding:10px 0 0; text-align:right; font-weight:800; border-top:1px solid #f0f0f2; white-space:nowrap; vertical-align:top;">${escapeHtml(
-      total
-    )}</td>
+              <td style="padding:10px 12px 0 0; font-weight:700; border-top:1px solid ${colors.border}; word-break:break-word;">Totale</td>
+              <td style="width:120px; padding:10px 0 0; text-align:right; font-weight:800; border-top:1px solid ${colors.border}; white-space:nowrap; vertical-align:top;">${escapeHtml(
+                total
+              )}</td>
             </tr>
           </tbody>
         </table>
@@ -582,92 +755,141 @@ Q•BEAUTY
     `;
 
   const html = `
-    <div style="margin:0; padding:0; background:#f6f6f7;">
-      <!-- Preheader -->
-      <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
-        ${escapeHtml(preheader)}
-      </div>
-
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#f6f6f7; padding:24px 0;">
-        <tr>
-          <td align="center" style="padding:24px 12px;">
-
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:560px;">
-              <!-- Header brand -->
-              <tr>
-                <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:left;">
-                  <div style="font-family:Arial, sans-serif; font-size:16px; letter-spacing:0.6px; color:#d4af37; font-weight:700;">
-                    Q•BEAUTY
-                  </div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
-                    Pagamento ricevuto ✅
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Body -->
-              <tr>
-                <td style="background:#ffffff; padding:22px; border-left:1px solid #ececef; border-right:1px solid #ececef;">
-                  <div style="font-family:Arial,sans-serif; color:#121212; line-height:1.55;">
-                    <h1 style="margin:0 0 10px; font-size:20px; letter-spacing:0.2px;">
-                      Pagamento confermato ✅
-                    </h1>
-
-                    <p style="margin:0 0 12px; font-size:14px;">
-                      ${escapeHtml(hello)}<br/>
-                      abbiamo ricevuto il pagamento del tuo ordine <strong>${escapeHtml(orderLabel)}</strong>.
-                    </p>
-
-                    <div style="margin:14px 0 0; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
-                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#666; margin-bottom:6px;">
-                        Totale pagato
-                      </div>
-                      <div style="font-family:Arial,sans-serif; font-size:18px; font-weight:800; color:#0b0b0c;">
-                        ${escapeHtml(total)}
-                      </div>
-                      <div style="font-family:Arial,sans-serif; font-size:12px; color:#666; margin-top:6px;">
-                        Ordine: <strong>${escapeHtml(orderLabel)}</strong>
-                      </div>
-                    </div>
-
-                    ${itemsTableHtml}
-                    ${breakdownHtml}
-
-                    <p style="margin:14px 0 0; font-size:12px; color:#666;">
-                      Ti aggiorneremo appena la spedizione sarà affidata al corriere.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Footer -->
-              <tr>
-                <td style="background:#ffffff; border-left:1px solid #ececef; border-right:1px solid #ececef; padding:0 22px 18px;">
-                  <div style="height:1px; background:#f0f0f2; margin:10px 0 14px;"></div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.45;">
-                    <div style="margin:0 0 6px;">Q•BEAUTY</div>
-                    <div style="margin:0;">Email automatica legata al tuo ordine.</div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Bottom radius -->
-              <tr>
-                <td style="background:#ffffff; border-radius:0 0 18px 18px; border:1px solid #ececef; border-top:none; height:12px;"></td>
-              </tr>
-            </table>
-
-          </td>
-        </tr>
-      </table>
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>${escapeHtml(subject)}</title>
+  </head>
+  <body style="margin:0; padding:0; background:${colors.pageBg};">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+      ${escapeHtml(preheader)}
     </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="${colors.pageBg}"
+      style="border-collapse:collapse; background:${colors.pageBg};"
+    >
+      <tr>
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="border-collapse:collapse; max-width:560px;"
+          >
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border:1px solid ${colors.border}; border-bottom:none; border-radius:22px 22px 0 0; padding:26px 28px 16px; text-align:center;"
+              >
+                <img
+                  src="${logoUrl}"
+                  alt="Q-BEAUTY"
+                  width="190"
+                  style="display:block; width:100%; max-width:190px; height:auto; margin:0 auto; border:0; outline:none; text-decoration:none;"
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 26px;"
+              >
+                <div style="height:1px; background:${colors.divider};"></div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; padding:0 28px 24px; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border};"
+              >
+                <div style="font-family:Arial,sans-serif; color:${colors.text}; line-height:1.62;">
+                  <div style="margin:0 0 10px; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:${colors.eyebrow};">
+                    Pagamento ricevuto
+                  </div>
+
+                  <h1 style="margin:0 0 14px; font-size:24px; line-height:1.25; letter-spacing:0.2px; color:${colors.text}; font-weight:700;">
+                    Pagamento confermato ✅
+                  </h1>
+
+                  <p style="margin:0 0 14px; font-size:15px; color:${colors.textSoft};">
+                    ${escapeHtml(hello)}
+                  </p>
+
+                  <p style="margin:0 0 16px; font-size:15px; color:${colors.textSoft};">
+                    il pagamento del tuo ordine <strong>${escapeHtml(orderLabel)}</strong> è andato a buon fine.
+                  </p>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin:18px 0 0; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.muted}; margin-bottom:6px;">
+                      Totale pagato
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:24px; line-height:1.2; font-weight:800; color:${colors.text};">
+                      ${escapeHtml(total)}
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:12px; color:${colors.muted}; margin-top:8px;">
+                      Ordine: <strong>${escapeHtml(orderLabel)}</strong>
+                    </div>
+                  </div>
+
+                  ${itemsTableHtml}
+                  ${breakdownHtml}
+
+                  <p style="margin:16px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
+                    Ti aggiorneremo appena la spedizione sarà affidata al corriere.
+                  </p>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 20px;"
+              >
+                <div style="height:1px; background:${colors.divider}; margin:0 0 14px;"></div>
+                <div style="font-family:Arial, sans-serif; font-size:12px; color:${colors.muted}; line-height:1.5;">
+                  <div style="margin:0 0 6px;">Q•BEAUTY</div>
+                  <div style="margin:0;">Questa è una comunicazione automatica legata al tuo ordine.</div>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
+              ></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
   `;
 
   return sendMail({ to, subject, html, text });
 }
 
 
-// MAIL BONIFICO
+// MAIL BONIFICO ✔️
 async function sendBankTransferInstructionsEmail({
   to,
   order,
@@ -700,7 +922,6 @@ async function sendBankTransferInstructionsEmail({
 
   const total = formatEURFromCents(order?.totalCents);
 
-  // Subject più “pulito” e leggibile in inbox
   const subject = `Q•BEAUTY | Istruzioni bonifico — Ordine ${pid}`.trim();
   const preheader = `Completa il pagamento via bonifico (${total}) per l’ordine ${pid}.`;
 
@@ -721,120 +942,192 @@ Quando riceveremo l’accredito, confermeremo l’ordine e procederemo con la pr
 Q•BEAUTY
 `;
 
+  const baseUrl = (process.env.FRONTEND_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
+  const logoUrl = `${baseUrl}/img/qbeautyshop-logo.png`;
+
+  const colors = {
+    pageBg: "#fdfbf8",
+    cardBg: "#fffefd",
+    border: "#f0e9de",
+    divider: "#f3ede4",
+    text: "#1a1a1a",
+    textSoft: "#5a534b",
+    muted: "#857d74",
+    panelBg: "#fdfaf6",
+    panelBorder: "#f0e9de",
+    panelText: "#3d3731",
+    accent: "#DEBE68",
+    buttonText: "#1a1a1a",
+    eyebrow: "#9a8760",
+  };
+
   const html = `
-    <div style="margin:0; padding:0; background:#f6f6f7;">
-      <!-- Preheader -->
-      <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
-        ${escapeHtml(preheader)}
-      </div>
-
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#f6f6f7; padding:24px 0;">
-        <tr>
-          <td align="center" style="padding:24px 12px;">
-
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:560px;">
-              <!-- Header brand -->
-              <tr>
-                <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:left;">
-                  <div style="font-family:Arial, sans-serif; font-size:16px; letter-spacing:0.6px; color:#d4af37; font-weight:700;">
-                    Q•BEAUTY
-                  </div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
-                    Istruzioni bonifico
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Body -->
-              <tr>
-                <td style="background:#ffffff; padding:22px; border-left:1px solid #ececef; border-right:1px solid #ececef;">
-                  <div style="font-family:Arial,sans-serif; color:#121212; line-height:1.55;">
-                    <h1 style="margin:0 0 10px; font-size:20px; letter-spacing:0.2px;">
-                      Completa il pagamento con bonifico
-                    </h1>
-
-                    <p style="margin:0 0 12px; font-size:14px;">
-                      ${helloHtml}<br/>
-                      trovi qui sotto i dati per effettuare il bonifico. Appena riceveremo l’accredito, confermeremo l’ordine.
-                    </p>
-
-                    <!-- Totale / ordine -->
-                    <div style="margin:14px 0 0; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
-                      <div style="font-family:Arial,sans-serif; font-size:12px; color:#666;">
-                        Ordine <strong>${escapeHtml(pid)}</strong>
-                      </div>
-                      <div style="font-family:Arial,sans-serif; font-size:18px; font-weight:800; color:#0b0b0c; margin-top:6px;">
-                        Importo: ${escapeHtml(total)}
-                      </div>
-                      <div style="font-family:Arial,sans-serif; font-size:12px; color:#666; margin-top:6px;">
-                        Ti chiediamo di effettuare il pagamento <strong>${escapeHtml(deadlineText)}</strong>.
-                      </div>
-                    </div>
-
-                    <!-- Dati bonifico -->
-                    <div style="margin:14px 0 0; padding:12px 14px; background:#ffffff; border:1px solid #ececef; border-radius:12px;">
-                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; margin-bottom:10px; font-weight:700;">
-                        Dati per il bonifico
-                      </div>
-
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
-                        <tr>
-                          <td style="padding:6px 0; width:140px; color:#666;">Intestatario</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(finalBeneficiary)}</td>
-                        </tr>
-                        <tr>
-                          <td style="padding:6px 0; width:140px; color:#666;">IBAN</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:800; letter-spacing:0.3px;">
-                            ${escapeHtml(finalIban)}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="padding:6px 0; width:140px; color:#666;">Causale</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:800;">
-                            ${escapeHtml(pid)}
-                          </td>
-                        </tr>
-                      </table>
-
-                      <div style="margin-top:10px; font-family:Arial,sans-serif; font-size:12px; color:#666;">
-                        Suggerimento: copia e incolla <strong>IBAN</strong> e <strong>Causale</strong> per evitare errori.
-                      </div>
-                    </div>
-
-                    <p style="margin:14px 0 0; font-size:12px; color:#666;">
-                      Se hai già effettuato il bonifico, puoi ignorare questo messaggio: aggiorneremo l’ordine non appena vedremo l’accredito.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Footer -->
-              <tr>
-                <td style="background:#ffffff; border-left:1px solid #ececef; border-right:1px solid #ececef; padding:0 22px 18px;">
-                  <div style="height:1px; background:#f0f0f2; margin:10px 0 14px;"></div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.45;">
-                    <div style="margin:0 0 6px;">Q•BEAUTY</div>
-                    <div style="margin:0;">Email automatica legata al tuo ordine.</div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Bottom radius -->
-              <tr>
-                <td style="background:#ffffff; border-radius:0 0 18px 18px; border:1px solid #ececef; border-top:none; height:12px;"></td>
-              </tr>
-            </table>
-
-          </td>
-        </tr>
-      </table>
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>${escapeHtml(subject)}</title>
+  </head>
+  <body style="margin:0; padding:0; background:${colors.pageBg};">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+      ${escapeHtml(preheader)}
     </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="${colors.pageBg}"
+      style="border-collapse:collapse; background:${colors.pageBg};"
+    >
+      <tr>
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="border-collapse:collapse; max-width:560px;"
+          >
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border:1px solid ${colors.border}; border-bottom:none; border-radius:22px 22px 0 0; padding:26px 28px 16px; text-align:center;"
+              >
+                <img
+                  src="${logoUrl}"
+                  alt="Q-BEAUTY"
+                  width="190"
+                  style="display:block; width:100%; max-width:190px; height:auto; margin:0 auto; border:0; outline:none; text-decoration:none;"
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 26px;"
+              >
+                <div style="height:1px; background:${colors.divider};"></div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; padding:0 28px 24px; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border};"
+              >
+                <div style="font-family:Arial,sans-serif; color:${colors.text}; line-height:1.62;">
+                  <div style="margin:0 0 10px; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:${colors.eyebrow};">
+                    Istruzioni di pagamento
+                  </div>
+
+                  <h1 style="margin:0 0 14px; font-size:24px; line-height:1.25; letter-spacing:0.2px; color:${colors.text}; font-weight:700;">
+                    Completa il pagamento con bonifico
+                  </h1>
+
+                  <p style="margin:0 0 14px; font-size:15px; color:${colors.textSoft};">
+                    ${helloHtml}
+                  </p>
+
+                  <p style="margin:0 0 16px; font-size:15px; color:${colors.textSoft};">
+                    qui sotto trovi i dati per effettuare il bonifico. Appena riceveremo l’accredito, confermeremo l’ordine e procederemo con la spedizione.
+                  </p>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin:18px 0 0; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-family:Arial,sans-serif; font-size:12px; color:${colors.muted};">
+                      Ordine <strong>${escapeHtml(pid)}</strong>
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:24px; line-height:1.2; font-weight:800; color:${colors.text}; margin-top:8px;">
+                      ${escapeHtml(total)}
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:12px; color:${colors.muted}; margin-top:8px;">
+                      Ti chiediamo di effettuare il pagamento <strong>${escapeHtml(deadlineText)}</strong>.
+                    </div>
+                  </div>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin:18px 0 0; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+                      Dati per il bonifico
+                    </div>
+
+                    <table
+                      role="presentation"
+                      width="100%"
+                      cellpadding="0"
+                      cellspacing="0"
+                      border="0"
+                      style="border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText};"
+                    >
+                      <tr>
+                        <td style="padding:6px 0; width:130px; color:${colors.muted};">Intestatario</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(finalBeneficiary)}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0; width:130px; color:${colors.muted};">IBAN</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:800; letter-spacing:0.3px;">${escapeHtml(finalIban)}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0; width:130px; color:${colors.muted};">Causale</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:800;">${escapeHtml(pid)}</td>
+                      </tr>
+                    </table>
+
+                    <div style="margin-top:10px; font-family:Arial,sans-serif; font-size:12px; line-height:1.55; color:${colors.muted};">
+                      Suggerimento: copia e incolla <strong>IBAN</strong> e <strong>Causale</strong> per evitare errori.
+                    </div>
+                  </div>
+
+                  <p style="margin:16px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
+                    Se hai già effettuato il bonifico, puoi ignorare questo messaggio: aggiorneremo l’ordine non appena vedremo l’accredito.
+                  </p>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 20px;"
+              >
+                <div style="height:1px; background:${colors.divider}; margin:0 0 14px;"></div>
+                <div style="font-family:Arial, sans-serif; font-size:12px; color:${colors.muted}; line-height:1.5;">
+                  <div style="margin:0 0 6px;">Q•BEAUTY</div>
+                  <div style="margin:0;">Questa è una comunicazione automatica legata al tuo ordine.</div>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
+              ></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
   `;
 
   return sendMail({ to, subject, html, text });
 }
 
-//  MAIL RESET PASSWORD
+//  MAIL RESET PASSWORD ✔️
 async function sendPasswordResetEmail({ to, name, resetUrl }) {
   if (!to) throw new Error("Recipient mancante (to)");
   if (!resetUrl) throw new Error("resetUrl mancante (resetUrl)");
@@ -877,100 +1170,171 @@ Se non sei stato tu, ignora questa email: non verrà modificato nulla.
 Q•BEAUTY
 `;
 
+  const baseUrl = (process.env.FRONTEND_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
+  const logoUrl = `${baseUrl}/img/qbeautyshop-logo.png`;
+
+  const colors = {
+    pageBg: "#fdfbf8",
+    cardBg: "#fffefd",
+    border: "#f0e9de",
+    divider: "#f3ede4",
+    text: "#1a1a1a",
+    textSoft: "#5a534b",
+    muted: "#857d74",
+    panelBg: "#fdfaf6",
+    panelBorder: "#f0e9de",
+    panelText: "#3d3731",
+    accent: "#DEBE68",
+    buttonText: "#1a1a1a",
+    eyebrow: "#9a8760",
+  };
+
   const html = `
-    <div style="margin:0; padding:0; background:#f6f6f7;">
-      <!-- Preheader -->
-      <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
-        ${esc(preheader)}
-      </div>
-
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#f6f6f7; padding:24px 0;">
-        <tr>
-          <td align="center" style="padding:24px 12px;">
-
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:560px;">
-              <!-- Header brand -->
-              <tr>
-                <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:left;">
-                  <div style="font-family:Arial, sans-serif; font-size:16px; letter-spacing:0.6px; color:#d4af37; font-weight:700;">
-                    Q•BEAUTY
-                  </div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
-                    Recupero password 🔐
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Body -->
-              <tr>
-                <td style="background:#ffffff; padding:22px; border-left:1px solid #ececef; border-right:1px solid #ececef;">
-                  <div style="font-family:Arial,sans-serif; color:#121212; line-height:1.55;">
-                    <h1 style="margin:0 0 10px; font-size:20px; letter-spacing:0.2px;">
-                      Imposta una nuova password
-                    </h1>
-
-                    <p style="margin:0 0 12px; font-size:14px;">
-                      ${helloHtml}<br/>
-                      hai richiesto il recupero della password. Premi il pulsante qui sotto per impostarne una nuova.
-                    </p>
-
-                    <!-- CTA -->
-                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin:18px 0 10px;">
-                      <tr>
-                        <td>
-                          <a href="${esc(finalUrl)}"
-                             style="display:inline-block; background:#d4af37; color:#0b0b0c; text-decoration:none; font-family:Arial, sans-serif;
-                                    font-size:14px; font-weight:800; padding:12px 16px; border-radius:12px;">
-                            Imposta nuova password
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-
-                    <div style="margin:12px 0 0; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
-                      <div style="font-family:Arial,sans-serif; font-size:12px; color:#666; margin-bottom:6px;">
-                        Se il pulsante non funziona, copia e incolla questo link nel browser:
-                      </div>
-                      <div style="font-family:Arial,sans-serif; font-size:12px; color:#2b2b2b; word-break:break-all;">
-                        ${esc(finalUrl)}
-                      </div>
-                    </div>
-
-                    <p style="margin:14px 0 0; font-size:12px; color:#666;">
-                      Se non sei stato tu a richiedere il recupero, puoi ignorare questa email: non verrà modificato nulla.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Footer -->
-              <tr>
-                <td style="background:#ffffff; border-left:1px solid #ececef; border-right:1px solid #ececef; padding:0 22px 18px;">
-                  <div style="height:1px; background:#f0f0f2; margin:10px 0 14px;"></div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.45;">
-                    <div style="margin:0 0 6px;">Q•BEAUTY</div>
-                    <div style="margin:0;">Email automatica legata al tuo account.</div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Bottom radius -->
-              <tr>
-                <td style="background:#ffffff; border-radius:0 0 18px 18px; border:1px solid #ececef; border-top:none; height:12px;"></td>
-              </tr>
-            </table>
-
-          </td>
-        </tr>
-      </table>
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>${esc(subject)}</title>
+  </head>
+  <body style="margin:0; padding:0; background:${colors.pageBg};">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+      ${esc(preheader)}
     </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="${colors.pageBg}"
+      style="border-collapse:collapse; background:${colors.pageBg};"
+    >
+      <tr>
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="border-collapse:collapse; max-width:560px;"
+          >
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border:1px solid ${colors.border}; border-bottom:none; border-radius:22px 22px 0 0; padding:26px 28px 16px; text-align:center;"
+              >
+                <img
+                  src="${logoUrl}"
+                  alt="Q-BEAUTY"
+                  width="190"
+                  style="display:block; width:100%; max-width:190px; height:auto; margin:0 auto; border:0; outline:none; text-decoration:none;"
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 26px;"
+              >
+                <div style="height:1px; background:${colors.divider};"></div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; padding:0 28px 24px; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border};"
+              >
+                <div style="font-family:Arial,sans-serif; color:${colors.text}; line-height:1.62;">
+                  <div style="margin:0 0 10px; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:${colors.eyebrow};">
+                    Sicurezza account
+                  </div>
+
+                  <h1 style="margin:0 0 14px; font-size:24px; line-height:1.25; letter-spacing:0.2px; color:${colors.text}; font-weight:700;">
+                    Imposta una nuova password
+                  </h1>
+
+                  <p style="margin:0 0 14px; font-size:15px; color:${colors.textSoft};">
+                    ${helloHtml}
+                  </p>
+
+                  <p style="margin:0 0 16px; font-size:15px; color:${colors.textSoft};">
+                    hai richiesto il recupero della password. Premi il pulsante qui sotto per impostarne una nuova in modo sicuro.
+                  </p>
+
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin:22px 0 12px;">
+                    <tr>
+                      <td>
+                        <a
+                          href="${esc(finalUrl)}"
+                          style="display:inline-block; background:${colors.accent}; color:${colors.buttonText}; text-decoration:none; font-family:Arial, sans-serif; font-size:14px; font-weight:700; padding:13px 18px; border-radius:14px;"
+                        >
+                          Imposta nuova password
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin:18px 0 0; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:8px; font-weight:700;">
+                      Link di recupero
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:12px; line-height:1.55; color:${colors.muted}; margin-bottom:8px;">
+                      Se il pulsante non funziona, copia e incolla questo link nel browser:
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:12px; color:${colors.panelText}; word-break:break-all;">
+                      ${esc(finalUrl)}
+                    </div>
+                  </div>
+
+                  <p style="margin:16px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
+                    Se non sei stato tu a richiedere il recupero, puoi ignorare questa email: non verrà modificato nulla.
+                  </p>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 20px;"
+              >
+                <div style="height:1px; background:${colors.divider}; margin:0 0 14px;"></div>
+                <div style="font-family:Arial, sans-serif; font-size:12px; color:${colors.muted}; line-height:1.5;">
+                  <div style="margin:0 0 6px;">Q•BEAUTY</div>
+                  <div style="margin:0;">Questa è una comunicazione automatica legata al tuo account.</div>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
+              ></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
   `;
 
   return sendMail({ to, subject, html, text });
 }
 
 
-//MAIL ADMIN NUOVO ORDINE
+//MAIL ADMIN NUOVO ORDINE ✔️
 async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
   if (!order) throw new Error("Order mancante (order)");
 
@@ -986,14 +1350,13 @@ async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
     typeof globalThis.escapeHtml === "function"
       ? globalThis.escapeHtml
       : (s) =>
-        String(s ?? "")
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#39;");
+          String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
 
-  // Parse destinatari admin inline (niente helper fantasma)
   const adminToRaw = process.env.MAIL_ADMIN_TO;
   const s = String(adminToRaw || "").trim();
   if (!s) return;
@@ -1073,7 +1436,7 @@ async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
   const subject = `NUOVO ORDINE ${orderLabel} — ${total} (${paymentProviderLabel})`;
   const preheader = `Nuovo ordine ${orderLabel} • ${total} • ${paymentProviderLabel} • ${paymentStateLabel}`;
 
-  const text = `Nuovo ordine ricevuto 
+  const text = `Nuovo ordine ricevuto
 
 Ordine: ${orderLabel}
 Totale: ${total}
@@ -1103,19 +1466,41 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
 - Totale: ${total}
 `;
 
+  const baseUrl = (process.env.FRONTEND_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
+  const logoUrl = `${baseUrl}/img/qbeautyshop-logo.png`;
+
+  const colors = {
+    pageBg: "#fdfbf8",
+    cardBg: "#fffefd",
+    border: "#f0e9de",
+    divider: "#f3ede4",
+    text: "#1a1a1a",
+    textSoft: "#5a534b",
+    muted: "#857d74",
+    panelBg: "#fdfaf6",
+    panelBorder: "#f0e9de",
+    panelText: "#3d3731",
+    accent: "#DEBE68",
+    buttonText: "#1a1a1a",
+    eyebrow: "#9a8760",
+  };
+
   const itemsTableHtml = items.length
     ? `
-      <div style="margin-top:14px; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
-        <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; margin-bottom:10px; font-weight:800;">
+      <div
+        bgcolor="${colors.panelBg}"
+        style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+      >
+        <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
           Articoli
         </div>
 
-        <table role="presentation" style="width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
+        <table role="presentation" style="width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText};">
           <thead>
             <tr>
-              <th style="text-align:left; padding:8px 0; border-bottom:1px solid #ececef; color:#666; font-weight:700;">Prodotto</th>
-              <th style="text-align:center; padding:8px 0; border-bottom:1px solid #ececef; color:#666; font-weight:700; width:60px;">Qta</th>
-              <th style="text-align:right; padding:8px 0; border-bottom:1px solid #ececef; color:#666; font-weight:700; width:110px;">Totale</th>
+              <th style="text-align:left; padding:8px 0; border-bottom:1px solid ${colors.border}; color:${colors.muted}; font-weight:700;">Prodotto</th>
+              <th style="text-align:center; padding:8px 0; border-bottom:1px solid ${colors.border}; color:${colors.muted}; font-weight:700; width:60px;">Qta</th>
+              <th style="text-align:right; padding:8px 0; border-bottom:1px solid ${colors.border}; color:${colors.muted}; font-weight:700; width:110px;">Totale</th>
             </tr>
           </thead>
           <tbody>
@@ -1125,40 +1510,46 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
       </div>
     `
     : `
-      <div style="margin-top:14px; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px; font-family:Arial,sans-serif; font-size:13px; color:#666;">
+      <div
+        bgcolor="${colors.panelBg}"
+        style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px; font-family:Arial,sans-serif; font-size:13px; color:${colors.muted};"
+      >
         (Nessun articolo in payload)
       </div>
     `;
 
   const breakdownHtml = `
-    <div style="margin-top:14px; padding:12px 14px; background:#ffffff; border:1px solid #ececef; border-radius:12px;">
-      <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; margin-bottom:10px; font-weight:800;">
+    <div
+      bgcolor="${colors.panelBg}"
+      style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+    >
+      <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
         Riepilogo
       </div>
 
-      <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
+      <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText};">
         <tbody>
           <tr>
-            <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Subtotale</td>
+            <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Subtotale</td>
             <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(subtotal)}</td>
           </tr>
 
           ${discountCents > 0
-      ? `<tr>
-                   <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
-                   <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">- ${escapeHtml(formatEURFromCents(discountCents))}</td>
-                 </tr>`
-      : ""
-    }
+            ? `<tr>
+                 <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
+                 <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">- ${escapeHtml(formatEURFromCents(discountCents))}</td>
+               </tr>`
+            : ""
+          }
 
           <tr>
-            <td style="padding:6px 12px 6px 0; color:#666; word-break:break-word;">Spedizione</td>
+            <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Spedizione</td>
             <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(shipping)}</td>
           </tr>
 
           <tr>
-            <td style="padding:10px 12px 0 0; font-weight:800; border-top:1px solid #f0f0f2; word-break:break-word;">Totale</td>
-            <td style="width:120px; padding:10px 0 0; text-align:right; font-weight:900; border-top:1px solid #f0f0f2; white-space:nowrap; vertical-align:top;">${escapeHtml(total)}</td>
+            <td style="padding:10px 12px 0 0; font-weight:800; border-top:1px solid ${colors.border}; word-break:break-word;">Totale</td>
+            <td style="width:120px; padding:10px 0 0; text-align:right; font-weight:900; border-top:1px solid ${colors.border}; white-space:nowrap; vertical-align:top;">${escapeHtml(total)}</td>
           </tr>
         </tbody>
       </table>
@@ -1166,113 +1557,172 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
   `;
 
   const html = `
-    <div style="margin:0; padding:0; background:#f6f6f7;">
-      <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
-        ${escapeHtml(preheader)}
-      </div>
-
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#f6f6f7; padding:24px 0;">
-        <tr>
-          <td align="center" style="padding:24px 12px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:640px;">
-              <tr>
-                <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:left;">
-                  <div style="font-family:Arial, sans-serif; font-size:16px; letter-spacing:0.6px; color:#d4af37; font-weight:800;">
-                    Q•BEAUTY • ADMIN
-                  </div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
-                    Nuovo ordine ricevuto ✅
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="background:#ffffff; padding:22px; border-left:1px solid #ececef; border-right:1px solid #ececef;">
-                  <div style="font-family:Arial,sans-serif; color:#121212; line-height:1.55;">
-                    <h1 style="margin:0 0 10px; font-size:20px; letter-spacing:0.2px;">
-                      Ordine ${escapeHtml(orderLabel)}
-                    </h1>
-
-                    <div style="margin:12px 0 0; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
-                      <table role="presentation" style="width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px;">
-                        <tr>
-                          <td style="padding:6px 0; color:#666;">Totale</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:900; color:#0b0b0c;">${escapeHtml(total)}</td>
-                        </tr>
-                        <tr>
-                          <td style="padding:6px 0; color:#666;">Pagamento</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(paymentStateLabel)}</td>
-                        </tr>
-                        <tr>
-                          <td style="padding:6px 0; color:#666;">Metodo</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(paymentProviderLabel)}</td>
-                        </tr>
-                      </table>
-                    </div>
-
-                    <div style="margin-top:14px; padding:12px 14px; background:#ffffff; border:1px solid #ececef; border-radius:12px;">
-                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; margin-bottom:10px; font-weight:800;">
-                        Cliente
-                      </div>
-                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
-                        <div><strong>Nome:</strong> ${escapeHtml(userName || "-")}</div>
-                        <div><strong>Email:</strong> ${userEmail
-      ? `<a href="mailto:${escapeHtml(userEmail)}" style="color:#0b0b0c; text-decoration:underline;">${escapeHtml(userEmail)}</a>`
-      : escapeHtml("-")
-    }</div>
-                        <div><strong>UserId:</strong> <span style="color:#666;">${escapeHtml(userId || "-")}</span></div>
-                      </div>
-                    </div>
-
-                    <div style="margin-top:14px; padding:12px 14px; background:#ffffff; border:1px solid #ececef; border-radius:12px;">
-                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; margin-bottom:10px; font-weight:800;">
-                        Spedizione / Fatturazione
-                      </div>
-                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
-                        <div><strong>Nome:</strong> ${escapeHtml(shipFullName)}</div>
-                        <div><strong>Email:</strong> ${shipEmail
-      ? `<a href="mailto:${escapeHtml(shipEmail)}" style="color:#0b0b0c; text-decoration:underline;">${escapeHtml(shipEmail)}</a>`
-      : escapeHtml("-")
-    }</div>
-                        <div><strong>Telefono:</strong> ${shipPhone
-      ? `<a href="tel:${escapeHtml(shipPhone)}" style="color:#0b0b0c; text-decoration:underline;">${escapeHtml(shipPhone)}</a>`
-      : escapeHtml("-")
-    }</div>
-                        <div><strong>Indirizzo:</strong> ${escapeHtml(shipAddress || "-")}${shipStreetNumber ? `, ${escapeHtml(shipStreetNumber)}` : ""}</div>
-                        <div><strong>Città:</strong> ${escapeHtml(shipCity || "-")} <span style="color:#666;">(CAP: ${escapeHtml(shipCap || "-")})</span></div>
-                        <div><strong>CF/P.IVA:</strong> ${escapeHtml(shipTaxCode || "-")}</div>
-                      </div>
-                    </div>
-
-                    ${itemsTableHtml}
-                    ${breakdownHtml}
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="background:#ffffff; border-left:1px solid #ececef; border-right:1px solid #ececef; padding:0 22px 18px;">
-                  <div style="height:1px; background:#f0f0f2; margin:10px 0 14px;"></div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.45;">
-                    <div style="margin:0;">Q•BEAUTY • Admin notification</div>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="background:#ffffff; border-radius:0 0 18px 18px; border:1px solid #ececef; border-top:none; height:12px;"></td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>${escapeHtml(subject)}</title>
+  </head>
+  <body style="margin:0; padding:0; background:${colors.pageBg};">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+      ${escapeHtml(preheader)}
     </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="${colors.pageBg}"
+      style="border-collapse:collapse; background:${colors.pageBg};"
+    >
+      <tr>
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="border-collapse:collapse; max-width:640px;"
+          >
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border:1px solid ${colors.border}; border-bottom:none; border-radius:22px 22px 0 0; padding:26px 28px 16px; text-align:center;"
+              >
+                <img
+                  src="${logoUrl}"
+                  alt="Q-BEAUTY"
+                  width="190"
+                  style="display:block; width:100%; max-width:190px; height:auto; margin:0 auto; border:0; outline:none; text-decoration:none;"
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 26px;"
+              >
+                <div style="height:1px; background:${colors.divider};"></div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; padding:0 28px 24px; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border};"
+              >
+                <div style="font-family:Arial,sans-serif; color:${colors.text}; line-height:1.62;">
+                  <div style="margin:0 0 10px; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:${colors.eyebrow};">
+                    Notifica amministratore
+                  </div>
+
+                  <h1 style="margin:0 0 14px; font-size:24px; line-height:1.25; letter-spacing:0.2px; color:${colors.text}; font-weight:700;">
+                    Nuovo ordine ${escapeHtml(orderLabel)}
+                  </h1>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin:18px 0 0; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <table role="presentation" style="width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText};">
+                      <tr>
+                        <td style="padding:6px 0; color:${colors.muted};">Totale</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:900; color:${colors.text};">${escapeHtml(total)}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0; color:${colors.muted};">Pagamento</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(paymentStateLabel)}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0; color:${colors.muted};">Metodo</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(paymentProviderLabel)}</td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+                      Cliente
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:13px; line-height:1.65; color:${colors.panelText};">
+                      <div><strong>Nome:</strong> ${escapeHtml(userName || "-")}</div>
+                      <div><strong>Email:</strong> ${userEmail
+                        ? `<a href="mailto:${escapeHtml(userEmail)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(userEmail)}</a>`
+                        : escapeHtml("-")
+                      }</div>
+                      <div><strong>UserId:</strong> <span style="color:${colors.muted};">${escapeHtml(userId || "-")}</span></div>
+                    </div>
+                  </div>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+                      Spedizione / Fatturazione
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:13px; line-height:1.65; color:${colors.panelText};">
+                      <div><strong>Nome:</strong> ${escapeHtml(shipFullName)}</div>
+                      <div><strong>Email:</strong> ${shipEmail
+                        ? `<a href="mailto:${escapeHtml(shipEmail)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(shipEmail)}</a>`
+                        : escapeHtml("-")
+                      }</div>
+                      <div><strong>Telefono:</strong> ${shipPhone
+                        ? `<a href="tel:${escapeHtml(shipPhone)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(shipPhone)}</a>`
+                        : escapeHtml("-")
+                      }</div>
+                      <div><strong>Indirizzo:</strong> ${escapeHtml(shipAddress || "-")}${shipStreetNumber ? `, ${escapeHtml(shipStreetNumber)}` : ""}</div>
+                      <div><strong>Città:</strong> ${escapeHtml(shipCity || "-")} <span style="color:${colors.muted};">(CAP: ${escapeHtml(shipCap || "-")})</span></div>
+                      <div><strong>CF/P.IVA:</strong> ${escapeHtml(shipTaxCode || "-")}</div>
+                    </div>
+                  </div>
+
+                  ${itemsTableHtml}
+                  ${breakdownHtml}
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 20px;"
+              >
+                <div style="height:1px; background:${colors.divider}; margin:0 0 14px;"></div>
+                <div style="font-family:Arial, sans-serif; font-size:12px; color:${colors.muted}; line-height:1.5;">
+                  <div style="margin:0;">Q•BEAUTY • Admin notification</div>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
+              ></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
   `;
 
   return sendMail({ to: adminTo, subject, html, text });
 }
 
-//MAIL UTENTE CON 5% DI SCONTO PER RECENSIONE
+//MAIL UTENTE CON 5% DI SCONTO PER RECENSIONE ✔️
 async function sendReviewRewardEmail({ to, name, couponCode, percent = 5 }) {
   if (!to) throw new Error("Recipient mancante (to)");
   if (!couponCode) throw new Error("couponCode mancante");
@@ -1282,10 +1732,14 @@ async function sendReviewRewardEmail({ to, name, couponCode, percent = 5 }) {
   const helloText = safeNameRaw ? `Ciao ${safeNameRaw},` : "Ciao,";
   const helloHtml = safeNameRaw ? `Ciao <strong>${escapeHtml(safeNameRaw)}</strong>,` : "Ciao,";
 
-  const baseUrl = String(process.env.PUBLIC_SITE_URL || "https://qbeautyshop.it")
+  const baseUrl = String(
+    process.env.PUBLIC_SITE_URL || process.env.FRONTEND_URL || "https://qbeautyshop.it"
+  )
     .trim()
     .replace(/\/+$/, "");
+
   const shopUrl = `${baseUrl}/shop`;
+  const logoUrl = `${baseUrl}/img/qbeautyshop-logo.png`;
 
   const safeCode = String(couponCode || "").trim().toUpperCase();
   const safePercent = Number(percent) || 5;
@@ -1311,95 +1765,169 @@ A presto,
 Q•BEAUTY
 `;
 
+  const colors = {
+    pageBg: "#fdfbf8",
+    cardBg: "#fffefd",
+    border: "#f0e9de",
+    divider: "#f3ede4",
+    text: "#1a1a1a",
+    textSoft: "#5a534b",
+    muted: "#857d74",
+    panelBg: "#fdfaf6",
+    panelBorder: "#f0e9de",
+    panelText: "#3d3731",
+    accent: "#DEBE68",
+    buttonText: "#1a1a1a",
+    eyebrow: "#9a8760",
+  };
+
   const html = `
-    <div style="margin:0; padding:0; background:#f6f6f7;">
-      <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
-        ${escapeHtml(preheader)}
-      </div>
-
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#f6f6f7; padding:24px 0;">
-        <tr>
-          <td align="center" style="padding:24px 12px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:560px;">
-              <tr>
-                <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:left;">
-                  <div style="font-family:Arial, sans-serif; font-size:16px; letter-spacing:0.6px; color:#d4af37; font-weight:700;">
-                    Q•BEAUTY
-                  </div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
-                    Grazie per la tua recensione ✨
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="background:#ffffff; padding:22px; border-left:1px solid #ececef; border-right:1px solid #ececef;">
-                  <div style="font-family:Arial,sans-serif; color:#121212; line-height:1.55;">
-                    <h1 style="margin:0 0 10px; font-size:20px; letter-spacing:0.2px;">
-                      Recensione approvata ✅
-                    </h1>
-
-                    <p style="margin:0 0 12px; font-size:14px;">
-                      ${helloHtml}<br/>
-                      grazie per aver condiviso la tua esperienza con Q•BEAUTY.
-                    </p>
-
-                    <div style="margin:14px 0 0; padding:14px 16px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
-                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#666; margin-bottom:6px;">
-                        Il tuo codice sconto
-                      </div>
-                      <div style="font-family:Arial,sans-serif; font-size:24px; font-weight:900; letter-spacing:1px; color:#0b0b0c;">
-                        ${escapeHtml(safeCode)}
-                      </div>
-                      <div style="font-family:Arial,sans-serif; font-size:12px; color:#666; margin-top:8px;">
-                        Valore: <strong>${safePercent}%</strong> di sconto
-                      </div>
-                    </div>
-
-                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin:18px 0 10px;">
-                      <tr>
-                        <td>
-                          <a href="${escapeHtml(shopUrl)}"
-                             style="display:inline-block; background:#d4af37; color:#0b0b0c; text-decoration:none; font-family:Arial, sans-serif;
-                                    font-size:14px; font-weight:800; padding:12px 16px; border-radius:12px;">
-                            Vai allo shop
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-
-                    <p style="margin:14px 0 0; font-size:12px; color:#666;">
-                      Conserva questo codice e inseriscilo al checkout sul tuo prossimo ordine.
-                      È valido per <strong>30 giorni</strong> e poi scadrà automaticamente.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="background:#ffffff; border-left:1px solid #ececef; border-right:1px solid #ececef; padding:0 22px 18px;">
-                  <div style="height:1px; background:#f0f0f2; margin:10px 0 14px;"></div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.45;">
-                    <div style="margin:0 0 6px;">Q•BEAUTY</div>
-                    <div style="margin:0;">Email automatica legata alla tua recensione approvata.</div>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="background:#ffffff; border-radius:0 0 18px 18px; border:1px solid #ececef; border-top:none; height:12px;"></td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>${escapeHtml(subject)}</title>
+  </head>
+  <body style="margin:0; padding:0; background:${colors.pageBg};">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+      ${escapeHtml(preheader)}
     </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="${colors.pageBg}"
+      style="border-collapse:collapse; background:${colors.pageBg};"
+    >
+      <tr>
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="border-collapse:collapse; max-width:560px;"
+          >
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border:1px solid ${colors.border}; border-bottom:none; border-radius:22px 22px 0 0; padding:26px 28px 16px; text-align:center;"
+              >
+                <img
+                  src="${logoUrl}"
+                  alt="Q-BEAUTY"
+                  width="190"
+                  style="display:block; width:100%; max-width:190px; height:auto; margin:0 auto; border:0; outline:none; text-decoration:none;"
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 26px;"
+              >
+                <div style="height:1px; background:${colors.divider};"></div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; padding:0 28px 24px; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border};"
+              >
+                <div style="font-family:Arial,sans-serif; color:${colors.text}; line-height:1.62;">
+                  <div style="margin:0 0 10px; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:${colors.eyebrow};">
+                    Recensione approvata
+                  </div>
+
+                  <h1 style="margin:0 0 14px; font-size:24px; line-height:1.25; letter-spacing:0.2px; color:${colors.text}; font-weight:700;">
+                    Grazie per la tua recensione ✨
+                  </h1>
+
+                  <p style="margin:0 0 14px; font-size:15px; color:${colors.textSoft};">
+                    ${helloHtml}
+                  </p>
+
+                  <p style="margin:0 0 16px; font-size:15px; color:${colors.textSoft};">
+                    grazie per aver condiviso la tua esperienza con Q•BEAUTY. Come promesso, abbiamo preparato per te un codice sconto da usare sul tuo prossimo acquisto.
+                  </p>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin:18px 0 0; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.muted}; margin-bottom:6px;">
+                      Il tuo codice sconto
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:26px; line-height:1.2; font-weight:900; letter-spacing:1.2px; color:${colors.text};">
+                      ${escapeHtml(safeCode)}
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:12px; color:${colors.muted}; margin-top:8px;">
+                      Valore: <strong>${safePercent}%</strong> di sconto
+                    </div>
+                  </div>
+
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin:22px 0 12px;">
+                    <tr>
+                      <td>
+                        <a
+                          href="${escapeHtml(shopUrl)}"
+                          style="display:inline-block; background:${colors.accent}; color:${colors.buttonText}; text-decoration:none; font-family:Arial, sans-serif; font-size:14px; font-weight:700; padding:13px 18px; border-radius:14px;"
+                        >
+                          Vai allo shop
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:16px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
+                    Conserva questo codice e inseriscilo al checkout sul tuo prossimo ordine.
+                    È valido per <strong>30 giorni</strong> e poi scadrà automaticamente.
+                    <span<Non è cumulabile con altri codici sconto.</span>
+                  </p>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 20px;"
+              >
+                <div style="height:1px; background:${colors.divider}; margin:0 0 14px;"></div>
+                <div style="font-family:Arial, sans-serif; font-size:12px; color:${colors.muted}; line-height:1.5;">
+                  <div style="margin:0 0 6px;">Q•BEAUTY</div>
+                  <div style="margin:0;">Questa è una comunicazione automatica legata alla tua recensione approvata.</div>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
+              ></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
   `;
 
   return sendMail({ to, subject, html, text });
 }
 
-//MAIL ADMIN CREATA NUOVA RECENSIONE
+//MAIL ADMIN CREATA NUOVA RECENSIONE ✔️
 async function sendAdminNewReviewEmail({ review }) {
   if (!review) throw new Error("Review mancante (review)");
 
@@ -1453,84 +1981,170 @@ Testo:
 ${text}
 `;
 
+  const baseUrl = (process.env.FRONTEND_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
+  const logoUrl = `${baseUrl}/img/qbeautyshop-logo.png`;
+
+  const colors = {
+    pageBg: "#fdfbf8",
+    cardBg: "#fffefd",
+    border: "#f0e9de",
+    divider: "#f3ede4",
+    text: "#1a1a1a",
+    textSoft: "#5a534b",
+    muted: "#857d74",
+    panelBg: "#fdfaf6",
+    panelBorder: "#f0e9de",
+    panelText: "#3d3731",
+    accent: "#DEBE68",
+    buttonText: "#1a1a1a",
+    eyebrow: "#9a8760",
+  };
+
   const html = `
-    <div style="margin:0; padding:0; background:#f6f6f7;">
-      <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
-        ${escapeHtml(preheader)}
-      </div>
-
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#f6f6f7; padding:24px 0;">
-        <tr>
-          <td align="center" style="padding:24px 12px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; max-width:560px;">
-              <tr>
-                <td style="background:#0b0b0c; border-radius:18px 18px 0 0; padding:18px 22px; text-align:left;">
-                  <div style="font-family:Arial, sans-serif; font-size:16px; letter-spacing:0.6px; color:#d4af37; font-weight:700;">
-                    Q•BEAUTY • ADMIN
-                  </div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#c9c9c9; margin-top:4px;">
-                    Nuova recensione in attesa
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="background:#ffffff; padding:22px; border-left:1px solid #ececef; border-right:1px solid #ececef;">
-                  <div style="font-family:Arial,sans-serif; color:#121212; line-height:1.55;">
-                    <h1 style="margin:0 0 10px; font-size:20px; letter-spacing:0.2px;">
-                      Nuova recensione da approvare
-                    </h1>
-
-                    <div style="margin:14px 0 0; padding:12px 14px; background:#fafafc; border:1px solid #eeeeF3; border-radius:12px;">
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b;">
-                        <tr>
-                          <td style="padding:6px 0; width:120px; color:#666;">Nome</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(name)}</td>
-                        </tr>
-                        <tr>
-                          <td style="padding:6px 0; width:120px; color:#666;">Email</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(email)}</td>
-                        </tr>
-                        <tr>
-                          <td style="padding:6px 0; width:120px; color:#666;">Valutazione</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(stars)}</td>
-                        </tr>
-                        <tr>
-                          <td style="padding:6px 0; width:120px; color:#666;">Data</td>
-                          <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(createdAt)}</td>
-                        </tr>
-                      </table>
-                    </div>
-
-                    <div style="margin:14px 0 0; padding:12px 14px; background:#ffffff; border:1px solid #ececef; border-radius:12px;">
-                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; margin-bottom:8px; font-weight:700;">
-                        Testo recensione
-                      </div>
-                      <div style="font-family:Arial,sans-serif; font-size:13px; color:#2b2b2b; white-space:pre-wrap;">
-                        ${escapeHtml(text)}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="background:#ffffff; border-left:1px solid #ececef; border-right:1px solid #ececef; padding:0 22px 18px;">
-                  <div style="height:1px; background:#f0f0f2; margin:10px 0 14px;"></div>
-                  <div style="font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.45;">
-                    <div style="margin:0;">Q•BEAUTY • Admin notification</div>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="background:#ffffff; border-radius:0 0 18px 18px; border:1px solid #ececef; border-top:none; height:12px;"></td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>${escapeHtml(subject)}</title>
+  </head>
+  <body style="margin:0; padding:0; background:${colors.pageBg};">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+      ${escapeHtml(preheader)}
     </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="${colors.pageBg}"
+      style="border-collapse:collapse; background:${colors.pageBg};"
+    >
+      <tr>
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="border-collapse:collapse; max-width:560px;"
+          >
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border:1px solid ${colors.border}; border-bottom:none; border-radius:22px 22px 0 0; padding:26px 28px 16px; text-align:center;"
+              >
+                <img
+                  src="${logoUrl}"
+                  alt="Q-BEAUTY"
+                  width="190"
+                  style="display:block; width:100%; max-width:190px; height:auto; margin:0 auto; border:0; outline:none; text-decoration:none;"
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 26px;"
+              >
+                <div style="height:1px; background:${colors.divider};"></div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; padding:0 28px 24px; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border};"
+              >
+                <div style="font-family:Arial,sans-serif; color:${colors.text}; line-height:1.62;">
+                  <div style="margin:0 0 10px; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:${colors.eyebrow};">
+                    Notifica amministratore
+                  </div>
+
+                  <h1 style="margin:0 0 14px; font-size:24px; line-height:1.25; letter-spacing:0.2px; color:${colors.text}; font-weight:700;">
+                    Nuova recensione da approvare
+                  </h1>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin:18px 0 0; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <table
+                      role="presentation"
+                      width="100%"
+                      cellpadding="0"
+                      cellspacing="0"
+                      border="0"
+                      style="border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText};"
+                    >
+                      <tr>
+                        <td style="padding:6px 0; width:120px; color:${colors.muted};">Nome</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(name)}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0; width:120px; color:${colors.muted};">Email</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:700;">
+                          ${email !== "-"
+                            ? `<a href="mailto:${escapeHtml(email)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(email)}</a>`
+                            : escapeHtml(email)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0; width:120px; color:${colors.muted};">Valutazione</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(stars)}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0; width:120px; color:${colors.muted};">Data</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(createdAt)}</td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+                      Testo recensione
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:13px; line-height:1.65; color:${colors.panelText}; white-space:pre-wrap;">
+                      ${escapeHtml(text)}
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 20px;"
+              >
+                <div style="height:1px; background:${colors.divider}; margin:0 0 14px;"></div>
+                <div style="font-family:Arial, sans-serif; font-size:12px; color:${colors.muted}; line-height:1.5;">
+                  <div style="margin:0;">Q•BEAUTY • Admin notification</div>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
+              ></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
   `;
 
   return sendMail({ to: adminTo, subject, html, text: textBody });
