@@ -81,7 +81,7 @@ export default function ReviewsSection() {
             <div className="qb-reviews-section__intro">
                 <div className="qb-reviews-section__intro-main">
                     <h1 className="qb-reviews-section__title">
-                        ⟡ COSA DICONO DI Q<span className="diamond-small"></span>BEAUTY ⟡
+                        LE RECENSIONI DEI CLIENTI Q<span className="diamond-small"></span>BEAUTY 
                     </h1>
                 </div>
 

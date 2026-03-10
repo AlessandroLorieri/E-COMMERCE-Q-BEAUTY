@@ -783,56 +783,84 @@ export default function AdminProducts() {
 
             {/* Table */}
             <div className="table-responsive">
-                <table className="table table-sm align-middle">
+                <table className="table align-middle w-100 mb-0">
                     <thead>
                         <tr>
-                            <th>productId</th>
-                            <th>Nome</th>
-                            <th>Prezzo</th>
-                            <th>Ordine</th>
-                            <th>Attivo</th>
-                            <th style={{ width: 220 }}>Azioni</th>
+                            <th style={{ width: "36%", padding: "14px 18px 14px 6px" }}>Nome</th>
+                            <th className="text-nowrap" style={{ padding: "14px 18px" }}>Prezzo</th>
+                            <th className="text-nowrap" style={{ padding: "14px 18px" }}>Stock</th>
+                            <th className="text-nowrap" style={{ padding: "14px 18px" }}>Ordine</th>
+                            <th className="text-nowrap" style={{ padding: "14px 18px" }}>Attivo</th>
+                            <th style={{ width: "28%", padding: "14px 6px 14px 18px" }}>Azioni</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         {products.map((p) => (
                             <tr key={p._id || p.productId}>
-                                <td><code>{p.productId}</code></td>
-                                <td>{p.name}</td>
-                                <td>{formatEURFromCents(p.priceCents)}</td>
-                                <td><code>{p.sortOrder ?? 9999}</code></td>
-                                <td>{p.isActive ? "✅" : "⛔️"}</td>
-                                <td className="d-flex gap-2">
-                                    <button className="btn btn-sm btn-outline-primary" onClick={() => startEdit(p)} disabled={loading}>
-                                        Modifica
-                                    </button>
+                                <td style={{ padding: "14px 18px 14px 6px" }}>{p.name}</td>
 
-                                    {p.isActive ? (
-                                        <button className="btn btn-sm btn-outline-danger" onClick={() => deactivate(p)} disabled={loading}>
-                                            Disattiva
-                                        </button>
-                                    ) : (
-                                        <button className="btn btn-sm btn-outline-success" onClick={() => activate(p)} disabled={loading}>
-                                            Attiva
-                                        </button>
-                                    )}
-                                    {!p.isActive ? (
+                                <td className="text-nowrap" style={{ padding: "14px 18px" }}>
+                                    {formatEURFromCents(p.priceCents)}
+                                </td>
+
+                                <td className="text-nowrap" style={{ padding: "14px 18px" }}>
+                                    <code>{p.stockQty ?? 0}</code>
+                                </td>
+
+                                <td className="text-nowrap" style={{ padding: "14px 18px" }}>
+                                    <code>{p.sortOrder ?? 9999}</code>
+                                </td>
+
+                                <td className="text-nowrap" style={{ padding: "14px 18px" }}>
+                                    {p.isActive ? "✅" : "⛔️"}
+                                </td>
+
+                                <td style={{ padding: "14px 6px 14px 18px" }}>
+                                    <div className="d-flex gap-2 flex-wrap align-items-center">
                                         <button
-                                            className="btn btn-sm btn-danger"
-                                            onClick={() => hardDelete(p)}
+                                            className="btn btn-sm btn-outline-primary"
+                                            onClick={() => startEdit(p)}
                                             disabled={loading}
                                         >
-                                            Elimina
+                                            Modifica
                                         </button>
-                                    ) : null}
 
+                                        {p.isActive ? (
+                                            <button
+                                                className="btn btn-sm btn-outline-danger"
+                                                onClick={() => deactivate(p)}
+                                                disabled={loading}
+                                            >
+                                                Disattiva
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="btn btn-sm btn-outline-success"
+                                                onClick={() => activate(p)}
+                                                disabled={loading}
+                                            >
+                                                Attiva
+                                            </button>
+                                        )}
+
+                                        {!p.isActive ? (
+                                            <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={() => hardDelete(p)}
+                                                disabled={loading}
+                                            >
+                                                Elimina
+                                            </button>
+                                        ) : null}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
 
                         {!loading && products.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="text-muted py-4">
+                                <td colSpan={6} className="text-muted py-4">
                                     Nessun prodotto trovato.
                                 </td>
                             </tr>

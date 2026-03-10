@@ -58,3 +58,19 @@
         min-width: 0;
     }
 }
+
+
+
+@media (max-width: 1200px) {
+    .admin {
+        grid-template-columns: 200px minmax(0, 1fr);
+    }
+
+    .admin__sidebar {
+        padding: 10px;
+    }
+
+    .admin__content {
+        padding: 14px;
+    }
+}
