@@ -485,17 +485,16 @@ Grazie per aver scelto Q•BEAUTY.
                         <td style="padding:5px 0; text-align:right; font-weight:700;">${esc(carrier)}</td>
                       </tr>
                       ${code
-                        ? `<tr>
+      ? `<tr>
                             <td style="padding:5px 0; width:120px; color:${colors.muted};">Tracking</td>
                             <td style="padding:5px 0; text-align:right; font-weight:700;">${esc(code)}</td>
                           </tr>`
-                        : ""}
+      : ""}
                     </table>
                   </div>
 
-                  ${
-                    url
-                      ? `
+                  ${url
+      ? `
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin:22px 0 12px;">
                           <tr>
                             <td>
@@ -514,12 +513,12 @@ Grazie per aver scelto Q•BEAUTY.
                           <span style="word-break:break-all;">${esc(url)}</span>
                         </p>
                       `
-                      : `
+      : `
                         <p style="margin:12px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
                           Appena disponibile un link di tracciamento, lo troverai anche nella tua area ordini.
                         </p>
                       `
-                  }
+    }
 
                   <p style="margin:14px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
                     Grazie per aver scelto Q•BEAUTY.
@@ -729,14 +728,14 @@ Q•BEAUTY
             </tr>
 
             ${discountCents > 0
-              ? `<tr>
+      ? `<tr>
                   <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
                   <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">- ${escapeHtml(
-                    formatEURFromCents(discountCents)
-                  )}</td>
+        formatEURFromCents(discountCents)
+      )}</td>
                 </tr>`
-              : ""
-            }
+      : ""
+    }
 
             <tr>
               <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Spedizione</td>
@@ -746,8 +745,8 @@ Q•BEAUTY
             <tr>
               <td style="padding:10px 12px 0 0; font-weight:700; border-top:1px solid ${colors.border}; word-break:break-word;">Totale</td>
               <td style="width:120px; padding:10px 0 0; text-align:right; font-weight:800; border-top:1px solid ${colors.border}; white-space:nowrap; vertical-align:top;">${escapeHtml(
-                total
-              )}</td>
+      total
+    )}</td>
             </tr>
           </tbody>
         </table>
@@ -1350,12 +1349,12 @@ async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
     typeof globalThis.escapeHtml === "function"
       ? globalThis.escapeHtml
       : (s) =>
-          String(s ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
+        String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
 
   const adminToRaw = process.env.MAIL_ADMIN_TO;
   const s = String(adminToRaw || "").trim();
@@ -1405,13 +1404,58 @@ async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
 
   const shipEmail = coalesceStr(ship?.email, userEmail);
   const shipPhone = coalesceStr(ship?.phone);
-
   const shipAddress = coalesceStr(ship?.address);
   const shipStreetNumber = coalesceStr(ship?.streetNumber);
   const shipCity = coalesceStr(ship?.city);
   const shipCap = coalesceStr(ship?.cap);
+  const shipTaxCode = coalesceStr(
+    ship?.taxCode,
+    ship?.codiceFiscale,
+    ship?.fiscalCode,
+    order?.taxCode
+  );
 
-  const shipTaxCode = coalesceStr(ship?.taxCode, ship?.codiceFiscale, ship?.fiscalCode);
+  const bill = order?.billingAddress || {};
+  const billName = coalesceStr(bill?.name, ship?.name, order?.customerName, userName);
+  const billSurname = coalesceStr(bill?.surname);
+  const billFullName = [billName, billSurname].filter(Boolean).join(" ").trim() || "-";
+
+  const billCompanyName = coalesceStr(
+    bill?.companyName,
+    bill?.businessName,
+    bill?.ragioneSociale,
+    bill?.denomination,
+    ship?.companyName,
+    ship?.businessName,
+    ship?.ragioneSociale,
+    order?.companyName,
+    order?.businessName,
+    order?.ragioneSociale,
+    user?.companyName
+  );
+
+  const billEmail = coalesceStr(bill?.email, userEmail);
+  const billPhone = coalesceStr(bill?.phone, shipPhone);
+  const billAddress = coalesceStr(bill?.address);
+  const billStreetNumber = coalesceStr(bill?.streetNumber);
+  const billCity = coalesceStr(bill?.city);
+  const billCap = coalesceStr(bill?.cap);
+
+  const billTaxCode = coalesceStr(
+    bill?.taxCode,
+    bill?.codiceFiscale,
+    bill?.fiscalCode,
+    order?.taxCode,
+    user?.taxCode
+  );
+
+  const billVatNumber = coalesceStr(
+    bill?.vatNumber,
+    bill?.piva,
+    bill?.partitaIva,
+    order?.vatNumber,
+    user?.vatNumber
+  );
 
   const normPay = (v) => String(v || "").trim().toLowerCase();
   const providerRaw = normPay(paymentMethod || order?.paymentProvider);
@@ -1448,13 +1492,23 @@ Cliente:
 - Email: ${userEmail || "-"}
 - UserId: ${userId || "-"}
 
-Spedizione / Fatturazione:
+Spedizione:
 - Nome: ${shipFullName}
 - Email: ${shipEmail || "-"}
 - Telefono: ${shipPhone || "-"}
-- Indirizzo: ${shipAddress}${shipStreetNumber ? `, ${shipStreetNumber}` : ""}
+- Indirizzo: ${shipAddress || "-"}${shipStreetNumber ? `, ${shipStreetNumber}` : ""}
 - Città: ${shipCity || "-"} (CAP: ${shipCap || "-"})
-- CF/P.IVA: ${shipTaxCode || "-"}
+- CF: ${shipTaxCode || "-"}
+
+Fatturazione:
+- Ragione sociale: ${billCompanyName || "-"}
+- Nome: ${billFullName}
+- Email: ${billEmail || "-"}
+- Telefono: ${billPhone || "-"}
+- Indirizzo: ${billAddress || "-"}${billStreetNumber ? `, ${billStreetNumber}` : ""}
+- Città: ${billCity || "-"} (CAP: ${billCap || "-"})
+- CF: ${billTaxCode || "-"}
+- P.IVA: ${billVatNumber || "-"}
 
 Articoli:
 ${items.length ? buildItemsText(items) : "- (nessun articolo in payload)"}
@@ -1535,12 +1589,12 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
           </tr>
 
           ${discountCents > 0
-            ? `<tr>
+      ? `<tr>
                  <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
                  <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">- ${escapeHtml(formatEURFromCents(discountCents))}</td>
                </tr>`
-            : ""
-          }
+      : ""
+    }
 
           <tr>
             <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Spedizione</td>
@@ -1657,9 +1711,9 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
                     <div style="font-family:Arial,sans-serif; font-size:13px; line-height:1.65; color:${colors.panelText};">
                       <div><strong>Nome:</strong> ${escapeHtml(userName || "-")}</div>
                       <div><strong>Email:</strong> ${userEmail
-                        ? `<a href="mailto:${escapeHtml(userEmail)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(userEmail)}</a>`
-                        : escapeHtml("-")
-                      }</div>
+      ? `<a href="mailto:${escapeHtml(userEmail)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(userEmail)}</a>`
+      : escapeHtml("-")
+    }</div>
                       <div><strong>UserId:</strong> <span style="color:${colors.muted};">${escapeHtml(userId || "-")}</span></div>
                     </div>
                   </div>
@@ -1669,21 +1723,46 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
                     style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
                   >
                     <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
-                      Spedizione / Fatturazione
+                      Spedizione
                     </div>
                     <div style="font-family:Arial,sans-serif; font-size:13px; line-height:1.65; color:${colors.panelText};">
                       <div><strong>Nome:</strong> ${escapeHtml(shipFullName)}</div>
                       <div><strong>Email:</strong> ${shipEmail
-                        ? `<a href="mailto:${escapeHtml(shipEmail)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(shipEmail)}</a>`
-                        : escapeHtml("-")
-                      }</div>
+      ? `<a href="mailto:${escapeHtml(shipEmail)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(shipEmail)}</a>`
+      : escapeHtml("-")
+    }</div>
                       <div><strong>Telefono:</strong> ${shipPhone
-                        ? `<a href="tel:${escapeHtml(shipPhone)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(shipPhone)}</a>`
-                        : escapeHtml("-")
-                      }</div>
+      ? `<a href="tel:${escapeHtml(shipPhone)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(shipPhone)}</a>`
+      : escapeHtml("-")
+    }</div>
                       <div><strong>Indirizzo:</strong> ${escapeHtml(shipAddress || "-")}${shipStreetNumber ? `, ${escapeHtml(shipStreetNumber)}` : ""}</div>
                       <div><strong>Città:</strong> ${escapeHtml(shipCity || "-")} <span style="color:${colors.muted};">(CAP: ${escapeHtml(shipCap || "-")})</span></div>
-                      <div><strong>CF/P.IVA:</strong> ${escapeHtml(shipTaxCode || "-")}</div>
+                      <div><strong>CF:</strong> ${escapeHtml(shipTaxCode || "-")}</div>
+                    </div>
+                  </div>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+                      Fatturazione
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:13px; line-height:1.65; color:${colors.panelText};">
+                      <div><strong>Ragione sociale:</strong> ${escapeHtml(billCompanyName || "-")}</div>
+                      <div><strong>Nome:</strong> ${escapeHtml(billFullName)}</div>
+                      <div><strong>Email:</strong> ${billEmail
+      ? `<a href="mailto:${escapeHtml(billEmail)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(billEmail)}</a>`
+      : escapeHtml("-")
+    }</div>
+                      <div><strong>Telefono:</strong> ${billPhone
+      ? `<a href="tel:${escapeHtml(billPhone)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(billPhone)}</a>`
+      : escapeHtml("-")
+    }</div>
+                      <div><strong>Indirizzo:</strong> ${escapeHtml(billAddress || "-")}${billStreetNumber ? `, ${escapeHtml(billStreetNumber)}` : ""}</div>
+                      <div><strong>Città:</strong> ${escapeHtml(billCity || "-")} <span style="color:${colors.muted};">(CAP: ${escapeHtml(billCap || "-")})</span></div>
+                      <div><strong>CF:</strong> ${escapeHtml(billTaxCode || "-")}</div>
+                      <div><strong>P.IVA:</strong> ${escapeHtml(billVatNumber || "-")}</div>
                     </div>
                   </div>
 
@@ -1957,12 +2036,12 @@ async function sendAdminNewReviewEmail({ review }) {
   const rating = Number(review?.rating) || 0;
   const createdAt = review?.createdAt
     ? new Date(review.createdAt).toLocaleString("it-IT", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
     : "-";
 
   const stars = rating > 0 ? `${rating}/5` : "—";
@@ -2091,8 +2170,8 @@ ${text}
                         <td style="padding:6px 0; width:120px; color:${colors.muted};">Email</td>
                         <td style="padding:6px 0; text-align:right; font-weight:700;">
                           ${email !== "-"
-                            ? `<a href="mailto:${escapeHtml(email)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(email)}</a>`
-                            : escapeHtml(email)}
+      ? `<a href="mailto:${escapeHtml(email)}" style="color:${colors.text}; text-decoration:underline;">${escapeHtml(email)}</a>`
+      : escapeHtml(email)}
                         </td>
                       </tr>
                       <tr>

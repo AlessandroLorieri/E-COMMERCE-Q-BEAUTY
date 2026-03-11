@@ -21,6 +21,9 @@ export default function RegisterShop() {
         confirmPassword: "",
         companyName: "",
         vatNumber: "",
+        taxCode: "",
+        taxCodeSameAsVat: false,
+        confirmBusinessData: false,
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -29,7 +32,37 @@ export default function RegisterShop() {
     const [submitting, setSubmitting] = useState(false);
 
     function onChange(e) {
-        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value, type, checked } = e.target;
+
+        setForm((prev) => {
+            if (type === "checkbox") {
+                if (name === "taxCodeSameAsVat") {
+                    return {
+                        ...prev,
+                        taxCodeSameAsVat: checked,
+                        taxCode: checked ? prev.vatNumber : prev.taxCode,
+                    };
+                }
+
+                return {
+                    ...prev,
+                    [name]: checked,
+                };
+            }
+
+            if (name === "vatNumber") {
+                return {
+                    ...prev,
+                    vatNumber: value,
+                    taxCode: prev.taxCodeSameAsVat ? value : prev.taxCode,
+                };
+            }
+
+            return {
+                ...prev,
+                [name]: value,
+            };
+        });
     }
 
     function normalizeDisplayName(value) {
@@ -52,6 +85,12 @@ export default function RegisterShop() {
             return;
         }
 
+        if (customerType === "piva" && !form.confirmBusinessData) {
+            setError("Devi confermare la veridicità dei dati inseriti.");
+            setSubmitting(false);
+            return;
+        }
+
         try {
             const payload = {
                 customerType,
@@ -65,6 +104,7 @@ export default function RegisterShop() {
             if (customerType === "piva") {
                 payload.companyName = form.companyName;
                 payload.vatNumber = form.vatNumber;
+                payload.taxCode = form.taxCodeSameAsVat ? form.vatNumber : form.taxCode;
             }
 
             await register(payload);
@@ -132,7 +172,9 @@ export default function RegisterShop() {
 
                 <div className="row g-2">
                     <div className="col-12 col-md-6">
-                        <label className="form-label">Nome</label>
+                        <label className="form-label">
+                            {customerType === "piva" ? "Nome referente" : "Nome"}
+                        </label>
                         <input
                             className="form-control"
                             name="firstName"
@@ -148,7 +190,9 @@ export default function RegisterShop() {
                         />
                     </div>
                     <div className="col-12 col-md-6">
-                        <label className="form-label">Cognome</label>
+                        <label className="form-label">
+                            {customerType === "piva" ? "Cognome referente" : "Cognome"}
+                        </label>
                         <input
                             className="form-control"
                             name="lastName"
@@ -196,7 +240,9 @@ export default function RegisterShop() {
 
                             </button>
                         </div>
-                        <div className="form-text">Minimo 8 caratteri.</div>
+                        <div className="form-text" style={{ color: "rgba(255,255,255,0.68)" }}>
+                            Minimo 8 caratteri.
+                        </div>
                     </div>
 
                     <div className="col-12">
@@ -231,7 +277,7 @@ export default function RegisterShop() {
                     {customerType === "piva" && (
                         <>
                             <div className="col-12">
-                                <label className="form-label">Ragione sociale</label>
+                                <label className="form-label">Ragione sociale / Denominazione</label>
                                 <input
                                     className="form-control"
                                     name="companyName"
@@ -240,9 +286,62 @@ export default function RegisterShop() {
                                     required
                                 />
                             </div>
-                            <div className="col-12">
+
+                            <div className="col-12 col-md-6">
                                 <label className="form-label">Partita IVA</label>
-                                <input className="form-control" name="vatNumber" value={form.vatNumber} onChange={onChange} required />
+                                <input
+                                    className="form-control"
+                                    name="vatNumber"
+                                    value={form.vatNumber}
+                                    onChange={onChange}
+                                    required
+                                />
+                            </div>
+
+                            <div className="col-12 col-md-6">
+                                <label className="form-label d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                    <span>Codice fiscale</span>
+
+                                    <span className="form-check m-0">
+                                        <input
+                                            className="form-check-input"
+                                            type="checkbox"
+                                            id="taxCodeSameAsVat"
+                                            name="taxCodeSameAsVat"
+                                            checked={!!form.taxCodeSameAsVat}
+                                            onChange={onChange}
+                                        />
+                                        <label className="form-check-label ms-1" htmlFor="taxCodeSameAsVat">
+                                            Uguale a P.IVA
+                                        </label>
+                                    </span>
+                                </label>
+
+                                <input
+                                    className="form-control"
+                                    name="taxCode"
+                                    value={form.taxCode}
+                                    onChange={onChange}
+                                    required={!form.taxCodeSameAsVat}
+                                    disabled={!!form.taxCodeSameAsVat}
+                                />
+                            </div>
+
+                            <div className="col-12">
+                                <div className="form-check mt-2">
+                                    <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        id="confirmBusinessData"
+                                        name="confirmBusinessData"
+                                        checked={!!form.confirmBusinessData}
+                                        onChange={onChange}
+                                        required={customerType === "piva"}
+                                    />
+                                    <label className="form-check-label" htmlFor="confirmBusinessData">
+                                        Ho controllato e confermo la veridicità dei dati inseriti
+                                    </label>
+                                </div>
                             </div>
                         </>
                     )}

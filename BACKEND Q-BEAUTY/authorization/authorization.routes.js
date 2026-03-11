@@ -8,6 +8,7 @@ const MAX_EMAIL_LEN = 254;
 const MAX_PASSWORD_LEN = 128;
 const MAX_NAME_LEN = 60;
 const MAX_TOKEN_LEN = 512;
+const MAX_TAX_CODE_LEN = 32;
 
 function toStr(v) {
     return v == null ? "" : String(v);
@@ -15,6 +16,10 @@ function toStr(v) {
 
 function normalizeEmail(v) {
     return toStr(v).trim().toLowerCase();
+}
+
+function normalizeTaxCode(v) {
+    return toStr(v).trim().replace(/\s+/g, "").toUpperCase();
 }
 
 function isValidEmail(email) {
@@ -91,6 +96,13 @@ function validateRegister(req, res, next) {
     const phone = pickTrimmed(req.body?.phone, 30);
     const companyName = pickTrimmed(req.body?.companyName, 120);
     const vatNumber = pickTrimmed(req.body?.vatNumber, 20);
+    const taxCode = normalizeTaxCode(req.body?.taxCode).slice(0, MAX_TAX_CODE_LEN);
+
+    const confirmBusinessData =
+        req.body?.confirmBusinessData === true ||
+        req.body?.confirmBusinessData === "true" ||
+        req.body?.confirmBusinessData === 1 ||
+        req.body?.confirmBusinessData === "1";
 
     const errors = {};
 
@@ -107,10 +119,13 @@ function validateRegister(req, res, next) {
     if (!firstName) errors.firstName = "Nome richiesto";
     if (!lastName) errors.lastName = "Cognome richiesto";
 
-    // Se P.IVA, obbligo ragione sociale + piva (solo check base, il resto lo fa service)
     if (customerType === "piva") {
         if (!companyName) errors.companyName = "Ragione sociale richiesta";
         if (!vatNumber) errors.vatNumber = "Partita IVA richiesta";
+        if (!taxCode) errors.taxCode = "Codice fiscale richiesto";
+        if (!confirmBusinessData) {
+            errors.confirmBusinessData = "Devi confermare la veridicità dei dati inseriti";
+        }
     }
 
     if (Object.keys(errors).length) return badRequest(res, errors);
@@ -125,6 +140,8 @@ function validateRegister(req, res, next) {
         ...(phone ? { phone } : {}),
         ...(companyName ? { companyName } : {}),
         ...(vatNumber ? { vatNumber } : {}),
+        ...(taxCode ? { taxCode } : {}),
+        ...(customerType === "piva" ? { confirmBusinessData } : {}),
     };
 
     return next();

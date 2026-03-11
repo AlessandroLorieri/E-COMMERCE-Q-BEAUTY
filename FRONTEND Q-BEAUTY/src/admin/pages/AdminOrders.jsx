@@ -19,12 +19,27 @@ const STATUS_META = {
     pending_payment: { label: "In attesa di pagamento", badge: "qb-badge qb-badge-muted" },
     paid: { label: "Pagato", badge: "qb-badge qb-badge-info" },
     processing: { label: "In preparazione", badge: "qb-badge qb-badge-warn" },
-    shipped: { label: "Spedito", badge: "qb-badge qb-badge-primary" },
+    shipped: { label: "Spedito", badge: "qb-badge qb-badge-success" },
     completed: { label: "Consegnato", badge: "qb-badge qb-badge-success" },
     cancelled: { label: "Annullato", badge: "qb-badge qb-badge-danger" },
     refunded: { label: "Rimborsato", badge: "qb-badge qb-badge-dark" },
     draft: { label: "Bozza", badge: "qb-badge qb-badge-light" },
 };
+
+const MONTH_OPTIONS = [
+    { value: "1", label: "Gennaio" },
+    { value: "2", label: "Febbraio" },
+    { value: "3", label: "Marzo" },
+    { value: "4", label: "Aprile" },
+    { value: "5", label: "Maggio" },
+    { value: "6", label: "Giugno" },
+    { value: "7", label: "Luglio" },
+    { value: "8", label: "Agosto" },
+    { value: "9", label: "Settembre" },
+    { value: "10", label: "Ottobre" },
+    { value: "11", label: "Novembre" },
+    { value: "12", label: "Dicembre" },
+];
 
 
 function formatDate(iso) {
@@ -69,6 +84,9 @@ export default function AdminOrders() {
     const [statusFilter, setStatusFilter] = useState("");
     const [q, setQ] = useState("");
 
+    const [yearFilter, setYearFilter] = useState("");
+    const [monthFilter, setMonthFilter] = useState("");
+
     const [openId, setOpenId] = useState(null);
     const [savingId, setSavingId] = useState(null);
     const [trackingDraft, setTrackingDraft] = useState({});
@@ -79,8 +97,10 @@ export default function AdminOrders() {
         sp.set("limit", String(limit));
         if (statusFilter) sp.set("status", statusFilter);
         if (q.trim()) sp.set("q", q.trim());
+        if (yearFilter) sp.set("year", yearFilter);
+        if (monthFilter) sp.set("month", monthFilter);
         return sp.toString();
-    }, [page, limit, statusFilter, q]);
+    }, [page, limit, statusFilter, q, yearFilter, monthFilter]);
 
     async function apiFetch(path, options = {}) {
         let res;
@@ -237,6 +257,44 @@ export default function AdminOrders() {
                     ))}
                 </select>
 
+                <input
+                    className="form-control"
+                    style={{ maxWidth: 140 }}
+                    type="number"
+                    min={2000}
+                    max={3000}
+                    placeholder="Anno"
+                    value={yearFilter}
+                    onChange={(e) => {
+                        const v = String(e.target.value || "");
+                        setPage(1);
+                        setYearFilter(v);
+
+                        if (!v) {
+                            setMonthFilter("");
+                        }
+                    }}
+                />
+
+                <select
+                    className="form-select"
+                    style={{ maxWidth: 180 }}
+                    value={monthFilter}
+                    disabled={!yearFilter}
+                    onChange={(e) => {
+                        const v = e.target.value;
+                        setPage(1);
+                        setMonthFilter(v);
+                    }}
+                >
+                    <option value="">Tutti i mesi</option>
+                    {MONTH_OPTIONS.map((m) => (
+                        <option key={m.value} value={m.value}>
+                            {m.label}
+                        </option>
+                    ))}
+                </select>
+
                 <div className="ms-auto d-flex gap-2 align-items-center">
                     <button
                         className="btn btn-outline-secondary"
@@ -269,11 +327,46 @@ export default function AdminOrders() {
                     const shipFullName = [ship?.name, ship?.surname].filter(Boolean).join(" ").trim() || "-";
                     const shipEmail = ship?.email || u?.email || "-";
                     const shipPhone = ship?.phone || "-";
-                    const shipTaxCode = ship?.taxCode || "-";
+                    const shipTaxCode =
+                        ship?.taxCode ||
+                        ship?.codiceFiscale ||
+                        ship?.fiscalCode ||
+                        "-";
 
                     const shipStreetNumber = ship?.streetNumber ? `, ${ship.streetNumber}` : "";
                     const shipAddressLine = ship?.address ? `${ship.address}${shipStreetNumber}` : "-";
                     const shipCityCap = `${ship?.city || "-"} (${ship?.cap || "-"})`;
+
+                    const bill = o?.billingAddress || {};
+                    const billFullName = [bill?.name, bill?.surname].filter(Boolean).join(" ").trim() || "-";
+                    const billEmail = bill?.email || ship?.email || u?.email || "-";
+                    const billPhone = bill?.phone || ship?.phone || "-";
+
+                    const billCompanyName =
+                        bill?.companyName ||
+                        bill?.businessName ||
+                        bill?.ragioneSociale ||
+                        bill?.denomination ||
+                        u?.companyName ||
+                        "-";
+
+                    const billTaxCode =
+                        bill?.taxCode ||
+                        bill?.codiceFiscale ||
+                        bill?.fiscalCode ||
+                        u?.taxCode ||
+                        "-";
+
+                    const billVatNumber =
+                        bill?.vatNumber ||
+                        bill?.piva ||
+                        bill?.partitaIva ||
+                        u?.vatNumber ||
+                        "-";
+
+                    const billStreetNumber = bill?.streetNumber ? `, ${bill.streetNumber}` : "";
+                    const billAddressLine = bill?.address ? `${bill.address}${billStreetNumber}` : "-";
+                    const billCityCap = `${bill?.city || "-"} (${bill?.cap || "-"})`;
 
                     const items = Array.isArray(o?.items) ? o.items : [];
 
@@ -381,15 +474,35 @@ export default function AdminOrders() {
                                             <div><span className="text-muted">Email:</span> <b>{shipEmail}</b></div>
                                             <div><span className="text-muted">Telefono:</span> <b>{shipPhone}</b></div>
                                             <div><span className="text-muted">Tipo:</span> <b>{u?.customerType || "-"}</b></div>
+                                            <div><span className="text-muted">Ragione sociale:</span> <b>{billCompanyName}</b></div>
+                                            <div><span className="text-muted">Codice fiscale:</span> <b>{billTaxCode}</b></div>
+                                            <div><span className="text-muted">Partita IVA:</span> <b>{billVatNumber}</b></div>
                                         </div>
                                     </div>
 
                                     <div className="mb-3">
-                                        <div className="fw-semibold mb-2">Spedizione / Fatturazione</div>
+                                        <div className="fw-semibold mb-2">Spedizione</div>
                                         <div style={{ fontSize: 14 }}>
+                                            <div><span className="text-muted">Nome:</span> <b>{shipFullName}</b></div>
+                                            <div><span className="text-muted">Email:</span> <b>{shipEmail}</b></div>
+                                            <div><span className="text-muted">Telefono:</span> <b>{shipPhone}</b></div>
                                             <div><span className="text-muted">Indirizzo:</span> <b>{shipAddressLine}</b></div>
                                             <div><span className="text-muted">Città:</span> <b>{shipCityCap}</b></div>
-                                            <div><span className="text-muted">CF / P.IVA:</span> <b>{shipTaxCode}</b></div>
+                                            <div><span className="text-muted">Codice fiscale:</span> <b>{shipTaxCode}</b></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-3">
+                                        <div className="fw-semibold mb-2">Fatturazione</div>
+                                        <div style={{ fontSize: 14 }}>
+                                            <div><span className="text-muted">Ragione sociale:</span> <b>{billCompanyName}</b></div>
+                                            <div><span className="text-muted">Nome:</span> <b>{billFullName}</b></div>
+                                            <div><span className="text-muted">Email:</span> <b>{billEmail}</b></div>
+                                            <div><span className="text-muted">Telefono:</span> <b>{billPhone}</b></div>
+                                            <div><span className="text-muted">Indirizzo:</span> <b>{billAddressLine}</b></div>
+                                            <div><span className="text-muted">Città:</span> <b>{billCityCap}</b></div>
+                                            <div><span className="text-muted">Codice fiscale:</span> <b>{billTaxCode}</b></div>
+                                            <div><span className="text-muted">Partita IVA:</span> <b>{billVatNumber}</b></div>
                                         </div>
                                     </div>
 

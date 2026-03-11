@@ -10,6 +10,22 @@ const Coupon = require("../coupons/coupons.schema");
 const { sendShipmentEmail, sendOrderPaymentConfirmedEmail } = require("../utils/mailer");
 const { findActiveCouponByCode } = require("../coupons/coupons.services");
 
+function normalizeTaxCode(v) {
+    return String(v || "").trim().replace(/\s+/g, "").toUpperCase();
+}
+
+function normalizeVatNumber(v) {
+    return String(v || "").replace(/[^\d]/g, "");
+}
+
+function pickFirst(...vals) {
+    for (const v of vals) {
+        const s = String(v || "").trim();
+        if (s) return s;
+    }
+    return "";
+}
+
 async function userHasCompletedOrders(userId) {
     const uid = String(userId || "").trim();
     if (!uid) return false;
@@ -362,15 +378,20 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
 }
 
 async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId, couponCode, taxCodeRaw, paymentMethodRaw) {
-
     const quote = await computeQuote(userId, itemsRaw, couponCode);
+
+    const user = await User.findById(userId)
+        .select("email firstName lastName phone customerType companyName vatNumber taxCode billingAddressRef")
+        .lean();
+
+    if (!user) {
+        const err = new Error("User not found");
+        err.status = 404;
+        throw err;
+    }
 
     const paymentMethod = String(paymentMethodRaw || "stripe").trim().toLowerCase();
     const isBankTransfer = paymentMethod === "bank_transfer" || paymentMethod === "bonifico";
-
-    function normalizeTaxCode(v) {
-        return String(v || "").trim().toUpperCase();
-    }
 
     const incomingTaxCode =
         normalizeTaxCode(
@@ -419,9 +440,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
                 { $set: { taxCode: incomingTaxCode, updatedAt: new Date() } }
             );
         }
-
-    }
-    else if (shippingAddress) {
+    } else if (shippingAddress) {
         normalizedAddress = normalizeShippingAddress(shippingAddress);
         normalizedAddress.phone = normalizedAddress.phone || shippingAddress.phone || "";
         normalizedAddress.streetNumber = normalizedAddress.streetNumber || shippingAddress.streetNumber || "";
@@ -433,6 +452,62 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         err.status = 400;
         throw err;
     }
+
+    let billingAddressRef = null;
+    let billingAddress = null;
+
+    let billingAddr = null;
+    if (user?.billingAddressRef && mongoose.Types.ObjectId.isValid(String(user.billingAddressRef))) {
+        billingAddr = await Address.findOne({
+            _id: user.billingAddressRef,
+            user: userId,
+        }).lean();
+
+        if (billingAddr?._id) {
+            billingAddressRef = billingAddr._id;
+        }
+    }
+
+    const billingTaxCode =
+        normalizeTaxCode(
+            user?.taxCode ||
+            billingAddr?.taxCode ||
+            billingAddr?.codiceFiscale ||
+            billingAddr?.fiscalCode ||
+            incomingTaxCode ||
+            normalizedAddress?.taxCode
+        ) || "";
+
+    const billingBase = normalizeShippingAddress({
+        name: pickFirst(billingAddr?.name, normalizedAddress?.name, user?.firstName),
+        surname: pickFirst(billingAddr?.surname, normalizedAddress?.surname, user?.lastName),
+        email: pickFirst(billingAddr?.email, normalizedAddress?.email, user?.email),
+        phone: pickFirst(billingAddr?.phone, normalizedAddress?.phone, user?.phone),
+        taxCode: billingTaxCode,
+        address: pickFirst(billingAddr?.address, normalizedAddress?.address),
+        streetNumber: pickFirst(billingAddr?.streetNumber, normalizedAddress?.streetNumber),
+        city: pickFirst(billingAddr?.city, normalizedAddress?.city),
+        cap: pickFirst(billingAddr?.cap, normalizedAddress?.cap),
+    });
+
+    billingBase.phone = billingBase.phone || billingAddr?.phone || normalizedAddress?.phone || user?.phone || "";
+    billingBase.streetNumber =
+        billingBase.streetNumber || billingAddr?.streetNumber || normalizedAddress?.streetNumber || "";
+    if (billingTaxCode) billingBase.taxCode = billingTaxCode;
+
+    billingAddress = {
+        companyName: user?.customerType === "piva" ? String(user?.companyName || "").trim() : "",
+        vatNumber: user?.customerType === "piva" ? normalizeVatNumber(user?.vatNumber) : "",
+        name: billingBase.name || "",
+        surname: billingBase.surname || "",
+        phone: billingBase.phone || "",
+        email: billingBase.email || "",
+        taxCode: billingBase.taxCode || "",
+        address: billingBase.address || "",
+        streetNumber: billingBase.streetNumber || "",
+        city: billingBase.city || "",
+        cap: billingBase.cap || "",
+    };
 
     const decremented = [];
 
@@ -479,8 +554,10 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         items: quote.items,
 
         shippingAddress: normalizedAddress,
-
         shippingAddressRef,
+
+        billingAddress,
+        billingAddressRef,
 
         subtotalCents: quote.subtotalCents,
         discountCents: quote.discountCents,
@@ -513,7 +590,6 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
     }
 
     return { order, quote };
-
 }
 
 async function listMyOrders(userId) {
@@ -580,6 +656,39 @@ function isValidHttpUrl(s) {
     } catch {
         return false;
     }
+}
+
+function buildCreatedAtRange({ year, month, week } = {}) {
+    const y = Number(year);
+    const m = Number(month);
+    const w = Number(week);
+
+    if (!Number.isInteger(y)) return null;
+
+    if (Number.isInteger(w)) {
+        const jan4 = new Date(Date.UTC(y, 0, 4));
+        const jan4Day = jan4.getUTCDay() || 7; // domenica -> 7
+        const week1Monday = new Date(Date.UTC(y, 0, 4 - (jan4Day - 1)));
+
+        const start = new Date(week1Monday);
+        start.setUTCDate(week1Monday.getUTCDate() + (w - 1) * 7);
+
+        const end = new Date(start);
+        end.setUTCDate(start.getUTCDate() + 7);
+
+        return { start, end };
+    }
+
+    if (Number.isInteger(m)) {
+        const start = new Date(Date.UTC(y, m - 1, 1));
+        const end = new Date(Date.UTC(y, m, 1));
+        return { start, end };
+    }
+
+    return {
+        start: new Date(Date.UTC(y, 0, 1)),
+        end: new Date(Date.UTC(y + 1, 0, 1)),
+    };
 }
 
 async function adminSetOrderStatus(orderId, newStatus, shipment) {
@@ -740,10 +849,18 @@ async function adminSetOrderStatus(orderId, newStatus, shipment) {
     return order;
 }
 
-async function adminListOrders({ page = 1, limit = 20, status, q } = {}) {
+async function adminListOrders({ page = 1, limit = 20, status, q, year, month, week } = {}) {
     const filter = {};
 
     if (status) filter.status = String(status).trim();
+
+    const createdAtRange = buildCreatedAtRange({ year, month, week });
+    if (createdAtRange) {
+        filter.createdAt = {
+            $gte: createdAtRange.start,
+            $lt: createdAtRange.end,
+        };
+    }
 
     let or = null;
 
@@ -755,7 +872,14 @@ async function adminListOrders({ page = 1, limit = 20, status, q } = {}) {
             or = [{ publicId: rx }];
 
             const users = await User.find({
-                $or: [{ email: rx }, { firstName: rx }, { lastName: rx }],
+                $or: [
+                    { email: rx },
+                    { firstName: rx },
+                    { lastName: rx },
+                    { companyName: rx },
+                    { vatNumber: rx },
+                    { taxCode: rx },
+                ],
             })
                 .select("_id")
                 .lean();
@@ -776,7 +900,7 @@ async function adminListOrders({ page = 1, limit = 20, status, q } = {}) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Math.max(1, limit))
-        .populate("user", "email firstName lastName customerType role")
+        .populate("user", "email firstName lastName customerType role companyName vatNumber taxCode billingAddressRef")
         .lean();
 
     return {
@@ -800,7 +924,7 @@ async function adminGetOrder(idOrPublicId) {
     const query = isObjectId ? { _id: raw } : { publicId: raw };
 
     const order = await Order.findOne(query)
-        .populate("user", "email firstName lastName customerType role")
+        .populate("user", "email firstName lastName customerType role companyName vatNumber taxCode billingAddressRef")
         .lean();
 
     if (!order) {

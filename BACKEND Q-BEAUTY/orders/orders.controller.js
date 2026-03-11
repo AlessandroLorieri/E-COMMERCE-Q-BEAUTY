@@ -189,6 +189,16 @@ function parsePagination(query) {
     return { page, limit };
 }
 
+function parseOptionalInt(value, min, max) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return undefined;
+
+    const v = Math.trunc(n);
+    if (v < min || v > max) return undefined;
+
+    return v;
+}
+
 async function adminStats(req, res) {
     try {
         const rangeRaw = req.query?.range ? String(req.query.range).trim() : "week";
@@ -288,7 +298,25 @@ async function adminList(req, res) {
         const status = req.query?.status ? String(req.query.status).trim() : undefined;
         const q = req.query?.q ? String(req.query.q).trim() : undefined;
 
-        const result = await adminListOrders({ page, limit, status, q });
+        const year = parseOptionalInt(req.query?.year, 2000, 3000);
+        const month = parseOptionalInt(req.query?.month, 1, 12);
+        const week = parseOptionalInt(req.query?.week, 1, 53);
+
+        if ((month || week) && !year) {
+            return res.status(400).json({
+                message: "Validation error",
+                errors: { year: "Per filtrare per mese o settimana devi selezionare anche l'anno" },
+            });
+        }
+
+        if (month && week) {
+            return res.status(400).json({
+                message: "Validation error",
+                errors: { date: "Puoi filtrare per mese oppure per settimana, non entrambi insieme" },
+            });
+        }
+
+        const result = await adminListOrders({ page, limit, status, q, year, month, week });
         return res.json(result);
     } catch (err) {
         const status = err.status || 500;

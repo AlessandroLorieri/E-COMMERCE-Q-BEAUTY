@@ -23,6 +23,13 @@ function normalizeEmail(email) {
     return String(email || "").toLowerCase().trim();
 }
 
+function normalizeTaxCode(v) {
+    return String(v || "")
+        .trim()
+        .replace(/\s+/g, "")
+        .toUpperCase();
+}
+
 function makeResetToken() {
     return crypto.randomBytes(32).toString("hex");
 }
@@ -41,6 +48,8 @@ async function registerUser(payload) {
         phone,
         companyName,
         vatNumber,
+        taxCode,
+        confirmBusinessData,
     } = payload || {};
 
     if (!email || !password || !customerType || !firstName || !lastName) {
@@ -61,15 +70,33 @@ async function registerUser(payload) {
         throw err;
     }
 
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const normalizedFirstName = String(firstName).trim();
+    const normalizedLastName = String(lastName).trim();
+    const normalizedPhone = phone ? String(phone).trim() : undefined;
+    const normalizedCompanyName = companyName ? String(companyName).trim() : "";
+    const normalizedVatNumber = vatNumber ? String(vatNumber).trim() : "";
+    const normalizedTaxCode = normalizeTaxCode(taxCode);
+
+    const confirmedBusinessData =
+        confirmBusinessData === true ||
+        confirmBusinessData === "true" ||
+        confirmBusinessData === 1 ||
+        confirmBusinessData === "1";
+
     if (customerType === "piva") {
-        if (!companyName || !vatNumber) {
-            const err = new Error("companyName and vatNumber are required for piva");
+        if (!normalizedCompanyName || !normalizedVatNumber || !normalizedTaxCode) {
+            const err = new Error("companyName, vatNumber and taxCode are required for piva");
+            err.status = 400;
+            throw err;
+        }
+
+        if (!confirmedBusinessData) {
+            const err = new Error("Business data confirmation required");
             err.status = 400;
             throw err;
         }
     }
-
-    const normalizedEmail = String(email).toLowerCase().trim();
 
     const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
@@ -85,11 +112,12 @@ async function registerUser(payload) {
         email: normalizedEmail,
         passwordHash,
         customerType,
-        firstName: String(firstName).trim(),
-        lastName: String(lastName).trim(),
-        phone: phone ? String(phone).trim() : undefined,
-        companyName: customerType === "piva" ? String(companyName).trim() : undefined,
-        vatNumber: customerType === "piva" ? String(vatNumber).trim() : undefined,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        phone: normalizedPhone,
+        companyName: customerType === "piva" ? normalizedCompanyName : undefined,
+        vatNumber: customerType === "piva" ? normalizedVatNumber : undefined,
+        taxCode: customerType === "piva" ? normalizedTaxCode : undefined,
     });
 
     const token = signToken(user);

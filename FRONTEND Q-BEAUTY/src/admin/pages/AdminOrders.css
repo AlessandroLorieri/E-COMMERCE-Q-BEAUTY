@@ -35,8 +35,8 @@
 }
 
 .admin-orders .qb-badge-success {
-    background: rgba(190, 220, 160, .24);
-    border-color: rgba(190, 220, 160, .40);
+    background: rgb(218, 255, 181);
+    border-color: rgb(144, 255, 33);
 }
 
 .admin-orders .qb-badge-danger {

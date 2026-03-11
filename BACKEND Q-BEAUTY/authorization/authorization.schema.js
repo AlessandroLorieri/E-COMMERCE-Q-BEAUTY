@@ -4,6 +4,15 @@ function normalizeVatNumber(v) {
     return String(v || "").replace(/[^\d]/g, "");
 }
 
+function normalizeTaxCode(v) {
+    const s = String(v || "")
+        .trim()
+        .replace(/\s+/g, "")
+        .toUpperCase();
+
+    return s || null;
+}
+
 // Validazione P.IVA italiana (11 cifre) con checksum
 function isValidItalianVatNumber(v) {
     const p = normalizeVatNumber(v);
@@ -82,6 +91,22 @@ const UserSchema = new mongoose.Schema(
             ],
         },
 
+        taxCode: {
+            type: String,
+            trim: true,
+            default: null,
+            set: (v) => normalizeTaxCode(v),
+            validate: [
+                {
+                    validator: function (v) {
+                        if (this.customerType !== "piva") return true;
+                        return String(v || "").trim().length > 0;
+                    },
+                    message: "Codice fiscale obbligatorio per clienti P.IVA",
+                },
+            ],
+        },
+
 
         role: { type: String, enum: ["user", "admin"], default: "user" },
 
@@ -107,6 +132,7 @@ UserSchema.methods.toSafeObject = function () {
 
         companyName: this.companyName,
         vatNumber: this.vatNumber,
+        taxCode: this.taxCode,
         billingAddressRef: this.billingAddressRef,
 
         createdAt: this.createdAt,

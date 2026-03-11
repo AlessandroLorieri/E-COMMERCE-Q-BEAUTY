@@ -33,6 +33,26 @@ const ShippingAddressSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const BillingAddressSchema = new mongoose.Schema(
+    {
+        companyName: { type: String, trim: true, default: "" },
+        vatNumber: { type: String, trim: true, default: "" },
+
+        name: { type: String, trim: true, default: "" },
+        surname: { type: String, trim: true, default: "" },
+        phone: { type: String, trim: true, default: "" },
+        email: { type: String, trim: true, lowercase: true, default: "" },
+
+        taxCode: { type: String, trim: true, uppercase: true, default: "" },
+
+        address: { type: String, trim: true, default: "" },
+        streetNumber: { type: String, trim: true, default: "" },
+        city: { type: String, trim: true, default: "" },
+        cap: { type: String, trim: true, default: "" },
+    },
+    { _id: false }
+);
+
 const OrderSchema = new mongoose.Schema(
     {
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -62,6 +82,10 @@ const OrderSchema = new mongoose.Schema(
 
         shippingAddressRef: { type: mongoose.Schema.Types.ObjectId, ref: "Address", default: null },
 
+        billingAddress: { type: BillingAddressSchema, default: null },
+
+        billingAddressRef: { type: mongoose.Schema.Types.ObjectId, ref: "Address", default: null },
+
         subtotalCents: { type: Number, required: true, min: 0, default: 0 },
         discountCents: { type: Number, required: true, min: 0, default: 0 },
 
@@ -78,7 +102,7 @@ const OrderSchema = new mongoose.Schema(
             trackingCode: { type: String, trim: true, default: "" },
             trackingUrl: { type: String, trim: true, default: "" },
             shippedAt: { type: Date, default: null },
-            notifiedAt: { type: Date, default: null }, 
+            notifiedAt: { type: Date, default: null },
         },
 
         discountType: { type: String, enum: ["none", "piva15", "first10"], default: "none" },
