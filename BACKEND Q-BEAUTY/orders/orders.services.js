@@ -10,6 +10,11 @@ const Coupon = require("../coupons/coupons.schema");
 const { sendShipmentEmail, sendOrderPaymentConfirmedEmail } = require("../utils/mailer");
 const { findActiveCouponByCode } = require("../coupons/coupons.services");
 
+const BULK_DISCOUNT_MIN_PIECES = 30;
+const BULK_DISCOUNT_RATE = 0.25;
+const SET_BULK_EQUIVALENT_QTY = 3;
+const SET_FULL_PRICE_CENTS = 6770;
+
 function normalizeTaxCode(v) {
     return String(v || "").trim().replace(/\s+/g, "").toUpperCase();
 }
@@ -159,15 +164,39 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
         };
     });
 
-    const subtotalCents = resolvedItems.reduce((sum, it) => sum + (Number(it.lineTotalCents) || 0), 0);
-
-    for (const it of resolvedItems) {
+        for (const it of resolvedItems) {
         it.couponDiscountCents = 0;
     }
 
+    const bulkPiecesCount = resolvedItems.reduce((sum, it) => {
+        const qty = Number(it.qty || 0);
+        const isSetLine = normId(it.productSlug || "") === SET_ID_NORM;
+        return sum + (isSetLine ? qty * SET_BULK_EQUIVALENT_QTY : qty);
+    }, 0);
+
+    const bulkDiscountActive = bulkPiecesCount >= BULK_DISCOUNT_MIN_PIECES;
+
+    if (bulkDiscountActive) {
+        for (const it of resolvedItems) {
+            const isSetLine = normId(it.productSlug || "") === SET_ID_NORM;
+            if (!isSetLine) continue;
+
+            it.unitPriceCents = SET_FULL_PRICE_CENTS;
+            it.lineTotalCents = SET_FULL_PRICE_CENTS * (Number(it.qty) || 1);
+        }
+    }
+
+    const subtotalCents = resolvedItems.reduce((sum, it) => {
+        return sum + (Number(it.lineTotalCents) || 0);
+    }, 0);
+
     const discountBaseCents = resolvedItems.reduce((sum, it) => {
         const isSetLine = normId(it.productSlug || "") === SET_ID_NORM;
-        if (isSetLine) return sum;
+
+        if (!bulkDiscountActive && isSetLine) {
+            return sum;
+        }
+
         return sum + (Number(it.lineTotalCents) || 0);
     }, 0);
 
@@ -175,7 +204,11 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
     let globalLabel = null;
     let discountType = "none";
 
-    if (user.customerType === "piva") {
+    if (bulkDiscountActive) {
+        discountRate = BULK_DISCOUNT_RATE;
+        globalLabel = "Sconto quantità -25%";
+        discountType = "bulk25";
+    } else if (user.customerType === "piva") {
         discountRate = 0.15;
         globalLabel = "Sconto P.IVA -15%";
         discountType = "piva15";
@@ -199,6 +232,12 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
     for (let i = 0; i < resolvedItems.length; i++) {
         const it = resolvedItems[i];
         const isSetLine = normId(it.productSlug || "") === SET_ID_NORM;
+
+        if (bulkDiscountActive) {
+            discountableIdx.push(i);
+            continue;
+        }
+
         if (isSetLine) continue;
         discountableIdx.push(i);
     }
@@ -233,7 +272,12 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
     let couponCodeApplied = null;
     let couponDiscountCents = 0;
 
-    if (typeof couponCodeRaw === "string" && couponCodeRaw.trim()) {
+    const couponEnabled = !bulkDiscountActive;
+    const couponDisabledReason = bulkDiscountActive
+        ? "Con 30 o più pezzi si applica automaticamente lo sconto quantità -25%. I coupon non sono cumulabili."
+        : null;
+
+    if (couponEnabled && typeof couponCodeRaw === "string" && couponCodeRaw.trim()) {
         const code = couponCodeRaw.trim().toUpperCase();
         const coupon = await findActiveCouponByCode(code);
 
@@ -370,6 +414,10 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
         totalCents,
         discountType,
         couponCodeApplied,
+        bulkDiscountActive,
+        bulkPiecesCount,
+        couponEnabled,
+        couponDisabledReason,
         discountBreakdown: {
             couponDiscountCents,
             globalDiscountCents: Number(globalDiscountCents) || 0,

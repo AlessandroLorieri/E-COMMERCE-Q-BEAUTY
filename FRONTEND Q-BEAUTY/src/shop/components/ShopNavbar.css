@@ -47,11 +47,12 @@
 
 .shop-nav-link,
 .shop-nav-link-disabled {
-    color: #debe68;
+    color: #F3E9C6;
     text-decoration: none;
     border: 1px solid #debe68;
     padding: 6px 12px;
     transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    border-radius: 10px;
 }
 
 .shop-nav-link:hover {
@@ -143,7 +144,7 @@
     display: block;
     width: 18px;
     height: 2px;
-    background: #debe68;
+    background: #F3E9C6AD;
     border-radius: 999px;
 }
 

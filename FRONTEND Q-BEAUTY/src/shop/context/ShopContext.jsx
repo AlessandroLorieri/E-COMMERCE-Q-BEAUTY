@@ -400,11 +400,24 @@ export function ShopProvider({ children }) {
 
     // QUOTE
     const [quote, setQuote] = useState(() => ({
+        items: [],
         subtotalCents: totals.amountCents,
         discountCents: 0,
         discountLabel: null,
         shippingCents: null,
         totalCents: totals.amountCents,
+        discountType: "none",
+        couponCodeApplied: null,
+        couponDiscountCents: 0,
+        globalDiscountCents: 0,
+        bulkDiscountActive: false,
+        bulkPiecesCount: 0,
+        couponEnabled: true,
+        couponDisabledReason: "",
+        discountBreakdown: {
+            couponDiscountCents: 0,
+            globalDiscountCents: 0,
+        },
     }));
     const [quoteLoading, setQuoteLoading] = useState(false);
     const [quoteError, setQuoteError] = useState("");
@@ -421,7 +434,26 @@ export function ShopProvider({ children }) {
 
         if (!user || !token) {
             const subtotalCents = totals.amountCents;
-            setQuote({ subtotalCents, discountCents: 0, discountLabel: null, shippingCents: null, totalCents: subtotalCents });
+            setQuote({
+                items: [],
+                subtotalCents,
+                discountCents: 0,
+                discountLabel: null,
+                shippingCents: null,
+                totalCents: subtotalCents,
+                discountType: "none",
+                couponCodeApplied: null,
+                couponDiscountCents: 0,
+                globalDiscountCents: 0,
+                bulkDiscountActive: false,
+                bulkPiecesCount: 0,
+                couponEnabled: true,
+                couponDisabledReason: "",
+                discountBreakdown: {
+                    couponDiscountCents: 0,
+                    globalDiscountCents: 0,
+                },
+            });
             setQuoteLoading(false);
             setQuoteError("");
             setQuoteErrors({});
@@ -480,6 +512,10 @@ export function ShopProvider({ children }) {
                     couponCodeApplied: data.couponCodeApplied || null,
                     couponDiscountCents,
                     globalDiscountCents,
+                    bulkDiscountActive: !!data.bulkDiscountActive,
+                    bulkPiecesCount: Number(data.bulkPiecesCount) || 0,
+                    couponEnabled: data.couponEnabled !== false,
+                    couponDisabledReason: String(data.couponDisabledReason || "").trim(),
                     discountBreakdown: { couponDiscountCents, globalDiscountCents },
                 });
             } catch (err) {

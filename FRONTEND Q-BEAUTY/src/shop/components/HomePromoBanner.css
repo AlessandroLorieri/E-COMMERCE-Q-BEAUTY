@@ -1,0 +1,132 @@
+.shop-marquee-banner {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background:
+        linear-gradient(180deg, rgba(15, 15, 15, 0.98), rgba(10, 10, 10, 0.98)),
+        radial-gradient(circle at top right, rgba(230, 199, 92, 0.08), transparent 28%);
+    padding: 18px 0;
+}
+
+.shop-marquee-banner__line {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: rgba(230, 199, 92, 0.35);
+    pointer-events: none;
+}
+
+.shop-marquee-banner__line--top {
+    top: 0;
+}
+
+.shop-marquee-banner__line--bottom {
+    bottom: 0;
+}
+
+.shop-marquee-banner__viewport {
+    overflow: hidden;
+    width: 100%;
+}
+
+.shop-marquee-banner__track {
+    display: flex;
+    align-items: center;
+    gap: 1.4rem;
+    width: max-content;
+    min-width: 200%;
+    animation: shop-marquee-scroll 20s linear infinite;
+    will-change: transform;
+}
+
+.shop-marquee-banner__item {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 1.4rem;
+    white-space: nowrap;
+}
+
+.shop-marquee-banner__text {
+    display: inline-block;
+    color: #f3e9c6ad;
+    font-size: clamp(16px, 2vw, 28px);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.diamond_small {
+    display: inline-block;
+    width: 0.95em;
+    height: 1.00em;
+    margin: 0 0.25rem;
+    background-color: #f3e9c6ad;
+    transform: translateY(-0.06em);
+    flex: 0 0 auto;
+
+    clip-path: polygon(
+        50% 0%,
+        90% 50%,
+        50% 100%,
+        10% 50%
+    );
+}
+
+@keyframes shop-marquee-scroll {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .shop-marquee-banner:hover .shop-marquee-banner__track {
+        animation-play-state: paused;
+    }
+}
+
+@media (max-width: 991px) {
+    .shop-marquee-banner {
+        padding: 16px 0;
+    }
+
+    .shop-marquee-banner__item {
+        gap: 14px;
+        padding-right: 28px;
+    }
+
+    .shop-marquee-banner__diamond {
+        width: 10px;
+        height: 12px;
+    }
+}
+
+@media (max-width: 767px) {
+    .shop-marquee-banner {
+        padding: 14px 0;
+    }
+
+    .shop-marquee-banner__text {
+        font-size: clamp(18px, 6vw, 28px);
+        letter-spacing: 0.09em;
+    }
+
+    .shop-marquee-banner__item {
+        gap: 12px;
+        padding-right: 22px;
+    }
+
+    .shop-marquee-banner__diamond {
+        width: 8px;
+        height: 10px;
+    }
+
+    .shop-marquee-banner__track {
+        animation-duration: 24s;
+    }
+}

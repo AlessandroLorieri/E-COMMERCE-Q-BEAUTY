@@ -48,17 +48,25 @@ export default function CartShop() {
         Number(quote?.discountBreakdown?.globalDiscountCents) ||
         0;
 
-    const globalDiscountLabel =
-        quote?.discountType === "piva15"
-            ? "Sconto P.IVA -15%"
-            : quote?.discountType === "first10"
-                ? "Primo acquisto -10%"
-                : (quote?.discountLabel || "Sconto");
+    const bulkDiscountActive = Boolean(quote?.bulkDiscountActive);
+    const bulkPiecesCount = Number(quote?.bulkPiecesCount) || 0;
+    const couponEnabled = quote?.couponEnabled !== false;
+    const couponDisabledReason =
+        String(
+            quote?.couponDisabledReason ||
+            "Con 30 o più pezzi si applica automaticamente lo sconto quantità -25%. I coupon non sono cumulabili."
+        ).trim();
 
-    const couponLabelCode =
-        quote?.couponCodeApplied ||
-        (typeof couponCode === "string" ? couponCode.trim() : "") ||
-        "";
+    const globalDiscountLabel =
+        quote?.discountType === "bulk25"
+            ? "Sconto quantità -25%"
+            : quote?.discountType === "piva15"
+                ? "Sconto P.IVA -15%"
+                : quote?.discountType === "first10"
+                    ? "Primo acquisto -10%"
+                    : (quote?.discountLabel || "Sconto");
+
+    const couponLabelCode = quote?.couponCodeApplied || "";
 
     const subtotalCents = Number(quote?.subtotalCents) || 0;
     const discountCents = Number(quote?.discountCents) || 0;
@@ -85,6 +93,16 @@ export default function CartShop() {
     useEffect(() => {
         setCouponDraft(couponCode || "");
     }, [couponCode]);
+
+    useEffect(() => {
+        if (couponEnabled) return;
+
+        if (couponDraft) setCouponDraft("");
+        if (couponCode) setCouponCode("");
+
+        setLastAutoClearedCode("");
+        setAutoCouponMsg("");
+    }, [couponEnabled, couponCode, couponDraft, setCouponCode]);
 
     useEffect(() => {
         const code = String(couponCode || "").trim();
@@ -116,6 +134,8 @@ export default function CartShop() {
     }, [couponCode, couponErrorMsg, quoteLoading, lastAutoClearedCode, setCouponCode]);
 
     function applyCoupon() {
+        if (!couponEnabled) return;
+
         const code = String(couponDraft || "").trim().toUpperCase();
         setAutoCouponMsg("");
         setLastAutoClearedCode("");
@@ -300,102 +320,118 @@ export default function CartShop() {
                         </div>
 
                         <div className="mt-3 shop-coupon">
-                            <div className="d-flex align-items-center justify-content-between mb-1">
-                                <label className="form-label m-0" style={{ fontSize: 15 }}>
-                                    Codice sconto
-                                </label>
+                            {couponEnabled ? (
+                                <>
+                                    <div className="d-flex align-items-center justify-content-between mb-1">
+                                        <label className="form-label m-0" style={{ fontSize: 15 }}>
+                                            Codice sconto
+                                        </label>
 
-                                {couponAppliedCode ? (
-                                    <span className="shop-coupon__badge" title="Coupon applicato">
-                                        <span className="shop-coupon__badge-label">Applicato:</span>
-                                        <strong className="shop-coupon__badge-code">{couponAppliedCode}</strong>
+                                        {couponAppliedCode ? (
+                                            <span className="shop-coupon__badge" title="Coupon applicato">
+                                                <span className="shop-coupon__badge-label">Applicato:</span>
+                                                <strong className="shop-coupon__badge-code">{couponAppliedCode}</strong>
+                                                <button
+                                                    type="button"
+                                                    className="shop-coupon__badge-x"
+                                                    onClick={clearCoupon}
+                                                    disabled={quoteLoading}
+                                                    aria-label="Rimuovi coupon"
+                                                    title="Rimuovi coupon"
+                                                >
+                                                    ×
+                                                </button>
+                                            </span>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="shop-coupon__group">
+                                        <input
+                                            className="form-control shop-coupon__input"
+                                            placeholder="Es. PROMO10"
+                                            value={couponDraft}
+                                            onChange={(e) => setCouponDraft(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    applyCoupon();
+                                                }
+                                            }}
+                                            disabled={quoteLoading}
+                                            inputMode="text"
+                                            autoCapitalize="characters"
+                                            autoCorrect="off"
+                                            spellCheck={false}
+                                        />
+
                                         <button
+                                            className="btn shop-coupon__btn shop-coupon__btn--apply"
                                             type="button"
-                                            className="shop-coupon__badge-x"
+                                            onClick={applyCoupon}
+                                            disabled={quoteLoading}
+                                        >
+                                            Applica
+                                        </button>
+
+                                        <button
+                                            className="btn shop-coupon__btn shop-coupon__btn--reset"
+                                            type="button"
                                             onClick={clearCoupon}
                                             disabled={quoteLoading}
-                                            aria-label="Rimuovi coupon"
-                                            title="Rimuovi coupon"
                                         >
-                                            ×
+                                            Reset
                                         </button>
-                                    </span>
-                                ) : null}
-                            </div>
+                                    </div>
 
-                            <div className="shop-coupon__group">
-                                <input
-                                    className="form-control shop-coupon__input"
-                                    placeholder="Es. PROMO10"
-                                    value={couponDraft}
-                                    onChange={(e) => setCouponDraft(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            e.preventDefault();
-                                            applyCoupon();
-                                        }
-                                    }}
-                                    disabled={quoteLoading}
-                                    inputMode="text"
-                                    autoCapitalize="characters"
-                                    autoCorrect="off"
-                                    spellCheck={false}
-                                />
+                                    {autoCouponMsg ? (
+                                        <div className="shop-coupon__msg shop-coupon__msg--error">
+                                            {autoCouponMsg}
+                                        </div>
+                                    ) : null}
 
-                                <button
-                                    className="btn shop-coupon__btn shop-coupon__btn--apply"
-                                    type="button"
-                                    onClick={applyCoupon}
-                                    disabled={quoteLoading}
-                                >
-                                    Applica
-                                </button>
+                                    {!autoCouponMsg && couponErrorMsg && !quoteLoading ? (
+                                        <div className="shop-coupon__msg shop-coupon__msg--error">
+                                            {couponErrorMsg}
+                                        </div>
+                                    ) : null}
 
-                                <button
-                                    className="btn shop-coupon__btn shop-coupon__btn--reset"
-                                    type="button"
-                                    onClick={clearCoupon}
-                                    disabled={quoteLoading}
-                                >
-                                    Reset
-                                </button>
-                            </div>
+                                    {!couponErrorMsg && couponAppliedCode && couponDiscountCents > 0 && !quoteLoading ? (
+                                        <div className="shop-coupon__msg shop-coupon__msg--success">
+                                            Coupon <b>{couponAppliedCode}</b> applicato: - {formatEURFromCents(couponDiscountCents)}
+                                        </div>
+                                    ) : null}
 
-                            {autoCouponMsg ? (
-                                <div className="shop-coupon__msg shop-coupon__msg--error">
-                                    {autoCouponMsg}
-                                </div>
-                            ) : null}
+                                    {!couponErrorMsg && genericQuoteMsg ? (
+                                        <div className="shop-coupon__msg shop-coupon__msg--info">
+                                            {genericQuoteMsg}
+                                        </div>
+                                    ) : null}
 
-                            {!autoCouponMsg && couponErrorMsg && !quoteLoading ? (
-                                <div className="shop-coupon__msg shop-coupon__msg--error">
-                                    {couponErrorMsg}
-                                </div>
-                            ) : null}
+                                    {!authUser ? (
+                                        <div className="shop-coupon__hint">
+                                            Il coupon verrà verificato dopo l’accesso (il quote richiede login).
+                                        </div>
+                                    ) : null}
 
-                            {!couponErrorMsg && couponAppliedCode && couponDiscountCents > 0 && !quoteLoading ? (
-                                <div className="shop-coupon__msg shop-coupon__msg--success">
-                                    Coupon <b>{couponAppliedCode}</b> applicato: - {formatEURFromCents(couponDiscountCents)}
-                                </div>
-                            ) : null}
+                                    {quoteLoading ? (
+                                        <div className="shop-coupon__hint">
+                                            Verifica coupon in corso…
+                                        </div>
+                                    ) : null}
+                                </>
+                            ) : (
+                                <>
+                                    <div className="shop-coupon__msg shop-coupon__msg--info">
+                                        {couponDisabledReason}
+                                    </div>
 
-                            {!couponErrorMsg && genericQuoteMsg ? (
-                                <div className="shop-coupon__msg shop-coupon__msg--info">
-                                    {genericQuoteMsg}
-                                </div>
-                            ) : null}
-
-                            {!authUser ? (
-                                <div className="shop-coupon__hint">
-                                    Il coupon verrà verificato dopo l’accesso (il quote richiede login).
-                                </div>
-                            ) : null}
-
-                            {quoteLoading ? (
-                                <div className="shop-coupon__hint">
-                                    Verifica coupon in corso…
-                                </div>
-                            ) : null}
+                                    {bulkDiscountActive ? (
+                                        <div className="shop-coupon__hint">
+                                            Pezzi conteggiati per la soglia quantità: <b>{bulkPiecesCount}</b>
+                                        </div>
+                                    ) : null}
+                                </>
+                            )}
                         </div>
 
                         <div className="d-flex justify-content-end gap-2 mt-3">

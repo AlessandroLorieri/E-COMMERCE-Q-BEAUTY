@@ -5,6 +5,7 @@ import BrandSpinner from "./components/BrandSpinner";
 import { formatEURFromCents } from "./utils/money";
 import { useAuth } from "./context/AuthContext";
 import ReviewsSection from "./components/reviews/ReviewsSection";
+import HomePromoBanner from "./components/HomePromoBanner";
 
 import "./HomeShop.css";
 
@@ -148,6 +149,9 @@ export default function HomeShop() {
                     <div className="shop-hero-overlay" />
                 </section>
             ) : null}
+
+            {/* BANNER*/}
+            {!error ? <HomePromoBanner /> : null}
 
             {/* CONTENUTO SHOP*/}
             <div className="container-fluid shop-page p-5">
@@ -323,7 +327,7 @@ export default function HomeShop() {
                 )}
 
                 <ReviewsSection />
-                
+
             </div>
         </>
     );
