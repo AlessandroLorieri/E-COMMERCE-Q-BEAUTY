@@ -463,8 +463,8 @@
     }
 
     .qb-reviews-section__intro-main {
-        justify-content: flex-start;
-        text-align: left;
+        justify-content: center;
+        text-align: center;
     }
 }
 

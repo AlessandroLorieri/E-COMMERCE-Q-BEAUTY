@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
 
-import App from './App';              // Hero iniziale
 import HomePage from './Home';        // <-- se il file è HomePage.jsx, usa: './HomePage'
 import Articolo1 from './articoli/Articolo1';
 import Siero from './prodotti/Siero';
@@ -52,11 +51,11 @@ root.render(
       <ScrollToTop />
       <CookieBanner />
       <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/home" element={<HomePage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/home" element={<Navigate to="/" replace />} />
 
         {/* redirect per chi arriva su /Home (maiuscolo) */}
-        <Route path="/Home" element={<Navigate to="/home" replace />} />
+        <Route path="/Home" element={<Navigate to="/" replace />} />
 
         <Route path="/prodotti/Siero" element={<Siero />} />
         <Route path="/prodotti/Olio" element={<Olio />} />
