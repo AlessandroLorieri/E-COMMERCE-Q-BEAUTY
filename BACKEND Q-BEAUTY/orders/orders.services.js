@@ -164,7 +164,7 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
         };
     });
 
-        for (const it of resolvedItems) {
+    for (const it of resolvedItems) {
         it.couponDiscountCents = 0;
     }
 
@@ -425,8 +425,10 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
     };
 }
 
-async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId, couponCode, taxCodeRaw, paymentMethodRaw) {
+async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId, couponCode, taxCodeRaw, paymentMethodRaw, noteRaw) {
     const quote = await computeQuote(userId, itemsRaw, couponCode);
+
+    const note = String(noteRaw || "").trim();
 
     const user = await User.findById(userId)
         .select("email firstName lastName phone customerType companyName vatNumber taxCode billingAddressRef")
@@ -616,6 +618,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         shippingCents: quote.shippingCents,
         totalCents: quote.totalCents,
         discountType: quote.discountType,
+        note,
     });
 
     if (quote.couponCodeApplied && isBankTransfer) {

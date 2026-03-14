@@ -31,6 +31,8 @@ export default function CartShop() {
         quoteErrors,
         couponCode,
         setCouponCode,
+        orderNote,
+        setOrderNote,
         productsLoading,
         productsError
     } = useShop();
@@ -432,6 +434,25 @@ export default function CartShop() {
                                     ) : null}
                                 </>
                             )}
+                        </div>
+
+                        <div className="mt-3">
+                            <label className="form-label m-0" style={{ fontSize: 15 }}>
+                                Note ordine
+                            </label>
+
+                            <textarea
+                                className="form-control mt-2"
+                                rows={4}
+                                maxLength={500}
+                                placeholder="Inserisci eventuali note per il tuo ordine..."
+                                value={orderNote}
+                                onChange={(e) => setOrderNote(e.target.value)}
+                            />
+
+                            <div className="text-muted mt-1" style={{ fontSize: 12 }}>
+                                {String(orderNote || "").length}/500
+                            </div>
                         </div>
 
                         <div className="d-flex justify-content-end gap-2 mt-3">

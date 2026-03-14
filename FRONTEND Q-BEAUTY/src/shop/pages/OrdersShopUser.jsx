@@ -258,6 +258,15 @@ export default function OrdersShop() {
                                             ))}
                                         </div>
 
+                                        {String(o.note || "").trim() ? (
+                                            <div className="mb-3">
+                                                <div className="fw-semibold mb-2">Note ordine</div>
+                                                <div className="card p-3" style={{ fontSize: 14 }}>
+                                                    {o.note}
+                                                </div>
+                                            </div>
+                                        ) : null}
+
                                         <div className="row g-3">
                                             <div className="col-12 col-lg-4">
                                                 <div className="fw-semibold mb-2">Spedizione</div>

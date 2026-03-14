@@ -2,8 +2,53 @@
 const mongoose = require("mongoose");
 const Product = require("./products.schema");
 
+const SET_PRODUCT_ID = "SET EXPERIENCE";
+const SET_COMPONENT_IDS = [
+    "CREMA IDRATANTE CHERATOLITICA",
+    "BURRO EMOLLIENTE",
+    "SPRAY IGIENIZZANTE",
+];
+
+function normalizeProductKey(v) {
+    return String(v || "").trim().toUpperCase();
+}
+
+function isSetProduct(product) {
+    return normalizeProductKey(product?.productId) === normalizeProductKey(SET_PRODUCT_ID);
+}
+
+function areSetComponentsAvailable(products) {
+    const list = Array.isArray(products) ? products : [];
+
+    const byProductId = new Map(
+        list.map((p) => [normalizeProductKey(p?.productId), p])
+    );
+
+    return SET_COMPONENT_IDS.every((id) => {
+        const p = byProductId.get(normalizeProductKey(id));
+        return Boolean(p?.isActive) && Number(p?.stockQty || 0) > 0;
+    });
+}
+
+function applySetAvailability(products, setComponentsAvailable) {
+    const list = Array.isArray(products) ? products : [];
+
+    return list.map((p) => {
+        if (!isSetProduct(p)) return p;
+
+        if (setComponentsAvailable) return p;
+
+        return {
+            ...p,
+            stockQty: 0,
+        };
+    });
+}
+
 async function listActiveProducts() {
-    return Product.find({ isActive: true }).sort({ sortOrder: 1, name: 1 }).lean();
+    const products = await Product.find({ isActive: true }).sort({ sortOrder: 1, name: 1 }).lean();
+    const setComponentsAvailable = areSetComponentsAvailable(products);
+    return applySetAvailability(products, setComponentsAvailable);
 }
 
 async function getProductsByIds(productIds) {
@@ -16,13 +61,28 @@ async function getProductsByIds(productIds) {
 
     const slugs = ids.filter((id) => !mongoose.Types.ObjectId.isValid(id));
 
-    return Product.find({
+    const products = await Product.find({
         isActive: true,
         $or: [
             ...(objectIds.length ? [{ _id: { $in: objectIds } }] : []),
             ...(slugs.length ? [{ productId: { $in: slugs } }] : []),
         ],
     }).lean();
+
+    const hasSet = products.some((p) => isSetProduct(p));
+
+    if (!hasSet) {
+        return products;
+    }
+
+    const setComponents = await Product.find({
+        isActive: true,
+        productId: { $in: SET_COMPONENT_IDS },
+    }).lean();
+
+    const setComponentsAvailable = areSetComponentsAvailable(setComponents);
+
+    return applySetAvailability(products, setComponentsAvailable);
 }
 
 function escapeRegExp(str) {
@@ -206,7 +266,19 @@ async function getActiveProductById(idOrProductId) {
         err.status = 404;
         throw err;
     }
-    return product;
+
+    if (!isSetProduct(product)) {
+        return product;
+    }
+
+    const setComponents = await Product.find({
+        isActive: true,
+        productId: { $in: SET_COMPONENT_IDS },
+    }).lean();
+
+    const setComponentsAvailable = areSetComponentsAvailable(setComponents);
+
+    return applySetAvailability([product], setComponentsAvailable)[0];
 }
 
 async function adminGetProductById(idOrProductId) {

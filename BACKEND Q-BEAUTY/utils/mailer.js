@@ -620,6 +620,7 @@ async function sendOrderPaymentConfirmedEmail({ to, order, includeItems = false 
 
   const items = Array.isArray(order?.items) ? order.items : [];
   const hasItems = includeItems && items.length > 0;
+  const orderNote = String(order?.note || "").trim();
 
   const subject = `Q•BEAUTY | Pagamento confermato ✅ — Ordine ${orderLabel}`.trim();
   const preheader = `Pagamento ricevuto. Ordine ${orderLabel} confermato. Totale ${total}.`;
@@ -628,6 +629,10 @@ async function sendOrderPaymentConfirmedEmail({ to, order, includeItems = false 
     discountCents > 0
       ? `Sconto${discountLabel ? ` (${discountLabel})` : ""}: -${formatEURFromCents(discountCents)}`
       : "";
+
+  const orderNoteTextBlock = orderNote
+    ? `\nNote ordine:\n${orderNote}\n`
+    : "";
 
   const text = hasItems
     ? `${hello}
@@ -643,7 +648,7 @@ ${buildItemsText(items)}
 Riepilogo:
 Subtotale: ${subtotal}
 ${discountTextLine ? `${discountTextLine}\n` : ""}Spedizione: ${shipping}
-Totale: ${total}
+Totale: ${total}${orderNoteTextBlock}
 
 Ti aggiorneremo appena la spedizione sarà affidata al corriere.
 
@@ -707,6 +712,22 @@ Q•BEAUTY
             ${buildItemsRowsHtml(items)}
           </tbody>
         </table>
+      </div>
+    `
+    : "";
+
+  const orderNoteHtml = orderNote
+    ? `
+      <div
+        bgcolor="${colors.panelBg}"
+        style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+      >
+        <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+          Note ordine
+        </div>
+        <div style="font-family:Arial,sans-serif; font-size:13px; line-height:1.6; color:${colors.panelText}; white-space:pre-wrap;">
+          ${escapeHtml(orderNote)}
+        </div>
       </div>
     `
     : "";
@@ -849,6 +870,7 @@ Q•BEAUTY
 
                   ${itemsTableHtml}
                   ${breakdownHtml}
+                  ${orderNoteHtml}
 
                   <p style="margin:16px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
                     Ti aggiorneremo appena la spedizione sarà affidata al corriere.
@@ -1390,6 +1412,7 @@ async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
   const userId = coalesceStr(user?.sub, user?._id, order?.userId);
 
   const items = Array.isArray(order?.items) ? order.items : [];
+  const orderNote = String(order?.note || "").trim();
   const total = formatEURFromCents(order?.totalCents);
   const shippingCents = Number(order?.shippingCents) || 0;
   const shipping = shippingCents === 0 ? "Gratis" : formatEURFromCents(shippingCents);
@@ -1480,6 +1503,10 @@ async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
   const subject = `NUOVO ORDINE ${orderLabel} — ${total} (${paymentProviderLabel})`;
   const preheader = `Nuovo ordine ${orderLabel} • ${total} • ${paymentProviderLabel} • ${paymentStateLabel}`;
 
+  const orderNoteTextBlock = orderNote
+    ? `\nNote ordine:\n${orderNote}\n`
+    : "";
+
   const text = `Nuovo ordine ricevuto
 
 Ordine: ${orderLabel}
@@ -1517,7 +1544,7 @@ Riepilogo:
 - Subtotale: ${subtotal}
 ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -${formatEURFromCents(discountCents)}` : ""}
 - Spedizione: ${shipping}
-- Totale: ${total}
+- Totale: ${total}${orderNoteTextBlock}
 `;
 
   const baseUrl = (process.env.FRONTEND_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
@@ -1571,6 +1598,22 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
         (Nessun articolo in payload)
       </div>
     `;
+
+  const orderNoteHtml = orderNote
+    ? `
+    <div
+      bgcolor="${colors.panelBg}"
+      style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+    >
+      <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+        Note ordine
+      </div>
+      <div style="font-family:Arial,sans-serif; font-size:13px; line-height:1.65; color:${colors.panelText}; white-space:pre-wrap;">
+        ${escapeHtml(orderNote)}
+      </div>
+    </div>
+  `
+    : "";
 
   const breakdownHtml = `
     <div
@@ -1768,6 +1811,7 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
 
                   ${itemsTableHtml}
                   ${breakdownHtml}
+                  ${orderNoteHtml}
                 </div>
               </td>
             </tr>

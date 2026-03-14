@@ -10,7 +10,26 @@ function getCouponStorageKey(cartKey) {
     return `${cartKey}:coupon`;
 }
 
+function getOrderNoteStorageKey(cartKey) {
+    return `${cartKey}:order-note`;
+}
+
 function hydrateCouponFromStorage(key, storage) {
+    try {
+        const raw = storage.getItem(key);
+        if (!raw) return "";
+        try {
+            const parsed = JSON.parse(raw);
+            return typeof parsed === "string" ? parsed : String(raw);
+        } catch {
+            return String(raw);
+        }
+    } catch {
+        return "";
+    }
+}
+
+function hydrateOrderNoteFromStorage(key, storage) {
     try {
         const raw = storage.getItem(key);
         if (!raw) return "";
@@ -146,13 +165,20 @@ export function ShopProvider({ children }) {
     ]);
 
     const couponKey = useMemo(() => getCouponStorageKey(cartKey), [cartKey]);
+    const orderNoteKey = useMemo(() => getOrderNoteStorageKey(cartKey), [cartKey]);
 
     const [couponCode, setCouponCode] = useState(() =>
         hydrateCouponFromStorage(getCouponStorageKey(getCartStorageKey(null)), sessionStorage)
     );
+    const [orderNote, setOrderNote] = useState(() =>
+        hydrateOrderNoteFromStorage(getOrderNoteStorageKey(getCartStorageKey(null)), sessionStorage)
+    );
 
     const skipPersistCouponRef = useRef(false);
     const prevCouponKeyRef = useRef(couponKey);
+
+    const skipPersistOrderNoteRef = useRef(false);
+    const prevOrderNoteKeyRef = useRef(orderNoteKey);
 
     useEffect(() => {
         const next = hydrateCouponFromStorage(couponKey, cartStorage);
@@ -178,6 +204,29 @@ export function ShopProvider({ children }) {
     }, [couponKey, cartStorage]);
 
     useEffect(() => {
+        const next = hydrateOrderNoteFromStorage(orderNoteKey, cartStorage);
+
+        setOrderNote((prev) => {
+            const prevKey = prevOrderNoteKeyRef.current;
+
+            const prevWasGuest = String(prevKey).includes(":guest");
+            const nextIsUser = !String(orderNoteKey).includes(":guest");
+
+            if (prevWasGuest && nextIsUser && !next && prev) {
+                try {
+                    cartStorage.setItem(orderNoteKey, prev);
+                } catch { }
+                return prev;
+            }
+
+            return next || "";
+        });
+
+        prevOrderNoteKeyRef.current = orderNoteKey;
+        skipPersistOrderNoteRef.current = true;
+    }, [orderNoteKey, cartStorage]);
+
+    useEffect(() => {
         if (skipPersistCouponRef.current) {
             skipPersistCouponRef.current = false;
             return;
@@ -189,6 +238,19 @@ export function ShopProvider({ children }) {
             else cartStorage.setItem(couponKey, v);
         } catch { }
     }, [couponCode, couponKey, cartStorage]);
+
+    useEffect(() => {
+        if (skipPersistOrderNoteRef.current) {
+            skipPersistOrderNoteRef.current = false;
+            return;
+        }
+
+        try {
+            const v = String(orderNote || "");
+            if (!v.trim()) cartStorage.removeItem(orderNoteKey);
+            else cartStorage.setItem(orderNoteKey, v);
+        } catch { }
+    }, [orderNote, orderNoteKey, cartStorage]);
 
     // PRODUCTS
     const [products, setProducts] = useState([]);
@@ -382,8 +444,10 @@ export function ShopProvider({ children }) {
     function clearCart() {
         setCartRaw([]);
         setCouponCode("");
+        setOrderNote("");
         try {
             cartStorage.removeItem(couponKey);
+            cartStorage.removeItem(orderNoteKey);
         } catch { }
     }
 
@@ -640,6 +704,8 @@ export function ShopProvider({ children }) {
 
             couponCode,
             setCouponCode,
+            orderNote,
+            setOrderNote,
 
             createOrder,
             fetchMyOrders,
@@ -661,6 +727,7 @@ export function ShopProvider({ children }) {
             quoteError,
             quoteErrors,
             couponCode,
+            orderNote,
             user,
             authLogout,
         ]

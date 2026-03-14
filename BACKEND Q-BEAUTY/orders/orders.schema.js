@@ -106,6 +106,8 @@ const OrderSchema = new mongoose.Schema(
         },
 
         discountType: { type: String, enum: ["none", "piva15", "first10", "bulk25"], default: "none" },
+
+        note: { type: String, trim: true, default: "" },
     },
     { timestamps: true }
 );

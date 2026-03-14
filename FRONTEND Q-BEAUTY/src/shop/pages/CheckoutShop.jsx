@@ -12,16 +12,17 @@ export default function CheckoutShop() {
     const [searchParams] = useSearchParams();
 
     const {
-        cart,
-        quote,
-        clearCart,
-        createOrder,
-        quoteLoading,
-        quoteError,
-        fetchMyAddresses,
-        fetchMyOrders,
-        createAddress,
-    } = useShop();
+    cart,
+    quote,
+    clearCart,
+    createOrder,
+    quoteLoading,
+    quoteError,
+    fetchMyAddresses,
+    fetchMyOrders,
+    createAddress,
+    orderNote,
+} = useShop();
 
 
     const { user, loading, authFetch } = useAuth();
@@ -403,13 +404,13 @@ export default function CheckoutShop() {
             let created;
 
             if (addressMode === "saved" && selectedAddressId) {
-                created = await createOrder({ shippingAddressId: selectedAddressId, taxCode });
+                created = await createOrder({ shippingAddressId: selectedAddressId, taxCode, note: orderNote });
             } else {
                 if (saveToAddressBook) {
                     const saved = await createAddress({ label: addressLabel.trim(), ...payload });
-                    created = await createOrder({ shippingAddressId: saved._id, taxCode });
+                    created = await createOrder({ shippingAddressId: saved._id, taxCode, note: orderNote });
                 } else {
-                    created = await createOrder({ shippingAddress: payload, taxCode });
+                    created = await createOrder({ shippingAddress: payload, taxCode, note: orderNote });
                 }
             }
 
@@ -489,13 +490,13 @@ export default function CheckoutShop() {
             let created;
 
             if (addressMode === "saved" && selectedAddressId) {
-                created = await createOrder({ shippingAddressId: selectedAddressId, taxCode, paymentMethod: "bank_transfer" });
+                created = await createOrder({ shippingAddressId: selectedAddressId, taxCode, paymentMethod: "bank_transfer", note: orderNote });
             } else {
                 if (saveToAddressBook) {
                     const saved = await createAddress({ label: addressLabel.trim(), ...payload });
-                    created = await createOrder({ shippingAddressId: saved._id, taxCode, paymentMethod: "bank_transfer" });
+                    created = await createOrder({ shippingAddressId: saved._id, taxCode, paymentMethod: "bank_transfer", note: orderNote });
                 } else {
-                    created = await createOrder({ shippingAddress: payload, taxCode, paymentMethod: "bank_transfer" });
+                    created = await createOrder({ shippingAddress: payload, taxCode, paymentMethod: "bank_transfer", note: orderNote });
                 }
             }
 

@@ -533,6 +533,17 @@ export default function AdminOrders() {
                                         )}
                                     </div>
 
+                                    {String(o.note || "").trim() ? (
+                                        <div className="mb-3">
+                                            <div className="fw-semibold mb-2">Note ordine</div>
+                                            <div className="list-group">
+                                                <div className="list-group-item" style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>
+                                                    {o.note}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : null}
+
                                     <div className="mt-3">
                                         <div className="fw-semibold mb-2">Riepilogo</div>
 

@@ -92,6 +92,16 @@ function validateCreateOrderBody(body) {
         }
     }
 
+    if (Object.prototype.hasOwnProperty.call(body || {}, "note")) {
+        const rawNote = body?.note;
+
+        if (rawNote != null && typeof rawNote !== "string") {
+            errors.note = "note deve essere una stringa";
+        } else if (typeof rawNote === "string" && rawNote.trim().length > 500) {
+            errors.note = "note troppo lunga (massimo 500 caratteri)";
+        }
+    }
+
     const idRaw = body?.shippingAddressId;
     const hasId = isNonEmptyString(idRaw);
 
@@ -115,7 +125,7 @@ function validateCreateOrderBody(body) {
         }
 
         if (!errors.shippingAddressId) {
-            if (Object.keys(ship).length) errors.shippingAddress = ship; 
+            if (Object.keys(ship).length) errors.shippingAddress = ship;
             return errors;
         }
     }
