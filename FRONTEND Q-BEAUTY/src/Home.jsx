@@ -63,7 +63,6 @@ function HomePage() {
             <div className="founder-info">
               <h2 className="founder-title">LA FONDATRICE</h2>
               <div className="founder-text">
-                <h3>Chi sono</h3>
 
                 <p>
                   Sono{' '}

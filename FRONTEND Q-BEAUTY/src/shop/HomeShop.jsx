@@ -144,7 +144,7 @@ export default function HomeShop() {
                         playsInline
                         preload="metadata"
                     >
-                        <source src="/video/shop-hero.mp4" type="video/mp4" />
+                        <source src="https://cdn.qbeautyshop.it/shop-hero-lite.mp4" type="video/mp4" />
                     </video>
                     <div className="shop-hero-overlay" />
                 </section>
