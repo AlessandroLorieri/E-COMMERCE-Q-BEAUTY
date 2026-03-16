@@ -19,6 +19,18 @@ const CouponSchema = new mongoose.Schema(
         startsAt: { type: Date, default: null },
         endsAt: { type: Date, default: null },
 
+        maxUses: {
+            type: Number,
+            default: null,
+            min: 1,
+        },
+
+        usedCount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
         rules: { type: [CouponRuleSchema], default: [] },
 
         ownerUser: {

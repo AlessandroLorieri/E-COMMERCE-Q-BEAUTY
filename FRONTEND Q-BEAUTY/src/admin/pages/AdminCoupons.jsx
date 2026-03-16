@@ -1,3 +1,4 @@
+// INIZIO MODIFICA - AdminCoupons.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../shop/context/AuthContext";
@@ -56,6 +57,7 @@ export default function AdminCoupons() {
         isActive: true,
         startsAt: "",
         endsAt: "",
+        maxUses: "",
 
         discountType: "percent",
         discountValue: "10",
@@ -168,6 +170,7 @@ export default function AdminCoupons() {
             isActive: true,
             startsAt: "",
             endsAt: "",
+            maxUses: "",
             discountType: "percent",
             discountValue: "10",
             selectedProductIds: [],
@@ -212,6 +215,7 @@ export default function AdminCoupons() {
             isActive: !!c.isActive,
             startsAt,
             endsAt,
+            maxUses: c?.maxUses != null ? String(c.maxUses) : "",
             discountType,
             discountValue,
             selectedProductIds,
@@ -244,11 +248,19 @@ export default function AdminCoupons() {
 
         const startsAtRaw = String(form.startsAt || "").trim();
         const endsAtRaw = String(form.endsAt || "").trim();
+        const maxUsesRaw = String(form.maxUses || "").trim();
 
         if (startsAtRaw && Number.isNaN(new Date(startsAtRaw).getTime())) errors.startsAt = "Data inizio non valida";
         if (endsAtRaw && Number.isNaN(new Date(endsAtRaw).getTime())) errors.endsAt = "Data fine non valida";
         if (startsAtRaw && endsAtRaw && new Date(endsAtRaw).getTime() < new Date(startsAtRaw).getTime()) {
             errors.endsAt = "Deve essere >= startsAt";
+        }
+
+        let parsedMaxUses = null;
+        if (maxUsesRaw) {
+            const n = Number(maxUsesRaw);
+            if (!Number.isInteger(n) || n < 1) errors.maxUses = "Inserisci un intero >= 1 oppure lascia vuoto";
+            else parsedMaxUses = n;
         }
 
         const discountType = String(form.discountType || "").trim();
@@ -290,6 +302,7 @@ export default function AdminCoupons() {
                 isActive: !!form.isActive,
                 startsAt: startsAtRaw || null,
                 endsAt: endsAtRaw || null,
+                maxUses: parsedMaxUses,
                 rules: rulesOut,
             },
         };
@@ -325,6 +338,7 @@ export default function AdminCoupons() {
                 if (payloadErrors.code) mapped.code = payloadErrors.code;
                 if (payloadErrors.startsAt) mapped.startsAt = payloadErrors.startsAt;
                 if (payloadErrors.endsAt) mapped.endsAt = payloadErrors.endsAt;
+                if (payloadErrors.maxUses) mapped.maxUses = payloadErrors.maxUses;
                 if (payloadErrors.rules) mapped.rules = payloadErrors.rules;
                 setFormErrors((prev) => ({ ...prev, ...mapped }));
             }
@@ -364,6 +378,9 @@ export default function AdminCoupons() {
                     const isReward = !!c.isRewardCoupon;
                     const isUsed = !!c.usedAt;
                     const usageCount = Number(c.usageCount || 0);
+                    const maxUses = c?.maxUses == null ? null : Number(c.maxUses);
+                    const remainingUses =
+                        c?.remainingUses == null ? null : Math.max(0, Number(c.remainingUses || 0));
 
                     return (
                         <div
@@ -424,15 +441,23 @@ export default function AdminCoupons() {
                                         {isReward ? (
                                             isUsed ? (
                                                 <div>
-                                                    <div>✅  Usato</div>
+                                                    <div>✅ Usato</div>
                                                     <div className="text-muted small">{formatDate(c.usedAt)}</div>
                                                 </div>
                                             ) : (
                                                 <div className="text-muted">Non usato</div>
                                             )
                                         ) : (
-                                            <div>
-                                                <strong>{usageCount}</strong> utilizzi
+                                            <div className="d-flex flex-column gap-1">
+                                                <div>
+                                                    <strong>{usageCount}</strong> utilizzi
+                                                </div>
+                                                <div>
+                                                    Massimo: <strong>{maxUses == null ? "Illimitato" : maxUses}</strong>
+                                                </div>
+                                                <div>
+                                                    Rimanenti: <strong>{remainingUses == null ? "Illimitati" : remainingUses}</strong>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -466,7 +491,6 @@ export default function AdminCoupons() {
 
             {errMsg ? <div className="alert alert-danger">{errMsg}</div> : null}
 
-            {/* Search */}
             <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
                 <input
                     className="form-control"
@@ -502,7 +526,6 @@ export default function AdminCoupons() {
                 </div>
             </div>
 
-            {/* Form create/edit */}
             <div className="card mb-4">
                 <div className="card-body">
                     <div className="d-flex align-items-center justify-content-between mb-3">
@@ -533,7 +556,7 @@ export default function AdminCoupons() {
                             <div className="form-text">3-32, solo A-Z 0-9 _ - (sarà salvato uppercase).</div>
                         </div>
 
-                        <div className="col-md-5">
+                        <div className="col-md-4">
                             <label className="form-label">Nome (opzionale)</label>
                             <input
                                 className="form-control"
@@ -543,7 +566,20 @@ export default function AdminCoupons() {
                             />
                         </div>
 
-                        <div className="col-md-3 d-flex align-items-end">
+                        <div className="col-md-2">
+                            <label className="form-label">Max utilizzi</label>
+                            <input
+                                className={`form-control ${formErrors.maxUses ? "is-invalid" : ""}`}
+                                value={form.maxUses}
+                                onChange={(e) => setForm((f) => ({ ...f, maxUses: e.target.value }))}
+                                placeholder="Illimitato"
+                                inputMode="numeric"
+                            />
+                            {formErrors.maxUses ? <div className="invalid-feedback">{formErrors.maxUses}</div> : null}
+                            <div className="form-text">Lascia vuoto = illimitato</div>
+                        </div>
+
+                        <div className="col-md-2 d-flex align-items-end">
                             <div className="form-check">
                                 <input
                                     className="form-check-input"
@@ -683,7 +719,6 @@ export default function AdminCoupons() {
                 </div>
             </div>
 
-            {/* Coupon manuali */}
             <div className="card mb-4">
                 <div className="card-body">
                     <div className="d-flex align-items-center justify-content-between mb-3">
@@ -697,7 +732,6 @@ export default function AdminCoupons() {
                 </div>
             </div>
 
-            {/* Coupon automatici */}
             <div className="card">
                 <div className="card-body">
                     <div className="d-flex align-items-center justify-content-between mb-3">

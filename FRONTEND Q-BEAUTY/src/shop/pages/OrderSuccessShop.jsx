@@ -31,9 +31,9 @@ export default function OrderSuccessShop() {
     const isBankTransfer = pay === "bank";
 
     const BANK = {
-        beneficiary: "Q•BEAUTY",
-        iban: "IT00X0000000000000000000000",
-        bankName: "La tua banca (opzionale)",
+        beneficiary: "SANTUCCI ELENA",
+        iban: "IT80D0623065690000037068486",
+        bankName: "CREDIT AGRICOLE",
         bic: "",
     };
 

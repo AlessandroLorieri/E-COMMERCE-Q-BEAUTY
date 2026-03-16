@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const Coupon = require("./coupons.schema");
 const Product = require("../products/products.schema");
-const Order = require("../orders/orders.schema");
 
 function normalizeCode(raw) {
     return String(raw || "").trim().toUpperCase();
@@ -15,6 +14,15 @@ function parseDateOrNull(v) {
     if (v == null || v === "") return null;
     const d = new Date(v);
     return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function parseMaxUsesOrNull(v) {
+    if (v == null || v === "") return null;
+
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 1) return NaN;
+
+    return n;
 }
 
 async function resolveRules(rulesRaw) {
@@ -81,10 +89,15 @@ async function createCoupon(payload) {
     const isActive = payload?.isActive != null ? !!payload.isActive : true;
     const startsAt = parseDateOrNull(payload?.startsAt);
     const endsAt = parseDateOrNull(payload?.endsAt);
+    const maxUses = parseMaxUsesOrNull(payload?.maxUses);
 
     if (payload?.startsAt && !startsAt) errors.startsAt = "startsAt non valido";
     if (payload?.endsAt && !endsAt) errors.endsAt = "endsAt non valido";
     if (startsAt && endsAt && endsAt < startsAt) errors.endsAt = "endsAt deve essere >= startsAt";
+
+    if (Number.isNaN(maxUses)) {
+        errors.maxUses = "maxUses deve essere un intero >= 1 oppure vuoto";
+    }
 
     const { rules, ruleErrors } = await resolveRules(payload?.rules);
     if (ruleErrors.some(Boolean)) errors.rules = ruleErrors;
@@ -98,7 +111,16 @@ async function createCoupon(payload) {
     }
 
     try {
-        return await Coupon.create({ code, name, isActive, startsAt, endsAt, rules });
+        return await Coupon.create({
+            code,
+            name,
+            isActive,
+            startsAt,
+            endsAt,
+            maxUses,
+            usedCount: 0,
+            rules,
+        });
     } catch (e) {
         if (e && e.code === 11000) {
             const err = new Error("Validation error");
@@ -144,6 +166,18 @@ async function updateCoupon(id, payload) {
         const d = parseDateOrNull(payload?.endsAt);
         if (payload?.endsAt && !d) errors.endsAt = "endsAt non valido";
         else coupon.endsAt = d;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload || {}, "maxUses")) {
+        const n = parseMaxUsesOrNull(payload?.maxUses);
+
+        if (Number.isNaN(n)) {
+            errors.maxUses = "maxUses deve essere un intero >= 1 oppure vuoto";
+        } else if (n !== null && n < Number(coupon.usedCount || 0)) {
+            errors.maxUses = "maxUses non può essere inferiore agli utilizzi già consumati";
+        } else {
+            coupon.maxUses = n;
+        }
     }
 
     if (coupon.startsAt && coupon.endsAt && coupon.endsAt < coupon.startsAt) {
@@ -197,40 +231,16 @@ async function listCoupons({ page = 1, limit = 20, q } = {}) {
     const total = await Coupon.countDocuments(filter);
     const coupons = await Coupon.find(filter).sort({ isRewardCoupon: 1, createdAt: -1 }).skip(skip).limit(l).lean();
 
-    const manualCodes = coupons
-        .filter((c) => !c?.isRewardCoupon)
-        .map((c) => String(c?.code || "").trim())
-        .filter(Boolean);
-
-    let usageMap = new Map();
-
-    if (manualCodes.length) {
-        const usageRows = await Order.aggregate([
-            {
-                $match: {
-                    couponCodeApplied: { $in: manualCodes },
-                    status: { $nin: ["cancelled", "refunded"] },
-                },
-            },
-            {
-                $group: {
-                    _id: "$couponCodeApplied",
-                    usageCount: { $sum: 1 },
-                },
-            },
-        ]);
-
-        usageMap = new Map(
-            usageRows.map((row) => [String(row?._id || "").trim(), Number(row?.usageCount || 0)])
-        );
-    }
-
     const enrichedCoupons = coupons.map((c) => {
-        const code = String(c?.code || "").trim();
+        const usedCount = Number(c?.usedCount || 0);
+        const maxUses = c?.maxUses == null ? null : Number(c.maxUses);
 
         return {
             ...c,
-            usageCount: c?.isRewardCoupon ? 0 : (usageMap.get(code) || 0),
+            usedCount,
+            maxUses,
+            usageCount: c?.isRewardCoupon ? 0 : usedCount,
+            remainingUses: maxUses == null ? null : Math.max(0, maxUses - usedCount),
         };
     });
 
@@ -250,7 +260,17 @@ async function getCoupon(id) {
         err.status = 404;
         throw err;
     }
-    return coupon;
+
+    const usedCount = Number(coupon?.usedCount || 0);
+    const maxUses = coupon?.maxUses == null ? null : Number(coupon.maxUses);
+
+    return {
+        ...coupon,
+        usedCount,
+        maxUses,
+        usageCount: coupon?.isRewardCoupon ? 0 : usedCount,
+        remainingUses: maxUses == null ? null : Math.max(0, maxUses - usedCount),
+    };
 }
 
 async function deleteCoupon(id) {
@@ -269,7 +289,7 @@ async function findActiveCouponByCode(codeRaw) {
 
     const now = new Date();
 
-    return Coupon.findOne({
+    const coupon = await Coupon.findOne({
         code,
         isActive: true,
         $and: [
@@ -277,6 +297,17 @@ async function findActiveCouponByCode(codeRaw) {
             { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
         ],
     }).lean();
+
+    if (!coupon) return null;
+
+    const maxUses = coupon?.maxUses == null ? null : Number(coupon.maxUses);
+    const usedCount = Number(coupon?.usedCount || 0);
+
+    if (maxUses !== null && usedCount >= maxUses) {
+        return null;
+    }
+
+    return coupon;
 }
 
 module.exports = {
@@ -287,4 +318,3 @@ module.exports = {
     deleteCoupon,
     findActiveCouponByCode,
 };
-

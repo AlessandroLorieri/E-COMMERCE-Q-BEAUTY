@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaInstagram, FaEnvelope, FaRegCopy, FaShoppingCart } from 'react-icons/fa';
+import { FaInstagram, FaEnvelope, FaRegCopy, FaShoppingCart, FaTiktok } from 'react-icons/fa';
 import './App.css';
 import './Home.css';
 
@@ -174,6 +174,16 @@ function HomePage() {
                   <FaInstagram style={{ marginRight: '8px', fontSize: '1.35rem' }} />
                   @queenhelene_nails
                 </a>
+
+                <a
+                  href="https://www.tiktok.com/@q.beauty_pedicure"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="insta-btn"
+                >
+                  <FaTiktok style={{ marginRight: '8px', fontSize: '1.35rem' }} />
+                  @q.beauty_pedicure
+                </a>
               </div>
             </div>
           </div>
@@ -181,18 +191,27 @@ function HomePage() {
 
         <footer className="site-footer">
           <p>
-            © {new Date().getFullYear()} Tutti i diritti riservati – Realizzato da{' '}
+            © {new Date().getFullYear()} Tutti i diritti riservati – Realizzato da{" "}
             <a
-              href="https://sorted-beryl.vercel.app/"
+              href="https://sortedbros.com"
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                color: '#debe68',
-                fontWeight: 'bold',
-                textDecoration: 'bold',
+                display: "inline-flex",
+                alignItems: "center",
+                verticalAlign: "middle",
               }}
             >
-              Sorted
+              <img
+                src="LOGO SORTED VETTORIALE.PNG"
+                alt="Sorted"
+                style={{
+                  height: "25px",
+                  width: "auto",
+                  display: "block",
+                  marginLeft:"5px"
+                }}
+              />
             </a>
           </p>
 

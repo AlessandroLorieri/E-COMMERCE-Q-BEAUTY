@@ -23,6 +23,103 @@ function normalizeVatNumber(v) {
     return String(v || "").replace(/[^\d]/g, "");
 }
 
+function normalizeCouponCode(v) {
+    return String(v || "").trim().toUpperCase();
+}
+
+async function reserveCouponUsage(codeRaw) {
+    const code = normalizeCouponCode(codeRaw);
+    if (!code) return null;
+
+    const now = new Date();
+
+    const coupon = await Coupon.findOneAndUpdate(
+        {
+            code,
+            isActive: true,
+            $and: [
+                { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
+                { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
+                {
+                    $or: [
+                        { maxUses: null },
+                        { $expr: { $lt: ["$usedCount", "$maxUses"] } },
+                    ],
+                },
+            ],
+        },
+        { $inc: { usedCount: 1 } },
+        { new: true }
+    );
+
+    if (!coupon) {
+        const err = new Error("Validation error");
+        err.status = 400;
+        err.errors = { couponCode: "Coupon non valido, scaduto o esaurito" };
+        throw err;
+    }
+
+    return coupon;
+}
+
+async function markPersonalCouponAsUsed(couponDoc, orderId, userId) {
+    if (!couponDoc?._id) return;
+
+    const isPersonalCoupon = !!couponDoc.ownerUser || !!couponDoc.isRewardCoupon;
+    if (!isPersonalCoupon) return;
+
+    const update = {
+        $set: {
+            usedAt: new Date(),
+            usedByOrder: orderId,
+            usedByUser: userId,
+        },
+    };
+
+    if (couponDoc.isRewardCoupon) {
+        update.$set.isActive = false;
+    }
+
+    await Coupon.updateOne({ _id: couponDoc._id }, update);
+}
+
+async function releaseCouponReservation(codeRaw, orderId = null) {
+    const code = normalizeCouponCode(codeRaw);
+    if (!code) return;
+
+    const coupon = await Coupon.findOne({ code });
+    if (!coupon) return;
+
+    if (Number(coupon.usedCount || 0) > 0) {
+        await Coupon.updateOne(
+            { _id: coupon._id, usedCount: { $gt: 0 } },
+            { $inc: { usedCount: -1 } }
+        );
+    }
+
+    const isPersonalCoupon = !!coupon.ownerUser || !!coupon.isRewardCoupon;
+    const sameOrder =
+        orderId &&
+        coupon.usedByOrder &&
+        String(coupon.usedByOrder) === String(orderId);
+
+    if (isPersonalCoupon && sameOrder) {
+        const update = {
+            $unset: {
+                usedAt: "",
+                usedByOrder: "",
+                usedByUser: "",
+            },
+        };
+
+        if (coupon.isRewardCoupon) {
+            update.$set = { isActive: true };
+        }
+
+        await Coupon.updateOne({ _id: coupon._id }, update);
+    }
+}
+
 function pickFirst(...vals) {
     for (const v of vals) {
         const s = String(v || "").trim();
@@ -425,6 +522,7 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
     };
 }
 
+
 async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId, couponCode, taxCodeRaw, paymentMethodRaw, noteRaw) {
     const quote = await computeQuote(userId, itemsRaw, couponCode);
 
@@ -439,9 +537,6 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         err.status = 404;
         throw err;
     }
-
-    const paymentMethod = String(paymentMethodRaw || "stripe").trim().toLowerCase();
-    const isBankTransfer = paymentMethod === "bank_transfer" || paymentMethod === "bonifico";
 
     const incomingTaxCode =
         normalizeTaxCode(
@@ -560,6 +655,8 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
     };
 
     const decremented = [];
+    let reservedCoupon = null;
+    let order = null;
 
     try {
         for (const it of quote.items || []) {
@@ -579,69 +676,74 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
 
             decremented.push({ _id: it.productRef, qty: it.qty });
         }
-    } catch (err) {
-        for (const d of decremented) {
-            await Product.updateOne({ _id: d._id }, { $inc: { stockQty: d.qty } });
+
+        if (quote.couponCodeApplied) {
+            reservedCoupon = await reserveCouponUsage(quote.couponCodeApplied);
         }
+
+        const year = new Date().getFullYear();
+
+        const counter = await OrderCounter.findOneAndUpdate(
+            { year },
+            { $inc: { seq: 1 }, $setOnInsert: { year } },
+            { new: true, upsert: true }
+        );
+
+        const orderNumber = 99 + counter.seq;
+        const publicId = `#${year}${orderNumber}`;
+
+        order = await Order.create({
+            user: userId,
+            publicId,
+            status: "pending_payment",
+            items: quote.items,
+
+            shippingAddress: normalizedAddress,
+            shippingAddressRef,
+
+            billingAddress,
+            billingAddressRef,
+
+            subtotalCents: quote.subtotalCents,
+            discountCents: quote.discountCents,
+            couponCodeApplied: quote.couponCodeApplied || null,
+            couponDiscountCents: quote?.discountBreakdown?.couponDiscountCents ?? 0,
+            globalDiscountCents: quote?.discountBreakdown?.globalDiscountCents ?? 0,
+            discountLabel: quote.discountLabel,
+            shippingCents: quote.shippingCents,
+            totalCents: quote.totalCents,
+            discountType: quote.discountType,
+            note,
+        });
+
+        if (reservedCoupon && (reservedCoupon.ownerUser || reservedCoupon.isRewardCoupon)) {
+            await markPersonalCouponAsUsed(reservedCoupon, order._id, userId);
+        }
+
+        return { order, quote };
+    } catch (err) {
+        if (order?._id) {
+            try {
+                await Order.deleteOne({ _id: order._id });
+            } catch { }
+        }
+
+        if (reservedCoupon?._id) {
+            try {
+                await releaseCouponReservation(quote.couponCodeApplied, order?._id || null);
+            } catch { }
+        }
+
+        for (const d of decremented) {
+            try {
+                await Product.updateOne({ _id: d._id }, { $inc: { stockQty: d.qty } });
+            } catch { }
+        }
+
         throw err;
     }
-
-    const year = new Date().getFullYear();
-
-    const counter = await OrderCounter.findOneAndUpdate(
-        { year },
-        { $inc: { seq: 1 }, $setOnInsert: { year } },
-        { new: true, upsert: true }
-    );
-
-    const orderNumber = 99 + counter.seq;
-    const publicId = `#${year}${orderNumber}`;
-
-    const order = await Order.create({
-        user: userId,
-        publicId,
-        status: "pending_payment",
-        items: quote.items,
-
-        shippingAddress: normalizedAddress,
-        shippingAddressRef,
-
-        billingAddress,
-        billingAddressRef,
-
-        subtotalCents: quote.subtotalCents,
-        discountCents: quote.discountCents,
-        couponCodeApplied: quote.couponCodeApplied || null,
-        couponDiscountCents: quote?.discountBreakdown?.couponDiscountCents ?? 0,
-        globalDiscountCents: quote?.discountBreakdown?.globalDiscountCents ?? 0,
-        discountLabel: quote.discountLabel,
-        shippingCents: quote.shippingCents,
-        totalCents: quote.totalCents,
-        discountType: quote.discountType,
-        note,
-    });
-
-    if (quote.couponCodeApplied && isBankTransfer) {
-        await Coupon.updateOne(
-            {
-                code: quote.couponCodeApplied,
-                ownerUser: userId,
-                isRewardCoupon: true,
-                usedAt: null,
-            },
-            {
-                $set: {
-                    isActive: false,
-                    usedAt: new Date(),
-                    usedByOrder: order._id,
-                    usedByUser: userId,
-                },
-            }
-        );
-    }
-
-    return { order, quote };
 }
+
 
 async function listMyOrders(userId) {
     return Order.find({ user: userId })
@@ -1189,23 +1291,7 @@ async function adminCancelOrderAndRestock(id) {
     }
 
     if (order.couponCodeApplied) {
-        await Coupon.updateOne(
-            {
-                code: order.couponCodeApplied,
-                isRewardCoupon: true,
-                usedByOrder: order._id,
-            },
-            {
-                $set: {
-                    isActive: true,
-                },
-                $unset: {
-                    usedAt: "",
-                    usedByOrder: "",
-                    usedByUser: "",
-                },
-            }
-        );
+        await releaseCouponReservation(order.couponCodeApplied, order._id);
     }
 
     order.status = "cancelled";
