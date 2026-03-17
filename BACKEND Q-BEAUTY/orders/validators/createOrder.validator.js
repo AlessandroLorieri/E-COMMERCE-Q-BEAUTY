@@ -2,6 +2,10 @@ function isNonEmptyString(v) {
     return typeof v === "string" && v.trim().length > 0;
 }
 
+function isPlainObject(v) {
+    return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
 function normalizeCouponCode(v) {
     return typeof v === "string" ? v.trim() : "";
 }
@@ -28,10 +32,19 @@ function isPhone(v) {
     return digits.length >= 7 && digits.length <= 15;
 }
 
-
 function isObjectId(v) {
     if (!isNonEmptyString(v)) return false;
     return /^[a-fA-F0-9]{24}$/.test(v.trim());
+}
+
+function normalizeTaxCode(v) {
+    return typeof v === "string" ? v.trim().toUpperCase() : "";
+}
+
+function isTaxCode(v) {
+    const tc = normalizeTaxCode(v);
+    if (!tc) return false;
+    return /^[A-Z0-9]{16}$/.test(tc) || /^\d{11}$/.test(tc);
 }
 
 function validateItems(items) {
@@ -46,8 +59,10 @@ function validateItems(items) {
     items.forEach((it, idx) => {
         const e = {};
         if (!isNonEmptyString(it?.productId)) e.productId = "productId richiesto";
+
         const qty = Number(it?.qty);
         if (!Number.isInteger(qty) || qty < 1) e.qty = "qty deve essere un intero >= 1";
+
         if (Object.keys(e).length) itemErrors[idx] = e;
     });
 
@@ -62,22 +77,47 @@ function validateQuoteBody(body) {
         const raw = body?.couponCode;
 
         if (typeof raw === "string" && raw.trim() === "") {
-
+            // consentito: coupon vuoto = nessun coupon
         } else if (!isCouponCode(raw)) {
             errors.couponCode = "couponCode non valido (3-32, solo lettere/numeri/_/-)";
         }
     }
+
     return errors;
 }
 
-function normalizeTaxCode(v) {
-    return typeof v === "string" ? v.trim().toUpperCase() : "";
-}
+function validateAddressFields(address, { requirePhone = false } = {}) {
+    const errors = {};
 
-function isTaxCode(v) {
-    const tc = normalizeTaxCode(v);
-    if (!tc) return false;
-    return /^[A-Z0-9]{16}$/.test(tc) || /^\d{11}$/.test(tc);
+    if (!isPlainObject(address)) return errors;
+
+    if (!isNonEmptyString(address.name)) errors.name = "Nome richiesto";
+    if (!isNonEmptyString(address.surname)) errors.surname = "Cognome richiesto";
+
+    if (requirePhone) {
+        if (!isPhone(address.phone)) errors.phone = "Telefono non valido";
+    } else if (
+        Object.prototype.hasOwnProperty.call(address, "phone") &&
+        isNonEmptyString(address.phone) &&
+        !isPhone(address.phone)
+    ) {
+        errors.phone = "Telefono non valido";
+    }
+
+    if (
+        Object.prototype.hasOwnProperty.call(address, "email") &&
+        isNonEmptyString(address.email) &&
+        !isEmail(address.email)
+    ) {
+        errors.email = "Email non valida";
+    }
+
+    if (!isNonEmptyString(address.address)) errors.address = "Indirizzo richiesto";
+    if (!isNonEmptyString(address.streetNumber)) errors.streetNumber = "N° civico richiesto";
+    if (!isNonEmptyString(address.city)) errors.city = "Città richiesta";
+    if (!isCap(address.cap)) errors.cap = "CAP non valido (5 cifre)";
+
+    return errors;
 }
 
 function validateCreateOrderBody(body) {
@@ -87,6 +127,7 @@ function validateCreateOrderBody(body) {
         const raw = body?.couponCode;
 
         if (typeof raw === "string" && raw.trim() === "") {
+            // consentito: coupon vuoto = nessun coupon
         } else if (!isCouponCode(raw)) {
             errors.couponCode = "couponCode non valido (3-32, solo lettere/numeri/_/-)";
         }
@@ -102,47 +143,53 @@ function validateCreateOrderBody(body) {
         }
     }
 
-    const idRaw = body?.shippingAddressId;
-    const hasId = isNonEmptyString(idRaw);
+    const shippingAddressIdRaw = body?.shippingAddressId;
+    const hasShippingAddressId = isNonEmptyString(shippingAddressIdRaw);
 
-    const a = body?.shippingAddress;
-    const ship = {};
+    const shippingAddress = isPlainObject(body?.shippingAddress) ? body.shippingAddress : null;
+    const billingAddress = isPlainObject(body?.billingAddress) ? body.billingAddress : null;
 
-    const taxRaw =
-        a && typeof a === "object" && Object.prototype.hasOwnProperty.call(a, "taxCode")
-            ? a.taxCode
+    const globalTaxRaw =
+        billingAddress && Object.prototype.hasOwnProperty.call(billingAddress, "taxCode")
+            ? billingAddress.taxCode
             : body?.taxCode;
 
-    if (!isNonEmptyString(taxRaw)) {
-        ship.taxCode = "Codice Fiscale richiesto";
-    } else if (!isTaxCode(taxRaw)) {
-        ship.taxCode = "Codice Fiscale non valido (16 caratteri o 11 cifre)";
+    if (!isNonEmptyString(globalTaxRaw)) {
+        errors.taxCode = "Codice Fiscale / P.IVA richiesto";
+    } else if (!isTaxCode(globalTaxRaw)) {
+        errors.taxCode = "Codice Fiscale / P.IVA non valido (16 caratteri o 11 cifre)";
     }
 
-    if (hasId) {
-        if (!isObjectId(idRaw)) {
-            errors.shippingAddressId = "shippingAddressId non valido";
-        }
-
-        if (!errors.shippingAddressId) {
-            if (Object.keys(ship).length) errors.shippingAddress = ship;
-            return errors;
-        }
+    if (hasShippingAddressId && !isObjectId(shippingAddressIdRaw)) {
+        errors.shippingAddressId = "shippingAddressId non valido";
     }
 
-    if (!a || typeof a !== "object") {
+    if (!hasShippingAddressId && !shippingAddress) {
         errors.shippingAddress = "shippingAddress o shippingAddressId richiesto";
-        return errors;
     }
 
-    if (!isNonEmptyString(a.name)) ship.name = "Nome richiesto";
-    if (!isNonEmptyString(a.surname)) ship.surname = "Cognome richiesto";
-    if (!isPhone(a.phone)) ship.phone = "Telefono non valido";
-    if (!isNonEmptyString(a.address)) ship.address = "Indirizzo richiesto";
-    if (!isNonEmptyString(a.city)) ship.city = "Città richiesta";
-    if (!isCap(a.cap)) ship.cap = "CAP non valido (5 cifre)";
+    if (shippingAddress) {
+        const shipErrors = validateAddressFields(shippingAddress, { requirePhone: true });
+        if (Object.keys(shipErrors).length) {
+            errors.shippingAddress = shipErrors;
+        }
+    }
 
-    if (Object.keys(ship).length) errors.shippingAddress = ship;
+    if (billingAddress) {
+        const billingErrors = validateAddressFields(billingAddress, { requirePhone: false });
+
+        if (Object.prototype.hasOwnProperty.call(billingAddress, "taxCode")) {
+            if (!isNonEmptyString(billingAddress.taxCode)) {
+                billingErrors.taxCode = "Codice Fiscale richiesto";
+            } else if (!isTaxCode(billingAddress.taxCode)) {
+                billingErrors.taxCode = "Codice Fiscale non valido (16 caratteri o 11 cifre)";
+            }
+        }
+
+        if (Object.keys(billingErrors).length) {
+            errors.billingAddress = billingErrors;
+        }
+    }
 
     return errors;
 }

@@ -523,7 +523,7 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
 }
 
 
-async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId, couponCode, taxCodeRaw, paymentMethodRaw, noteRaw) {
+async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId, billingAddressRaw, couponCode, taxCodeRaw, paymentMethodRaw, noteRaw) {
     const quote = await computeQuote(userId, itemsRaw, couponCode);
 
     const note = String(noteRaw || "").trim();
@@ -541,10 +541,21 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
     const incomingTaxCode =
         normalizeTaxCode(
             taxCodeRaw ||
+            billingAddressRaw?.taxCode ||
+            billingAddressRaw?.codiceFiscale ||
+            billingAddressRaw?.fiscalCode ||
             shippingAddress?.taxCode ||
             shippingAddress?.codiceFiscale ||
             shippingAddress?.fiscalCode
         ) || null;
+
+    const hasExplicitBillingAddress =
+        !!billingAddressRaw &&
+        typeof billingAddressRaw === "object" &&
+        !Array.isArray(billingAddressRaw);
+
+    const shouldKeepShippingTaxCode =
+        user?.customerType === "piva" || !hasExplicitBillingAddress;
 
     let normalizedAddress = null;
     let shippingAddressRef = null;
@@ -560,7 +571,9 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         const addrTaxCode =
             normalizeTaxCode(addr?.taxCode || addr?.codiceFiscale || addr?.fiscalCode) || null;
 
-        const finalTaxCode = incomingTaxCode || addrTaxCode || null;
+        const finalTaxCode = shouldKeepShippingTaxCode
+            ? (incomingTaxCode || addrTaxCode || null)
+            : null;
 
         shippingAddressRef = addr._id;
         normalizedAddress = normalizeShippingAddress({
@@ -577,9 +590,11 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
 
         normalizedAddress.phone = normalizedAddress.phone || addr.phone || "";
         normalizedAddress.streetNumber = normalizedAddress.streetNumber || addr.streetNumber || "";
-        if (finalTaxCode) normalizedAddress.taxCode = finalTaxCode;
+        if (shouldKeepShippingTaxCode && finalTaxCode) {
+            normalizedAddress.taxCode = finalTaxCode;
+        }
 
-        if (incomingTaxCode && !addrTaxCode) {
+        if (shouldKeepShippingTaxCode && incomingTaxCode && !addrTaxCode) {
             await Address.updateOne(
                 { _id: addr._id, user: userId },
                 { $set: { taxCode: incomingTaxCode, updatedAt: new Date() } }
@@ -589,7 +604,9 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         normalizedAddress = normalizeShippingAddress(shippingAddress);
         normalizedAddress.phone = normalizedAddress.phone || shippingAddress.phone || "";
         normalizedAddress.streetNumber = normalizedAddress.streetNumber || shippingAddress.streetNumber || "";
-        if (incomingTaxCode) normalizedAddress.taxCode = incomingTaxCode;
+        if (shouldKeepShippingTaxCode && incomingTaxCode) {
+            normalizedAddress.taxCode = incomingTaxCode;
+        }
     }
 
     if (!normalizedAddress) {
@@ -601,58 +618,108 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
     let billingAddressRef = null;
     let billingAddress = null;
 
-    let billingAddr = null;
-    if (user?.billingAddressRef && mongoose.Types.ObjectId.isValid(String(user.billingAddressRef))) {
-        billingAddr = await Address.findOne({
-            _id: user.billingAddressRef,
-            user: userId,
-        }).lean();
+    if (user?.customerType !== "piva" && hasExplicitBillingAddress) {
+        const explicitBillingTaxCode =
+            normalizeTaxCode(
+                billingAddressRaw?.taxCode ||
+                billingAddressRaw?.codiceFiscale ||
+                billingAddressRaw?.fiscalCode ||
+                incomingTaxCode
+            ) || "";
 
-        if (billingAddr?._id) {
-            billingAddressRef = billingAddr._id;
+        const billingBase = normalizeShippingAddress({
+            name: billingAddressRaw?.name,
+            surname: billingAddressRaw?.surname,
+            email: billingAddressRaw?.email || user?.email,
+            phone: billingAddressRaw?.phone || normalizedAddress?.phone || user?.phone,
+            taxCode: explicitBillingTaxCode,
+            address: billingAddressRaw?.address,
+            streetNumber: billingAddressRaw?.streetNumber,
+            city: billingAddressRaw?.city,
+            cap: billingAddressRaw?.cap,
+        });
+
+        billingBase.phone =
+            billingBase.phone || billingAddressRaw?.phone || normalizedAddress?.phone || user?.phone || "";
+
+        billingBase.streetNumber =
+            billingBase.streetNumber || billingAddressRaw?.streetNumber || "";
+
+        if (explicitBillingTaxCode) {
+            billingBase.taxCode = explicitBillingTaxCode;
         }
+
+        billingAddress = {
+            companyName: "",
+            vatNumber: "",
+            name: billingBase.name || "",
+            surname: billingBase.surname || "",
+            phone: billingBase.phone || "",
+            email: billingBase.email || user?.email || "",
+            taxCode: billingBase.taxCode || "",
+            address: billingBase.address || "",
+            streetNumber: billingBase.streetNumber || "",
+            city: billingBase.city || "",
+            cap: billingBase.cap || "",
+        };
+    } else {
+        let billingAddr = null;
+
+        if (user?.billingAddressRef && mongoose.Types.ObjectId.isValid(String(user.billingAddressRef))) {
+            billingAddr = await Address.findOne({
+                _id: user.billingAddressRef,
+                user: userId,
+            }).lean();
+
+            if (billingAddr?._id) {
+                billingAddressRef = billingAddr._id;
+            }
+        }
+
+        const billingTaxCode =
+            normalizeTaxCode(
+                user?.taxCode ||
+                billingAddr?.taxCode ||
+                billingAddr?.codiceFiscale ||
+                billingAddr?.fiscalCode ||
+                incomingTaxCode ||
+                normalizedAddress?.taxCode
+            ) || "";
+
+        const billingBase = normalizeShippingAddress({
+            name: pickFirst(billingAddr?.name, normalizedAddress?.name, user?.firstName),
+            surname: pickFirst(billingAddr?.surname, normalizedAddress?.surname, user?.lastName),
+            email: pickFirst(billingAddr?.email, normalizedAddress?.email, user?.email),
+            phone: pickFirst(billingAddr?.phone, normalizedAddress?.phone, user?.phone),
+            taxCode: billingTaxCode,
+            address: pickFirst(billingAddr?.address, normalizedAddress?.address),
+            streetNumber: pickFirst(billingAddr?.streetNumber, normalizedAddress?.streetNumber),
+            city: pickFirst(billingAddr?.city, normalizedAddress?.city),
+            cap: pickFirst(billingAddr?.cap, normalizedAddress?.cap),
+        });
+
+        billingBase.phone = billingBase.phone || billingAddr?.phone || normalizedAddress?.phone || user?.phone || "";
+        billingBase.streetNumber =
+            billingBase.streetNumber || billingAddr?.streetNumber || normalizedAddress?.streetNumber || "";
+
+        if (billingTaxCode) {
+            billingBase.taxCode = billingTaxCode;
+        }
+
+        billingAddress = {
+            companyName: user?.customerType === "piva" ? String(user?.companyName || "").trim() : "",
+            vatNumber: user?.customerType === "piva" ? normalizeVatNumber(user?.vatNumber) : "",
+            name: billingBase.name || "",
+            surname: billingBase.surname || "",
+            phone: billingBase.phone || "",
+            email: billingBase.email || "",
+            taxCode: billingBase.taxCode || "",
+            address: billingBase.address || "",
+            streetNumber: billingBase.streetNumber || "",
+            city: billingBase.city || "",
+            cap: billingBase.cap || "",
+        };
     }
-
-    const billingTaxCode =
-        normalizeTaxCode(
-            user?.taxCode ||
-            billingAddr?.taxCode ||
-            billingAddr?.codiceFiscale ||
-            billingAddr?.fiscalCode ||
-            incomingTaxCode ||
-            normalizedAddress?.taxCode
-        ) || "";
-
-    const billingBase = normalizeShippingAddress({
-        name: pickFirst(billingAddr?.name, normalizedAddress?.name, user?.firstName),
-        surname: pickFirst(billingAddr?.surname, normalizedAddress?.surname, user?.lastName),
-        email: pickFirst(billingAddr?.email, normalizedAddress?.email, user?.email),
-        phone: pickFirst(billingAddr?.phone, normalizedAddress?.phone, user?.phone),
-        taxCode: billingTaxCode,
-        address: pickFirst(billingAddr?.address, normalizedAddress?.address),
-        streetNumber: pickFirst(billingAddr?.streetNumber, normalizedAddress?.streetNumber),
-        city: pickFirst(billingAddr?.city, normalizedAddress?.city),
-        cap: pickFirst(billingAddr?.cap, normalizedAddress?.cap),
-    });
-
-    billingBase.phone = billingBase.phone || billingAddr?.phone || normalizedAddress?.phone || user?.phone || "";
-    billingBase.streetNumber =
-        billingBase.streetNumber || billingAddr?.streetNumber || normalizedAddress?.streetNumber || "";
-    if (billingTaxCode) billingBase.taxCode = billingTaxCode;
-
-    billingAddress = {
-        companyName: user?.customerType === "piva" ? String(user?.companyName || "").trim() : "",
-        vatNumber: user?.customerType === "piva" ? normalizeVatNumber(user?.vatNumber) : "",
-        name: billingBase.name || "",
-        surname: billingBase.surname || "",
-        phone: billingBase.phone || "",
-        email: billingBase.email || "",
-        taxCode: billingBase.taxCode || "",
-        address: billingBase.address || "",
-        streetNumber: billingBase.streetNumber || "",
-        city: billingBase.city || "",
-        cap: billingBase.cap || "",
-    };
 
     const decremented = [];
     let reservedCoupon = null;

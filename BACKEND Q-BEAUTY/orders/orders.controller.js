@@ -84,12 +84,23 @@ async function create(req, res) {
             return res.status(400).json({ message: "Validation error", errors });
         }
 
-        const { items, shippingAddress, shippingAddressId, couponCode, taxCode, paymentMethod, note } = req.body || {};
+        const {
+            items,
+            shippingAddress,
+            shippingAddressId,
+            billingAddress,
+            couponCode,
+            taxCode,
+            paymentMethod,
+            note,
+        } = req.body || {};
+
         const { order, quote } = await createOrder(
             userId,
             items,
             shippingAddress,
             shippingAddressId,
+            billingAddress,
             couponCode,
             taxCode,
             paymentMethod,

@@ -92,6 +92,10 @@ function pickShippingAddress(raw) {
     return Object.keys(out).length ? out : undefined;
 }
 
+function pickBillingAddress(raw) {
+    return pickShippingAddress(raw);
+}
+
 function validateObjectIdParam(paramName) {
     return (req, res, next) => {
         const v = req.params?.[paramName];
@@ -130,6 +134,8 @@ function validateCreateBody(req, res, next) {
     const finalShippingAddressId = shippingAddressId && isObjectId(shippingAddressId) ? shippingAddressId : undefined;
 
     const shippingAddress = pickShippingAddress(req.body?.shippingAddress);
+    const billingAddress = pickBillingAddress(req.body?.billingAddress);
+
     const taxCode = pickString(req.body?.taxCode, 20);
     const finalTaxCode = taxCode ? taxCode.toUpperCase() : undefined;
 
@@ -142,6 +148,7 @@ function validateCreateBody(req, res, next) {
         ...(finalPaymentMethod ? { paymentMethod: finalPaymentMethod } : {}),
         ...(finalShippingAddressId ? { shippingAddressId: finalShippingAddressId } : {}),
         ...(shippingAddress ? { shippingAddress } : {}),
+        ...(billingAddress ? { billingAddress } : {}),
         ...(finalTaxCode ? { taxCode: finalTaxCode } : {}),
         ...(typeof note === "string" ? { note } : {}),
     };

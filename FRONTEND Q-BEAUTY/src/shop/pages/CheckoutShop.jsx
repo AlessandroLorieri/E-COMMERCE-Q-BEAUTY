@@ -30,8 +30,19 @@ export default function CheckoutShop() {
     const [form, setForm] = useState({
         name: "",
         surname: "",
-        taxCode: "",
         phone: "",
+        address: "",
+        streetNumber: "",
+        city: "",
+        cap: "",
+    });
+
+    const [billingSameAsShipping, setBillingSameAsShipping] = useState(false);
+
+    const [billingForm, setBillingForm] = useState({
+        name: "",
+        surname: "",
+        taxCode: "",
         address: "",
         streetNumber: "",
         city: "",
@@ -96,7 +107,6 @@ export default function CheckoutShop() {
                         ...prev,
                         name: normalizeHumanText(def.name || prev.name),
                         surname: normalizeHumanText(def.surname || prev.surname),
-                        taxCode: normalizeTaxCode(def.taxCode || def.codiceFiscale || def.fiscalCode || prev.taxCode || ""),
                         phone: def.phone || prev.phone,
                         address: def.address || prev.address,
                         streetNumber: def.streetNumber || prev.streetNumber,
@@ -131,7 +141,6 @@ export default function CheckoutShop() {
             ...prev,
             name: normalizeHumanText(a.name || ""),
             surname: normalizeHumanText(a.surname || ""),
-            taxCode: normalizeTaxCode(a.taxCode || a.codiceFiscale || a.fiscalCode || prev.taxCode || ""),
             phone: a.phone || "",
             address: a.address || "",
             streetNumber: a.streetNumber || "",
@@ -150,7 +159,6 @@ export default function CheckoutShop() {
             ...prev,
             name: "",
             surname: "",
-            taxCode: storedTaxCode || "",
             phone: "",
             address: "",
             streetNumber: "",
@@ -170,6 +178,47 @@ export default function CheckoutShop() {
             if (!prev[name]) return prev;
             const next = { ...prev };
             delete next[name];
+            return next;
+        });
+    }
+
+    function onBillingChange(e) {
+        const { name, value } = e.target;
+        setBillingForm((prev) => ({ ...prev, [name]: value }));
+        setSubmitError("");
+
+        const errorKeyMap = {
+            name: "billingName",
+            surname: "billingSurname",
+            taxCode: "billingTaxCode",
+            address: "billingAddress",
+            streetNumber: "billingStreetNumber",
+            city: "billingCity",
+            cap: "billingCap",
+        };
+
+        const errorKey = errorKeyMap[name];
+
+        setFieldErrors((prev) => {
+            if (!errorKey || !prev[errorKey]) return prev;
+            const next = { ...prev };
+            delete next[errorKey];
+            return next;
+        });
+    }
+
+    function onToggleBillingSameAsShipping(checked) {
+        setBillingSameAsShipping(checked);
+        setSubmitError("");
+
+        setFieldErrors((prev) => {
+            const next = { ...prev };
+            delete next.billingName;
+            delete next.billingSurname;
+            delete next.billingAddress;
+            delete next.billingStreetNumber;
+            delete next.billingCity;
+            delete next.billingCap;
             return next;
         });
     }
@@ -251,7 +300,7 @@ export default function CheckoutShop() {
         if (isVatUser) return;
         if (!storedTaxCode) return;
 
-        setForm((prev) => {
+        setBillingForm((prev) => {
             const current = normalizeTaxCode(prev.taxCode);
             if (current === storedTaxCode) return prev;
             return { ...prev, taxCode: storedTaxCode };
@@ -260,16 +309,9 @@ export default function CheckoutShop() {
 
     function validateClient() {
         const e = {};
+
         if (!form.name.trim()) e.name = "Nome richiesto";
         if (!form.surname.trim()) e.surname = "Cognome richiesto";
-
-        if (!isVatUser) {
-            const tc = storedTaxCode || normalizeTaxCode(form.taxCode);
-            if (!tc) e.taxCode = "Codice Fiscale richiesto";
-            else if (!isValidCodiceFiscale(tc)) {
-                e.taxCode = "Codice Fiscale non valido";
-            }
-        }
 
         if (!form.phone.trim()) e.phone = "Telefono richiesto";
         else {
@@ -283,6 +325,26 @@ export default function CheckoutShop() {
 
         if (!form.cap.trim()) e.cap = "CAP richiesto";
         else if (!/^\d{5}$/.test(form.cap.trim())) e.cap = "CAP non valido (5 cifre)";
+
+        if (!isVatUser) {
+            const tc = storedTaxCode || normalizeTaxCode(billingForm.taxCode);
+
+            if (!tc) e.billingTaxCode = "Codice Fiscale richiesto";
+            else if (!isValidCodiceFiscale(tc)) {
+                e.billingTaxCode = "Codice Fiscale non valido";
+            }
+
+            if (!billingSameAsShipping) {
+                if (!billingForm.name.trim()) e.billingName = "Nome richiesto";
+                if (!billingForm.surname.trim()) e.billingSurname = "Cognome richiesto";
+                if (!billingForm.address.trim()) e.billingAddress = "Indirizzo richiesto";
+                if (!billingForm.streetNumber.trim()) e.billingStreetNumber = "N° civico richiesto";
+                if (!billingForm.city.trim()) e.billingCity = "Città richiesta";
+
+                if (!billingForm.cap.trim()) e.billingCap = "CAP richiesto";
+                else if (!/^\d{5}$/.test(billingForm.cap.trim())) e.billingCap = "CAP non valido (5 cifre)";
+            }
+        }
 
         return e;
     }
@@ -346,71 +408,135 @@ export default function CheckoutShop() {
         }
     }
 
+    function buildShippingPayload() {
+        return {
+            name: normalizeHumanText(form.name),
+            surname: normalizeHumanText(form.surname),
+            phone: form.phone.trim(),
+            email: user?.email || "",
+            address: form.address.trim(),
+            streetNumber: form.streetNumber.trim(),
+            city: normalizeHumanText(form.city),
+            cap: form.cap.trim(),
+        };
+    }
+
+    function buildPrivateBillingPayload() {
+        const taxCode = storedTaxCode || normalizeTaxCode(billingForm.taxCode);
+
+        if (billingSameAsShipping) {
+            return {
+                name: normalizeHumanText(form.name),
+                surname: normalizeHumanText(form.surname),
+                phone: form.phone.trim(),
+                email: user?.email || "",
+                taxCode,
+                address: form.address.trim(),
+                streetNumber: form.streetNumber.trim(),
+                city: normalizeHumanText(form.city),
+                cap: form.cap.trim(),
+            };
+        }
+
+        return {
+            name: normalizeHumanText(billingForm.name),
+            surname: normalizeHumanText(billingForm.surname),
+            phone: form.phone.trim(),
+            email: user?.email || "",
+            taxCode,
+            address: billingForm.address.trim(),
+            streetNumber: billingForm.streetNumber.trim(),
+            city: normalizeHumanText(billingForm.city),
+            cap: billingForm.cap.trim(),
+        };
+    }
+
     async function confirmOrderAndPay() {
         if (!cart.length) {
             setSubmitError("Il carrello è vuoto.");
             return;
         }
 
-        if (!(addressMode === "saved" && selectedAddressId)) {
-            const e = validateClient();
+        const e = validateClient();
+
+        if (addressMode === "saved" && selectedAddressId) {
+            const next = { ...e };
+            delete next.name;
+            delete next.surname;
+            delete next.phone;
+            delete next.address;
+            delete next.streetNumber;
+            delete next.city;
+            delete next.cap;
+
+            setFieldErrors(e);
+
+            if (Object.keys(next).length) {
+                setSubmitError("Controlla i campi evidenziati.");
+                return;
+            }
+        } else {
             setFieldErrors(e);
             if (Object.keys(e).length) {
                 setSubmitError("Controlla i campi evidenziati.");
                 return;
             }
-        } else {
-            setFieldErrors({});
         }
 
         setSubmitting(true);
         setSubmitError("");
 
         try {
-            // ✅ P.IVA: non chiediamo nulla nel checkout, prendiamo dal profilo (storedTaxCode)
-            const taxCode = isVatUser ? storedTaxCode : (storedTaxCode || normalizeTaxCode(form.taxCode));
+            const taxCode = isVatUser
+                ? storedTaxCode
+                : (storedTaxCode || normalizeTaxCode(billingForm.taxCode));
 
             if (isVatUser) {
                 if (!taxCode) {
                     setSubmitError("Dati di fatturazione mancanti nel profilo. Aggiornali in Area utente.");
                     return;
                 }
-                // Se vuoi, qui puoi validare P.IVA con checksum (poi lo aggiungiamo).
             } else {
                 if (!taxCode) {
-                    setFieldErrors((prev) => ({ ...prev, taxCode: "Codice Fiscale richiesto" }));
+                    setFieldErrors((prev) => ({ ...prev, billingTaxCode: "Codice Fiscale richiesto" }));
                     setSubmitError("Controlla i campi evidenziati.");
                     return;
                 }
                 if (!isValidCodiceFiscale(taxCode)) {
-                    setFieldErrors((prev) => ({ ...prev, taxCode: "Codice Fiscale non valido" }));
+                    setFieldErrors((prev) => ({ ...prev, billingTaxCode: "Codice Fiscale non valido" }));
                     setSubmitError("Controlla i campi evidenziati.");
                     return;
                 }
             }
 
-            const payload = {
-                name: normalizeHumanText(form.name),
-                surname: normalizeHumanText(form.surname),
-                taxCode,
-                phone: form.phone.trim(),
-                email: user?.email || "",
-                address: form.address.trim(),
-                streetNumber: form.streetNumber.trim(),
-                city: normalizeHumanText(form.city),
-                cap: form.cap.trim(),
-            };
+            const shippingPayload = buildShippingPayload();
+            const billingPayload = !isVatUser ? buildPrivateBillingPayload() : null;
 
             let created;
 
             if (addressMode === "saved" && selectedAddressId) {
-                created = await createOrder({ shippingAddressId: selectedAddressId, taxCode, note: orderNote });
+                created = await createOrder({
+                    shippingAddressId: selectedAddressId,
+                    taxCode,
+                    note: orderNote,
+                    ...(!isVatUser && billingPayload ? { billingAddress: billingPayload } : {}),
+                });
             } else {
                 if (saveToAddressBook) {
-                    const saved = await createAddress({ label: addressLabel.trim(), ...payload });
-                    created = await createOrder({ shippingAddressId: saved._id, taxCode, note: orderNote });
+                    const saved = await createAddress({ label: addressLabel.trim(), ...shippingPayload });
+                    created = await createOrder({
+                        shippingAddressId: saved._id,
+                        taxCode,
+                        note: orderNote,
+                        ...(!isVatUser && billingPayload ? { billingAddress: billingPayload } : {}),
+                    });
                 } else {
-                    created = await createOrder({ shippingAddress: payload, taxCode, note: orderNote });
+                    created = await createOrder({
+                        shippingAddress: shippingPayload,
+                        taxCode,
+                        note: orderNote,
+                        ...(!isVatUser && billingPayload ? { billingAddress: billingPayload } : {}),
+                    });
                 }
             }
 
@@ -439,15 +565,30 @@ export default function CheckoutShop() {
             return;
         }
 
-        if (!(addressMode === "saved" && selectedAddressId)) {
-            const e = validateClient();
+        const e = validateClient();
+
+        if (addressMode === "saved" && selectedAddressId) {
+            const next = { ...e };
+            delete next.name;
+            delete next.surname;
+            delete next.phone;
+            delete next.address;
+            delete next.streetNumber;
+            delete next.city;
+            delete next.cap;
+
+            setFieldErrors(e);
+
+            if (Object.keys(next).length) {
+                setSubmitError("Controlla i campi evidenziati.");
+                return;
+            }
+        } else {
             setFieldErrors(e);
             if (Object.keys(e).length) {
                 setSubmitError("Controlla i campi evidenziati.");
                 return;
             }
-        } else {
-            setFieldErrors({});
         }
 
         setSubmitting(true);
@@ -455,7 +596,9 @@ export default function CheckoutShop() {
         setSubmitError("");
 
         try {
-            const taxCode = isVatUser ? storedTaxCode : (storedTaxCode || normalizeTaxCode(form.taxCode));
+            const taxCode = isVatUser
+                ? storedTaxCode
+                : (storedTaxCode || normalizeTaxCode(billingForm.taxCode));
 
             if (isVatUser && !taxCode) {
                 setSubmitError("Dati di fatturazione mancanti nel profilo. Aggiornali in Area utente.");
@@ -464,39 +607,48 @@ export default function CheckoutShop() {
 
             if (!isVatUser) {
                 if (!taxCode) {
-                    setFieldErrors((prev) => ({ ...prev, taxCode: "Codice Fiscale richiesto" }));
+                    setFieldErrors((prev) => ({ ...prev, billingTaxCode: "Codice Fiscale richiesto" }));
                     setSubmitError("Controlla i campi evidenziati.");
                     return;
                 }
                 if (!isValidCodiceFiscale(taxCode)) {
-                    setFieldErrors((prev) => ({ ...prev, taxCode: "Codice Fiscale non valido" }));
+                    setFieldErrors((prev) => ({ ...prev, billingTaxCode: "Codice Fiscale non valido" }));
                     setSubmitError("Controlla i campi evidenziati.");
                     return;
                 }
             }
 
-            const payload = {
-                name: normalizeHumanText(form.name),
-                surname: normalizeHumanText(form.surname),
-                taxCode,
-                phone: form.phone.trim(),
-                email: user?.email || "",
-                address: form.address.trim(),
-                streetNumber: form.streetNumber.trim(),
-                city: normalizeHumanText(form.city),
-                cap: form.cap.trim(),
-            };
+            const shippingPayload = buildShippingPayload();
+            const billingPayload = !isVatUser ? buildPrivateBillingPayload() : null;
 
             let created;
 
             if (addressMode === "saved" && selectedAddressId) {
-                created = await createOrder({ shippingAddressId: selectedAddressId, taxCode, paymentMethod: "bank_transfer", note: orderNote });
+                created = await createOrder({
+                    shippingAddressId: selectedAddressId,
+                    taxCode,
+                    paymentMethod: "bank_transfer",
+                    note: orderNote,
+                    ...(!isVatUser && billingPayload ? { billingAddress: billingPayload } : {}),
+                });
             } else {
                 if (saveToAddressBook) {
-                    const saved = await createAddress({ label: addressLabel.trim(), ...payload });
-                    created = await createOrder({ shippingAddressId: saved._id, taxCode, paymentMethod: "bank_transfer", note: orderNote });
+                    const saved = await createAddress({ label: addressLabel.trim(), ...shippingPayload });
+                    created = await createOrder({
+                        shippingAddressId: saved._id,
+                        taxCode,
+                        paymentMethod: "bank_transfer",
+                        note: orderNote,
+                        ...(!isVatUser && billingPayload ? { billingAddress: billingPayload } : {}),
+                    });
                 } else {
-                    created = await createOrder({ shippingAddress: payload, taxCode, paymentMethod: "bank_transfer", note: orderNote });
+                    created = await createOrder({
+                        shippingAddress: shippingPayload,
+                        taxCode,
+                        paymentMethod: "bank_transfer",
+                        note: orderNote,
+                        ...(!isVatUser && billingPayload ? { billingAddress: billingPayload } : {}),
+                    });
                 }
             }
 
@@ -521,23 +673,10 @@ export default function CheckoutShop() {
         }
     }
 
-
     if (loading) return <BrandSpinner text="Sto preparando il checkout..." />;
     if (!user) return <BrandSpinner text="Ti porto alla pagina di accesso..." />;
 
     const busy = submitting || paying || banking;
-
-    const selectedSavedAddress =
-        addressMode === "saved" && selectedAddressId
-            ? addresses.find((a) => a._id === selectedAddressId)
-            : null;
-
-    const selectedSavedAddressTaxCode = normalizeTaxCode(
-        selectedSavedAddress?.taxCode ||
-        selectedSavedAddress?.codiceFiscale ||
-        selectedSavedAddress?.fiscalCode ||
-        ""
-    );
 
     return (
         <div className="container py-4 shop-checkout" style={{ maxWidth: 820 }}>
@@ -689,34 +828,6 @@ export default function CheckoutShop() {
                                 {fieldErrors.surname && <div className="invalid-feedback">{fieldErrors.surname}</div>}
                             </div>
 
-                            {!isVatUser ? (
-                                <div className="col-12">
-                                    <label className="form-label">Codice Fiscale</label>
-                                    <input
-                                        className={`form-control ${fieldErrors.taxCode ? "is-invalid" : ""}`}
-                                        name="taxCode"
-                                        value={form.taxCode}
-                                        onChange={onChange}
-                                        disabled={busy || Boolean(storedTaxCode) || (addressMode === "saved" && !!selectedSavedAddressTaxCode)}
-                                        placeholder="Es. RSSMRA80A01H501U"
-                                        autoCapitalize="characters"
-                                        autoCorrect="off"
-                                        spellCheck={false}
-                                        inputMode="text"
-                                    />
-                                    {fieldErrors.taxCode && <div className="invalid-feedback">{fieldErrors.taxCode}</div>}
-                                    {!fieldErrors.taxCode ? (
-                                        storedTaxCode ? (
-                                            <div className="form-text">Codice fiscale già salvato nel profilo: lo useremo automaticamente.</div>
-                                        ) : (addressMode === "saved" && selectedAddressId && form.taxCode) ? (
-                                            <div className="form-text">Codice fiscale precompilato dall’indirizzo salvato.</div>
-                                        ) : (
-                                            <div className="form-text">16 caratteri.</div>
-                                        )
-                                    ) : null}
-                                </div>
-                            ) : null}
-
                             <div className="col-12">
                                 <label className="form-label">Telefono</label>
                                 <input
@@ -732,9 +843,9 @@ export default function CheckoutShop() {
                             <div className="col-12">
                                 <label className="form-label">Indirizzo</label>
                                 <input
-                                    className={`form-control ${fieldErrors.address ? "is-invalid" : ""}`}
-                                    name="address"
-                                    value={form.address}
+                                    className={`form-control ${fieldErrors.streetNumber ? "is-invalid" : ""}`}
+                                    name="streetNumber"
+                                    value={form.streetNumber}
                                     onChange={onChange}
                                     disabled={busy || (addressMode === "saved" && selectedAddressId)}
                                 />
@@ -766,7 +877,6 @@ export default function CheckoutShop() {
                                             city: normalizeHumanText(e.target.value),
                                         }))
                                     }
-
                                     disabled={busy || (addressMode === "saved" && selectedAddressId)}
                                 />
                                 {fieldErrors.city && <div className="invalid-feedback">{fieldErrors.city}</div>}
@@ -784,6 +894,160 @@ export default function CheckoutShop() {
                                 {fieldErrors.cap && <div className="invalid-feedback">{fieldErrors.cap}</div>}
                             </div>
                         </div>
+
+                        {!isVatUser ? (
+                            <>
+                                <hr className="my-4" />
+
+                                <h5 className="mb-2">Dati di fatturazione</h5>
+
+                                <div className="form-check mb-3">
+                                    <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        id="billingSameAsShipping"
+                                        checked={billingSameAsShipping}
+                                        onChange={(e) => onToggleBillingSameAsShipping(e.target.checked)}
+                                        disabled={busy}
+                                    />
+                                    <label className="form-check-label" htmlFor="billingSameAsShipping">
+                                        Confermo che i dati di fatturazione sono uguali a quelli di spedizione
+                                    </label>
+                                </div>
+
+                                {billingSameAsShipping ? (
+                                    <div className="text-muted mb-3" style={{ fontSize: 13 }}>
+                                        Nome, cognome e indirizzo di fatturazione verranno presi dai dati di spedizione.
+                                        Inserisci comunque il Codice Fiscale dell’intestatario.
+                                    </div>
+                                ) : null}
+
+                                <div className="row g-2">
+                                    {!billingSameAsShipping ? (
+                                        <>
+                                            <div className="col-12 col-md-6">
+                                                <label className="form-label">Nome intestatario</label>
+                                                <input
+                                                    className={`form-control ${fieldErrors.billingName ? "is-invalid" : ""}`}
+                                                    name="name"
+                                                    value={billingForm.name}
+                                                    onChange={onBillingChange}
+                                                    onBlur={(e) =>
+                                                        setBillingForm((prev) => ({
+                                                            ...prev,
+                                                            name: normalizeHumanText(e.target.value),
+                                                        }))
+                                                    }
+                                                    disabled={busy}
+                                                />
+                                                {fieldErrors.billingName && <div className="invalid-feedback">{fieldErrors.billingName}</div>}
+                                            </div>
+
+                                            <div className="col-12 col-md-6">
+                                                <label className="form-label">Cognome intestatario</label>
+                                                <input
+                                                    className={`form-control ${fieldErrors.billingSurname ? "is-invalid" : ""}`}
+                                                    name="surname"
+                                                    value={billingForm.surname}
+                                                    onChange={onBillingChange}
+                                                    onBlur={(e) =>
+                                                        setBillingForm((prev) => ({
+                                                            ...prev,
+                                                            surname: normalizeHumanText(e.target.value),
+                                                        }))
+                                                    }
+                                                    disabled={busy}
+                                                />
+                                                {fieldErrors.billingSurname && <div className="invalid-feedback">{fieldErrors.billingSurname}</div>}
+                                            </div>
+                                        </>
+                                    ) : null}
+
+                                    <div className="col-12">
+                                        <label className="form-label">Codice Fiscale</label>
+                                        <input
+                                            className={`form-control ${fieldErrors.billingTaxCode ? "is-invalid" : ""}`}
+                                            name="taxCode"
+                                            value={billingForm.taxCode}
+                                            onChange={onBillingChange}
+                                            disabled={busy || Boolean(storedTaxCode)}
+                                            placeholder="Es. RSSMRA80A01H501U"
+                                            autoCapitalize="characters"
+                                            autoCorrect="off"
+                                            spellCheck={false}
+                                            inputMode="text"
+                                        />
+                                        {fieldErrors.billingTaxCode && <div className="invalid-feedback">{fieldErrors.billingTaxCode}</div>}
+                                        {!fieldErrors.billingTaxCode ? (
+                                            storedTaxCode ? (
+                                                <div className="form-text">Codice fiscale già salvato nel profilo: lo useremo automaticamente.</div>
+                                            ) : (
+                                                <div className="form-text">16 caratteri.</div>
+                                            )
+                                        ) : null}
+                                    </div>
+
+                                    {!billingSameAsShipping ? (
+                                        <>
+                                            <div className="col-12">
+                                                <label className="form-label">Indirizzo di fatturazione</label>
+                                                <input
+                                                    className={`form-control ${fieldErrors.billingAddress ? "is-invalid" : ""}`}
+                                                    name="address"
+                                                    value={billingForm.address}
+                                                    onChange={onBillingChange}
+                                                    disabled={busy}
+                                                />
+                                                {fieldErrors.billingAddress && <div className="invalid-feedback">{fieldErrors.billingAddress}</div>}
+                                            </div>
+
+                                            <div className="col-12 col-md-3">
+                                                <label className="form-label">N° civico</label>
+                                                <input
+                                                    className={`form-control ${fieldErrors.billingStreetNumber ? "is-invalid" : ""}`}
+                                                    name="streetNumber"
+                                                    value={billingForm.streetNumber}
+                                                    onChange={onBillingChange}
+                                                    disabled={busy}
+                                                />
+                                                {fieldErrors.billingStreetNumber && <div className="invalid-feedback">{fieldErrors.billingStreetNumber}</div>}
+                                            </div>
+
+                                            <div className="col-12 col-md-6">
+                                                <label className="form-label">Città</label>
+                                                <input
+                                                    className={`form-control ${fieldErrors.billingCity ? "is-invalid" : ""}`}
+                                                    name="city"
+                                                    value={billingForm.city}
+                                                    onChange={onBillingChange}
+                                                    onBlur={(e) =>
+                                                        setBillingForm((prev) => ({
+                                                            ...prev,
+                                                            city: normalizeHumanText(e.target.value),
+                                                        }))
+                                                    }
+                                                    disabled={busy}
+                                                />
+                                                {fieldErrors.billingCity && <div className="invalid-feedback">{fieldErrors.billingCity}</div>}
+                                            </div>
+
+                                            <div className="col-12 col-md-3">
+                                                <label className="form-label">CAP</label>
+                                                <input
+                                                    className={`form-control ${fieldErrors.billingCap ? "is-invalid" : ""}`}
+                                                    name="cap"
+                                                    value={billingForm.cap}
+                                                    onChange={onBillingChange}
+                                                    disabled={busy}
+                                                />
+                                                {fieldErrors.billingCap && <div className="invalid-feedback">{fieldErrors.billingCap}</div>}
+                                            </div>
+                                        </>
+                                    ) : null}
+                                </div>
+                            </>
+                        ) : null}
+
                     </div>
                 </div>
 
