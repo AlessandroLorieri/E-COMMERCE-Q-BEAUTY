@@ -664,7 +664,7 @@ Totale pagato: ${total}
 Riepilogo:
 Subtotale: ${subtotal}
 ${discountTextLine ? `${discountTextLine}\n` : ""}Spedizione: ${shipping}
-Totale: ${total}
+Totale: ${total}${orderNoteTextBlock}
 
 Ti aggiorneremo appena la spedizione sarà affidata al corriere.
 
@@ -942,6 +942,21 @@ async function sendBankTransferInstructionsEmail({
   const deadlineText = `entro ${hours} ore`;
 
   const total = formatEURFromCents(order?.totalCents);
+  const subtotal = formatEURFromCents(order?.subtotalCents);
+  const discountCents = Number(order?.discountCents) || 0;
+  const discountLabel = String(order?.discountLabel || "").trim();
+  const shippingCents = Number(order?.shippingCents) || 0;
+  const shipping = shippingCents === 0 ? "Gratis" : formatEURFromCents(order?.shippingCents);
+  const orderNote = String(order?.note || "").trim();
+
+  const discountTextLine =
+    discountCents > 0
+      ? `Sconto${discountLabel ? ` (${discountLabel})` : ""}: -${formatEURFromCents(discountCents)}`
+      : "";
+
+  const orderNoteTextBlock = orderNote
+    ? `\nNote ordine:\n${orderNote}\n`
+    : "";
 
   const subject = `Q•BEAUTY | Istruzioni bonifico — Ordine ${pid}`.trim();
   const preheader = `Completa il pagamento via bonifico (${total}) per l’ordine ${pid}.`;
@@ -956,6 +971,11 @@ Importo: ${total}
 Intestatario: ${finalBeneficiary}
 IBAN: ${finalIban}
 Causale: ${pid}
+
+Riepilogo ordine:
+Subtotale: ${subtotal}
+${discountTextLine ? `${discountTextLine}\n` : ""}Spedizione: ${shipping}
+Totale: ${total}${orderNoteTextBlock}
 
 Ti chiediamo di effettuare il pagamento ${deadlineText}.
 Quando riceveremo l’accredito, confermeremo l’ordine e procederemo con la preparazione.
@@ -981,6 +1001,60 @@ Q•BEAUTY
     buttonText: "#1a1a1a",
     eyebrow: "#9a8760",
   };
+
+  const breakdownHtml = `
+  <div
+    bgcolor="${colors.panelBg}"
+    style="margin:18px 0 0; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+  >
+    <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+      Riepilogo ordine
+    </div>
+
+    <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText};">
+      <tbody>
+        <tr>
+          <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Subtotale</td>
+          <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(subtotal)}</td>
+        </tr>
+
+        ${discountCents > 0
+      ? `<tr>
+               <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
+               <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">- ${escapeHtml(formatEURFromCents(discountCents))}</td>
+             </tr>`
+      : ""
+    }
+
+        <tr>
+          <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Spedizione</td>
+          <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(shipping)}</td>
+        </tr>
+
+        <tr>
+          <td style="padding:10px 12px 0 0; font-weight:700; border-top:1px solid ${colors.border}; word-break:break-word;">Totale</td>
+          <td style="width:120px; padding:10px 0 0; text-align:right; font-weight:800; border-top:1px solid ${colors.border}; white-space:nowrap; vertical-align:top;">${escapeHtml(total)}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+`;
+
+  const orderNoteHtml = orderNote
+    ? `
+    <div
+      bgcolor="${colors.panelBg}"
+      style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+    >
+      <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+        Note ordine
+      </div>
+      <div style="font-family:Arial,sans-serif; font-size:13px; line-height:1.6; color:${colors.panelText}; white-space:pre-wrap;">
+        ${escapeHtml(orderNote)}
+      </div>
+    </div>
+  `
+    : "";
 
   const html = `
 <!doctype html>
@@ -1106,10 +1180,13 @@ Q•BEAUTY
                       </tr>
                     </table>
 
-                    <div style="margin-top:10px; font-family:Arial,sans-serif; font-size:12px; line-height:1.55; color:${colors.muted};">
-                      Suggerimento: copia e incolla <strong>IBAN</strong> e <strong>Causale</strong> per evitare errori.
-                    </div>
+                  <div style="margin-top:10px; font-family:Arial,sans-serif; font-size:12px; line-height:1.55; color:${colors.muted};">
+                    Suggerimento: copia e incolla <strong>IBAN</strong> e <strong>Causale</strong> per evitare errori.
                   </div>
+                  </div>
+
+                    ${breakdownHtml}
+                    ${orderNoteHtml}
 
                   <p style="margin:16px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
                     Se hai già effettuato il bonifico, puoi ignorare questo messaggio: aggiorneremo l’ordine non appena vedremo l’accredito.

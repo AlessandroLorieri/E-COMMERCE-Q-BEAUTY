@@ -55,6 +55,8 @@ export default function OrdersShop() {
     const [refreshing, setRefreshing] = useState(false);
 
     const [payingOrderId, setPayingOrderId] = useState(null);
+    const [sendingBankMailOrderId, setSendingBankMailOrderId] = useState(null);
+    const [bankMailFeedback, setBankMailFeedback] = useState({});
 
     useEffect(() => {
         if (loading) return;
@@ -132,6 +134,62 @@ export default function OrdersShop() {
         }
     }
 
+    async function resendBankInstructions(orderId) {
+        setError("");
+        setSendingBankMailOrderId(orderId);
+
+        setBankMailFeedback((prev) => {
+            const next = { ...prev };
+            delete next[orderId];
+            return next;
+        });
+
+        try {
+            const oid = String(orderId || "").trim();
+            if (!oid) throw new Error("orderId mancante");
+
+            const res = await authFetch("/api/payments/bank-transfer/send-instructions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ orderId: oid, force: true }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                throw new Error(data?.message || "Errore invio istruzioni bonifico");
+            }
+
+            let message = "Istruzioni bonifico inviate con successo.";
+
+            if (data?.alreadyPaid) {
+                message = "Questo ordine risulta già pagato.";
+            } else if (data?.resent) {
+                message = "Istruzioni bonifico reinviate con successo.";
+            }
+
+            setBankMailFeedback((prev) => ({
+                ...prev,
+                [orderId]: { type: "success", message },
+            }));
+        } catch (e) {
+            if (e?.code === "SESSION_EXPIRED") {
+                navigate("/shop/login?next=/shop/orders", { replace: true });
+                return;
+            }
+
+            const message = e?.message || "Errore invio istruzioni bonifico";
+
+            setBankMailFeedback((prev) => ({
+                ...prev,
+                [orderId]: { type: "error", message },
+            }));
+        } finally {
+            setSendingBankMailOrderId(null);
+        }
+    }
+
     if (loading || (pageLoading && orders.length === 0)) {
         return <BrandSpinner text="Carico i tuoi ordini..." />;
     }
@@ -183,6 +241,12 @@ export default function OrdersShop() {
                         const ship = o.shippingAddress || {};
                         const meta = statusMeta(o.status);
 
+                        const paymentProvider = String(o.paymentProvider || o.paymentMethod || "").trim().toLowerCase();
+                        const isBankTransferOrder = paymentProvider === "bank_transfer" || paymentProvider === "bonifico";
+                        const isPendingStripeOrder = o.status === "pending_payment" && !isBankTransferOrder;
+                        const isPendingBankTransferOrder = o.status === "pending_payment" && isBankTransferOrder;
+                        const bankFeedback = bankMailFeedback[o._id] || null;
+
                         return (
                             <div
                                 key={o._id}
@@ -223,7 +287,7 @@ export default function OrdersShop() {
                                 {isOpen && (
                                     <div className="mt-3 pt-3 border-top">
                                         {/* AZIONE PAGAMENTO */}
-                                        {o.status === "pending_payment" ? (
+                                        {isPendingStripeOrder ? (
                                             <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                                                 <div className="text-muted" style={{ fontSize: 13 }}>
                                                     Pagamento non completato. Puoi riprendere il checkout.
@@ -237,6 +301,34 @@ export default function OrdersShop() {
                                                 >
                                                     {payingOrderId === o._id ? "Apro Stripe..." : "Completa pagamento"}
                                                 </button>
+                                            </div>
+                                        ) : null}
+
+                                        {isPendingBankTransferOrder ? (
+                                            <div className="mb-3">
+                                                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                                    <div className="text-muted" style={{ fontSize: 13 }}>
+                                                        Ordine in attesa di bonifico. Le istruzioni di pagamento ti sono state inviate via email.
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        className="btn shop-btn-outline"
+                                                        onClick={() => resendBankInstructions(o._id)}
+                                                        disabled={sendingBankMailOrderId === o._id}
+                                                    >
+                                                        {sendingBankMailOrderId === o._id ? "Invio..." : "Reinvia istruzioni"}
+                                                    </button>
+                                                </div>
+
+                                                {bankFeedback ? (
+                                                    <div
+                                                        className={`mt-2 ${bankFeedback.type === "error" ? "text-danger" : "text-muted"}`}
+                                                        style={{ fontSize: 13 }}
+                                                    >
+                                                        {bankFeedback.message}
+                                                    </div>
+                                                ) : null}
                                             </div>
                                         ) : null}
 

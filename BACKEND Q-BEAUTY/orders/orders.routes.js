@@ -133,6 +133,8 @@ function validateCreateBody(req, res, next) {
     const taxCode = pickString(req.body?.taxCode, 20);
     const finalTaxCode = taxCode ? taxCode.toUpperCase() : undefined;
 
+    const note = pickString(req.body?.note, 500);
+
     // whitelist
     req.body = {
         items,
@@ -141,6 +143,7 @@ function validateCreateBody(req, res, next) {
         ...(finalShippingAddressId ? { shippingAddressId: finalShippingAddressId } : {}),
         ...(shippingAddress ? { shippingAddress } : {}),
         ...(finalTaxCode ? { taxCode: finalTaxCode } : {}),
+        ...(typeof note === "string" ? { note } : {}),
     };
 
     next();

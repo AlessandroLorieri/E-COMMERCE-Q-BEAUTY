@@ -105,6 +105,7 @@ export default function RegisterShop() {
                 payload.companyName = form.companyName;
                 payload.vatNumber = form.vatNumber;
                 payload.taxCode = form.taxCodeSameAsVat ? form.vatNumber : form.taxCode;
+                payload.confirmBusinessData = form.confirmBusinessData;
             }
 
             await register(payload);

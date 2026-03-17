@@ -12,17 +12,17 @@ export default function CheckoutShop() {
     const [searchParams] = useSearchParams();
 
     const {
-    cart,
-    quote,
-    clearCart,
-    createOrder,
-    quoteLoading,
-    quoteError,
-    fetchMyAddresses,
-    fetchMyOrders,
-    createAddress,
-    orderNote,
-} = useShop();
+        cart,
+        quote,
+        clearCart,
+        createOrder,
+        quoteLoading,
+        quoteError,
+        fetchMyAddresses,
+        fetchMyOrders,
+        createAddress,
+        orderNote,
+    } = useShop();
 
 
     const { user, loading, authFetch } = useAuth();
@@ -96,7 +96,7 @@ export default function CheckoutShop() {
                         ...prev,
                         name: normalizeHumanText(def.name || prev.name),
                         surname: normalizeHumanText(def.surname || prev.surname),
-                        taxCode: normalizeTaxCode(prev.taxCode || def.taxCode || def.codiceFiscale || def.fiscalCode || ""),
+                        taxCode: normalizeTaxCode(def.taxCode || def.codiceFiscale || def.fiscalCode || prev.taxCode || ""),
                         phone: def.phone || prev.phone,
                         address: def.address || prev.address,
                         streetNumber: def.streetNumber || prev.streetNumber,
@@ -131,7 +131,7 @@ export default function CheckoutShop() {
             ...prev,
             name: normalizeHumanText(a.name || ""),
             surname: normalizeHumanText(a.surname || ""),
-            taxCode: normalizeTaxCode(prev.taxCode || a.taxCode || a.codiceFiscale || a.fiscalCode || ""),
+            taxCode: normalizeTaxCode(a.taxCode || a.codiceFiscale || a.fiscalCode || prev.taxCode || ""),
             phone: a.phone || "",
             address: a.address || "",
             streetNumber: a.streetNumber || "",
@@ -150,7 +150,7 @@ export default function CheckoutShop() {
             ...prev,
             name: "",
             surname: "",
-            taxCode: prev.taxCode,
+            taxCode: storedTaxCode || "",
             phone: "",
             address: "",
             streetNumber: "",
@@ -527,6 +527,18 @@ export default function CheckoutShop() {
 
     const busy = submitting || paying || banking;
 
+    const selectedSavedAddress =
+        addressMode === "saved" && selectedAddressId
+            ? addresses.find((a) => a._id === selectedAddressId)
+            : null;
+
+    const selectedSavedAddressTaxCode = normalizeTaxCode(
+        selectedSavedAddress?.taxCode ||
+        selectedSavedAddress?.codiceFiscale ||
+        selectedSavedAddress?.fiscalCode ||
+        ""
+    );
+
     return (
         <div className="container py-4 shop-checkout" style={{ maxWidth: 820 }}>
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -685,7 +697,7 @@ export default function CheckoutShop() {
                                         name="taxCode"
                                         value={form.taxCode}
                                         onChange={onChange}
-                                        disabled={busy || Boolean(storedTaxCode)}
+                                        disabled={busy || Boolean(storedTaxCode) || (addressMode === "saved" && !!selectedSavedAddressTaxCode)}
                                         placeholder="Es. RSSMRA80A01H501U"
                                         autoCapitalize="characters"
                                         autoCorrect="off"
