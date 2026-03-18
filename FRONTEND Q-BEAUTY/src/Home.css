@@ -468,6 +468,7 @@ h3{
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    min-width: 42px;
     padding: 0.48rem 0.9rem;
     border: 1px solid rgba(222, 190, 104, 0.35);
     border-radius: 999px;
@@ -476,7 +477,7 @@ h3{
     font-size: 0.95rem;
     font-weight: 700;
     cursor: pointer;
-    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, min-width 0.2s ease;
 }
 
 .contact-copy-btn:hover {
@@ -489,6 +490,23 @@ h3{
 .contact-copy-btn:focus-visible {
     outline: 2px solid rgba(222, 190, 104, 0.45);
     outline-offset: 2px;
+}
+
+.contact-copy-btn.is-copied {
+    min-width: 96px;
+}
+
+.contact-copy-btn__icon {
+    font-size: 0.85rem;
+}
+
+.contact-copy-btn__icon--copied {
+    margin-right: 6px;
+}
+
+.contact-copy-btn__text {
+    font-size: 0.82rem;
+    line-height: 1;
 }
 
 .social-links {

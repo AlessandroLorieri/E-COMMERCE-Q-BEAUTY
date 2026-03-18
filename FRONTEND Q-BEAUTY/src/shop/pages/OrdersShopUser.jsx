@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useShop } from "../context/ShopContext";
 import BrandSpinner from "../components/BrandSpinner";
 import { formatEURFromCents } from "../utils/money";
+import Seo from "../../components/Seo";
 
 import "./OrderShopUser.css";
 
@@ -191,262 +192,293 @@ export default function OrdersShop() {
     }
 
     if (loading || (pageLoading && orders.length === 0)) {
-        return <BrandSpinner text="Carico i tuoi ordini..." />;
+        return (
+            <>
+                <Seo
+                    title="I miei ordini | Q•BEAUTY"
+                    description="Storico ordini del tuo account Q•BEAUTY."
+                    canonical="/shop/orders"
+                    noindex
+                />
+                <BrandSpinner text="Carico i tuoi ordini..." />
+            </>
+        );
     }
 
-    if (!user) return null;
+    if (!user) {
+        return (
+            <>
+                <Seo
+                    title="I miei ordini | Q•BEAUTY"
+                    description="Storico ordini del tuo account Q•BEAUTY."
+                    canonical="/shop/orders"
+                    noindex
+                />
+                {null}
+            </>
+        );
+    }
 
     return (
-        <div className="container py-4 shop-orders" style={{ maxWidth: 920 }}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h1 className="mb-0">I miei ordini</h1>
-                    {refreshing || pageLoading ? (
-                        <div className="text-muted" style={{ fontSize: 13 }}>
-                            Aggiornamento stato in corso...
-                        </div>
-                    ) : null}
+        <>
+            <Seo
+                title="I miei ordini | Q•BEAUTY"
+                description="Storico ordini e stato dei tuoi acquisti Q•BEAUTY."
+                canonical="/shop/orders"
+                noindex
+            />
+
+            <div className="container py-4 shop-orders" style={{ maxWidth: 920 }}>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h1 className="mb-0">I miei ordini</h1>
+                        {refreshing || pageLoading ? (
+                            <div className="text-muted" style={{ fontSize: 13 }}>
+                                Aggiornamento stato in corso...
+                            </div>
+                        ) : null}
+                    </div>
+
+                    <div className="d-flex gap-2">
+                        <button
+                            type="button"
+                            className="btn shop-btn-outline"
+                            onClick={() => loadOrders({ silent: false })}
+                            disabled={loading || pageLoading}
+                        >
+                            Aggiorna
+                        </button>
+
+                        <Link to="/shop" className="btn shop-btn-outline">
+                            Torna allo shop
+                        </Link>
+                    </div>
                 </div>
 
-                <div className="d-flex gap-2">
-                    <button
-                        type="button"
-                        className="btn shop-btn-outline"
-                        onClick={() => loadOrders({ silent: false })}
-                        disabled={loading || pageLoading}
-                    >
-                        Aggiorna
-                    </button>
+                {error && (
+                    <div className="alert alert-danger py-2" role="alert">
+                        {error}
+                    </div>
+                )}
 
-                    <Link to="/shop" className="btn shop-btn-outline">
-                        Torna allo shop
-                    </Link>
-                </div>
-            </div>
+                {!error && orders.length === 0 ? (
+                    <div className="card p-3 shop-orders-empty">
+                        <p className="mb-0">Non hai ancora ordini.</p>
+                    </div>
+                ) : (
+                    <div className="list-group">
+                        {orders.map((o) => {
+                            const isOpen = openOrderId === o._id;
+                            const ship = o.shippingAddress || {};
+                            const meta = statusMeta(o.status);
 
-            {error && (
-                <div className="alert alert-danger py-2" role="alert">
-                    {error}
-                </div>
-            )}
+                            const paymentProvider = String(o.paymentProvider || o.paymentMethod || "").trim().toLowerCase();
+                            const isBankTransferOrder = paymentProvider === "bank_transfer" || paymentProvider === "bonifico";
+                            const isPendingStripeOrder = o.status === "pending_payment" && !isBankTransferOrder;
+                            const isPendingBankTransferOrder = o.status === "pending_payment" && isBankTransferOrder;
+                            const bankFeedback = bankMailFeedback[o._id] || null;
 
-            {!error && orders.length === 0 ? (
-                <div className="card p-3 shop-orders-empty">
-                    <p className="mb-0">Non hai ancora ordini.</p>
-                </div>
-            ) : (
-                <div className="list-group">
-                    {orders.map((o) => {
-                        const isOpen = openOrderId === o._id;
-                        const ship = o.shippingAddress || {};
-                        const meta = statusMeta(o.status);
-
-                        const paymentProvider = String(o.paymentProvider || o.paymentMethod || "").trim().toLowerCase();
-                        const isBankTransferOrder = paymentProvider === "bank_transfer" || paymentProvider === "bonifico";
-                        const isPendingStripeOrder = o.status === "pending_payment" && !isBankTransferOrder;
-                        const isPendingBankTransferOrder = o.status === "pending_payment" && isBankTransferOrder;
-                        const bankFeedback = bankMailFeedback[o._id] || null;
-
-                        return (
-                            <div
-                                key={o._id}
-                                className={`list-group-item shop-order-item ${isOpen ? "is-open" : ""}`}
-                                style={isOpen ? { marginBottom: 12 } : undefined}
-                            >
-                                <button
-                                    type="button"
-                                    className="btn p-0 border-0 bg-transparent w-100 text-start"
-                                    onClick={() => setOpenOrderId((prev) => (prev === o._id ? null : o._id))}
-                                    aria-expanded={isOpen}
+                            return (
+                                <div
+                                    key={o._id}
+                                    className={`list-group-item shop-order-item ${isOpen ? "is-open" : ""}`}
+                                    style={isOpen ? { marginBottom: 12 } : undefined}
                                 >
-                                    <div className="d-flex justify-content-between align-items-start gap-3">
-                                        <div>
-                                            <div className="fw-semibold">Ordine {o.publicId || `#${o._id}`}</div>
-                                            <div className="text-muted d-flex align-items-center gap-2" style={{ fontSize: 13 }}>
-                                                <span>{formatDate(o.createdAt)}</span>
-                                                <span>•</span>
-                                                <span className={`badge ${meta.badge}`}>{meta.label}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="text-end">
-                                            <div className="text-muted" style={{ fontSize: 13 }}>
-                                                Totale ordine
-                                            </div>
-                                            <div className="fw-semibold">{formatEURFromCents(o.totalCents)}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-2 text-muted" style={{ fontSize: 13 }}>
-                                        Articoli:{" "}
-                                        {Array.isArray(o.items) ? o.items.reduce((s, it) => s + (it.qty || 0), 0) : 0}
-                                        <span className="ms-2">{isOpen ? "▲ Nascondi" : "▼ Dettagli"}</span>
-                                    </div>
-                                </button>
-
-                                {isOpen && (
-                                    <div className="mt-3 pt-3 border-top">
-                                        {/* AZIONE PAGAMENTO */}
-                                        {isPendingStripeOrder ? (
-                                            <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                                                <div className="text-muted" style={{ fontSize: 13 }}>
-                                                    Pagamento non completato. Puoi riprendere il checkout.
+                                    <button
+                                        type="button"
+                                        className="btn p-0 border-0 bg-transparent w-100 text-start"
+                                        onClick={() => setOpenOrderId((prev) => (prev === o._id ? null : o._id))}
+                                        aria-expanded={isOpen}
+                                    >
+                                        <div className="d-flex justify-content-between align-items-start gap-3">
+                                            <div>
+                                                <div className="fw-semibold">Ordine {o.publicId || `#${o._id}`}</div>
+                                                <div className="text-muted d-flex align-items-center gap-2" style={{ fontSize: 13 }}>
+                                                    <span>{formatDate(o.createdAt)}</span>
+                                                    <span>•</span>
+                                                    <span className={`badge ${meta.badge}`}>{meta.label}</span>
                                                 </div>
-
-                                                <button
-                                                    type="button"
-                                                    className="btn shop-btn-primary"
-                                                    onClick={() => startStripePayment(o._id)}
-                                                    disabled={!!payingOrderId}
-                                                >
-                                                    {payingOrderId === o._id ? "Apro Stripe..." : "Completa pagamento"}
-                                                </button>
                                             </div>
-                                        ) : null}
 
-                                        {isPendingBankTransferOrder ? (
-                                            <div className="mb-3">
-                                                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                            <div className="text-end">
+                                                <div className="text-muted" style={{ fontSize: 13 }}>
+                                                    Totale ordine
+                                                </div>
+                                                <div className="fw-semibold">{formatEURFromCents(o.totalCents)}</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-2 text-muted" style={{ fontSize: 13 }}>
+                                            Articoli:{" "}
+                                            {Array.isArray(o.items) ? o.items.reduce((s, it) => s + (it.qty || 0), 0) : 0}
+                                            <span className="ms-2">{isOpen ? "▲ Nascondi" : "▼ Dettagli"}</span>
+                                        </div>
+                                    </button>
+
+                                    {isOpen && (
+                                        <div className="mt-3 pt-3 border-top">
+                                            {/* AZIONE PAGAMENTO */}
+                                            {isPendingStripeOrder ? (
+                                                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                                                     <div className="text-muted" style={{ fontSize: 13 }}>
-                                                        Ordine in attesa di bonifico. Le istruzioni di pagamento ti sono state inviate via email.
+                                                        Pagamento non completato. Puoi riprendere il checkout.
                                                     </div>
 
                                                     <button
                                                         type="button"
-                                                        className="btn shop-btn-outline"
-                                                        onClick={() => resendBankInstructions(o._id)}
-                                                        disabled={sendingBankMailOrderId === o._id}
+                                                        className="btn shop-btn-primary"
+                                                        onClick={() => startStripePayment(o._id)}
+                                                        disabled={!!payingOrderId}
                                                     >
-                                                        {sendingBankMailOrderId === o._id ? "Invio..." : "Reinvia istruzioni"}
+                                                        {payingOrderId === o._id ? "Apro Stripe..." : "Completa pagamento"}
                                                     </button>
                                                 </div>
+                                            ) : null}
 
-                                                {bankFeedback ? (
-                                                    <div
-                                                        className={`mt-2 ${bankFeedback.type === "error" ? "text-danger" : "text-muted"}`}
-                                                        style={{ fontSize: 13 }}
-                                                    >
-                                                        {bankFeedback.message}
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                        ) : null}
-
-                                        <div className="fw-semibold mb-2">Prodotti</div>
-
-                                        <div className="list-group mb-3 shop-order-products">
-                                            {(o.items || []).map((it, idx) => (
-                                                <div key={idx} className="list-group-item shop-order-product-item">
-                                                    <div className="d-flex justify-content-between">
-                                                        <div>
-                                                            <div className="fw-semibold">{it.name}</div>
-                                                            <div className="text-muted" style={{ fontSize: 13 }}>
-                                                                {it.qty} × {formatEURFromCents(it.unitPriceCents)}
-                                                            </div>
+                                            {isPendingBankTransferOrder ? (
+                                                <div className="mb-3">
+                                                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                                        <div className="text-muted" style={{ fontSize: 13 }}>
+                                                            Ordine in attesa di bonifico. Le istruzioni di pagamento ti sono state inviate via email.
                                                         </div>
-                                                        <div className="fw-semibold">{formatEURFromCents(it.lineTotalCents)}</div>
+
+                                                        <button
+                                                            type="button"
+                                                            className="btn shop-btn-outline"
+                                                            onClick={() => resendBankInstructions(o._id)}
+                                                            disabled={sendingBankMailOrderId === o._id}
+                                                        >
+                                                            {sendingBankMailOrderId === o._id ? "Invio..." : "Reinvia istruzioni"}
+                                                        </button>
                                                     </div>
+
+                                                    {bankFeedback ? (
+                                                        <div
+                                                            className={`mt-2 ${bankFeedback.type === "error" ? "text-danger" : "text-muted"}`}
+                                                            style={{ fontSize: 13 }}
+                                                        >
+                                                            {bankFeedback.message}
+                                                        </div>
+                                                    ) : null}
                                                 </div>
-                                            ))}
-                                        </div>
+                                            ) : null}
 
-                                        {String(o.note || "").trim() ? (
-                                            <div className="mb-3">
-                                                <div className="fw-semibold mb-2">Note ordine</div>
-                                                <div className="card p-3" style={{ fontSize: 14 }}>
-                                                    {o.note}
-                                                </div>
-                                            </div>
-                                        ) : null}
+                                            <div className="fw-semibold mb-2">Prodotti</div>
 
-                                        <div className="row g-3">
-                                            <div className="col-12 col-lg-4">
-                                                <div className="fw-semibold mb-2">Spedizione</div>
-                                                <div style={{ fontSize: 14 }}>
-                                                    <div>
-                                                        {ship.name} {ship.surname}
-                                                    </div>
-                                                    {ship.email ? <div className="text-muted">{ship.email}</div> : null}
-                                                    <div className="mt-2">{ship.address}</div>
-                                                    <div>
-                                                        {ship.city} ({ship.cap})
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="col-12 col-lg-4">
-                                                <div className="fw-semibold mb-2">Fatturazione</div>
-                                                <div style={{ fontSize: 14 }}>
-                                                    {user?.customerType === "piva" ? (
-                                                        <>
-                                                            <div className="fw-semibold">{user.companyName || "Ragione sociale"}</div>
-                                                            {user.vatNumber ? <div>P.IVA: {user.vatNumber}</div> : null}
-                                                            <div className="text-muted">{user.email}</div>
-
-                                                            <div className="text-muted mt-2" style={{ fontSize: 13 }}>
-                                                                Indirizzo fatturazione: uguale a spedizione
-                                                            </div>
-                                                            <div>{ship.address}</div>
+                                            <div className="list-group mb-3 shop-order-products">
+                                                {(o.items || []).map((it, idx) => (
+                                                    <div key={idx} className="list-group-item shop-order-product-item">
+                                                        <div className="d-flex justify-content-between">
                                                             <div>
-                                                                {ship.city} ({ship.cap})
+                                                                <div className="fw-semibold">{it.name}</div>
+                                                                <div className="text-muted" style={{ fontSize: 13 }}>
+                                                                    {it.qty} × {formatEURFromCents(it.unitPriceCents)}
+                                                                </div>
                                                             </div>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <div className="fw-semibold">
-                                                                {ship.name} {ship.surname}
-                                                            </div>
-                                                            <div className="text-muted">{user?.email || ship.email}</div>
+                                                            <div className="fw-semibold">{formatEURFromCents(it.lineTotalCents)}</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
 
-                                                            <div className="text-muted mt-2" style={{ fontSize: 13 }}>
-                                                                Indirizzo fatturazione: uguale a spedizione
-                                                            </div>
-                                                            <div>{ship.address}</div>
-                                                            <div>
-                                                                {ship.city} ({ship.cap})
-                                                            </div>
-                                                        </>
+                                            {String(o.note || "").trim() ? (
+                                                <div className="mb-3">
+                                                    <div className="fw-semibold mb-2">Note ordine</div>
+                                                    <div className="card p-3" style={{ fontSize: 14 }}>
+                                                        {o.note}
+                                                    </div>
+                                                </div>
+                                            ) : null}
+
+                                            <div className="row g-3">
+                                                <div className="col-12 col-lg-4">
+                                                    <div className="fw-semibold mb-2">Spedizione</div>
+                                                    <div style={{ fontSize: 14 }}>
+                                                        <div>
+                                                            {ship.name} {ship.surname}
+                                                        </div>
+                                                        {ship.email ? <div className="text-muted">{ship.email}</div> : null}
+                                                        <div className="mt-2">{ship.address}</div>
+                                                        <div>
+                                                            {ship.city} ({ship.cap})
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="col-12 col-lg-4">
+                                                    <div className="fw-semibold mb-2">Fatturazione</div>
+                                                    <div style={{ fontSize: 14 }}>
+                                                        {user?.customerType === "piva" ? (
+                                                            <>
+                                                                <div className="fw-semibold">{user.companyName || "Ragione sociale"}</div>
+                                                                {user.vatNumber ? <div>P.IVA: {user.vatNumber}</div> : null}
+                                                                <div className="text-muted">{user.email}</div>
+
+                                                                <div className="text-muted mt-2" style={{ fontSize: 13 }}>
+                                                                    Indirizzo fatturazione: uguale a spedizione
+                                                                </div>
+                                                                <div>{ship.address}</div>
+                                                                <div>
+                                                                    {ship.city} ({ship.cap})
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div className="fw-semibold">
+                                                                    {ship.name} {ship.surname}
+                                                                </div>
+                                                                <div className="text-muted">{user?.email || ship.email}</div>
+
+                                                                <div className="text-muted mt-2" style={{ fontSize: 13 }}>
+                                                                    Indirizzo fatturazione: uguale a spedizione
+                                                                </div>
+                                                                <div>{ship.address}</div>
+                                                                <div>
+                                                                    {ship.city} ({ship.cap})
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="col-12 col-lg-4">
+                                                    <div className="fw-semibold mb-2">Totali</div>
+
+                                                    <div className="d-flex justify-content-between">
+                                                        <span>Subtotale</span>
+                                                        <strong>{formatEURFromCents(o.subtotalCents)}</strong>
+                                                    </div>
+
+                                                    {o.discountCents > 0 && (
+                                                        <div className="d-flex justify-content-between mt-2">
+                                                            <span>{o.discountLabel}</span>
+                                                            <strong>- {formatEURFromCents(o.discountCents)}</strong>
+                                                        </div>
                                                     )}
-                                                </div>
-                                            </div>
 
-                                            <div className="col-12 col-lg-4">
-                                                <div className="fw-semibold mb-2">Totali</div>
-
-                                                <div className="d-flex justify-content-between">
-                                                    <span>Subtotale</span>
-                                                    <strong>{formatEURFromCents(o.subtotalCents)}</strong>
-                                                </div>
-
-                                                {o.discountCents > 0 && (
                                                     <div className="d-flex justify-content-between mt-2">
-                                                        <span>{o.discountLabel}</span>
-                                                        <strong>- {formatEURFromCents(o.discountCents)}</strong>
+                                                        <span>Spedizione</span>
+                                                        <strong>
+                                                            {o.shippingCents === 0 ? "Gratis" : formatEURFromCents(o.shippingCents || 0)}
+                                                        </strong>
                                                     </div>
-                                                )}
 
-                                                <div className="d-flex justify-content-between mt-2">
-                                                    <span>Spedizione</span>
-                                                    <strong>
-                                                        {o.shippingCents === 0 ? "Gratis" : formatEURFromCents(o.shippingCents || 0)}
-                                                    </strong>
-                                                </div>
+                                                    <hr />
 
-                                                <hr />
-
-                                                <div className="d-flex justify-content-between">
-                                                    <span>Totale</span>
-                                                    <strong>{formatEURFromCents(o.totalCents)}</strong>
+                                                    <div className="d-flex justify-content-between">
+                                                        <span>Totale</span>
+                                                        <strong>{formatEURFromCents(o.totalCents)}</strong>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        </>
     );
 }

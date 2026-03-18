@@ -6,6 +6,7 @@ import { formatEURFromCents } from "./utils/money";
 import { useAuth } from "./context/AuthContext";
 import ReviewsSection from "./components/reviews/ReviewsSection";
 import HomePromoBanner from "./components/HomePromoBanner";
+import Seo from "../components/Seo";
 
 import "./HomeShop.css";
 
@@ -21,20 +22,10 @@ export default function HomeShop() {
     const SET_ID_NORM = SET_PRODUCT_ID.trim().toLowerCase();
 
     const [products, setProducts] = useState([]);
-    const [page, setPage] = useState(1);
-    const limit = 8;
     const [qtyById, setQtyById] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [imgFailed, setImgFailed] = useState({});
-
-    const pages = Math.max(1, Math.ceil(products.length / limit));
-    const safePage = Math.min(Math.max(1, page), pages);
-    const startIndex = (safePage - 1) * limit;
-    const pageItems = products.slice(startIndex, startIndex + limit);
-
-    const canPrev = safePage > 1;
-    const canNext = safePage < pages;
 
     useEffect(() => {
         let alive = true;
@@ -91,13 +82,6 @@ export default function HomeShop() {
         };
     }, [apiBase]);
 
-    useEffect(() => {
-        setPage((p) => {
-            const maxPage = Math.max(1, Math.ceil(products.length / limit));
-            return Math.min(Math.max(1, p), maxPage);
-        });
-    }, [products.length, limit]);
-
     function isSetProduct(p) {
         const pid = String(p?.productId || p?.id || "").trim().toLowerCase();
         return pid === SET_ID_NORM;
@@ -133,6 +117,12 @@ export default function HomeShop() {
 
     return (
         <>
+            <Seo
+                title="Shop Q•BEAUTY | Prodotti professionali per pedicure"
+                description="Scopri lo shop Q•BEAUTY: prodotti professionali per pedicure e cura del piede, con formule di alta qualità e identità forte."
+                canonical="/shop"
+                image="/img/last.jpg"
+            />
             {/* HERO VIDEO*/}
             {!error ? (
                 <section className="shop-hero p-0">
@@ -155,6 +145,9 @@ export default function HomeShop() {
 
             {/* CONTENUTO SHOP*/}
             <div className="container-fluid shop-page p-5">
+                <h1 className="visually-hidden">
+                    Shop Q•BEAUTY, prodotti professionali per pedicure e cura del piede
+                </h1>
                 {error ? (
                     <div className="alert alert-danger py-2" role="alert">
                         {error}
@@ -167,36 +160,8 @@ export default function HomeShop() {
                     </div>
                 ) : (
                     <>
-                        {pages > 1 ? (
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                                <div className="text-muted" style={{ fontSize: 14 }}>
-                                    Pagina <b>{safePage}</b> / {pages}
-                                </div>
-
-                                <div className="d-flex gap-2">
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-light btn-sm"
-                                        disabled={!canPrev}
-                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                    >
-                                        Prev
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-light btn-sm"
-                                        disabled={!canNext}
-                                        onClick={() => setPage((p) => Math.min(pages, p + 1))}
-                                    >
-                                        Next
-                                    </button>
-                                </div>
-                            </div>
-                        ) : null}
-
                         <div className="row g-4">
-                            {pageItems.map((p, idx) => {
+                            {products.map((p) => {
                                 const inCart = cart.find((item) => item.id === p.id);
                                 const inCartQty = inCart?.qty ?? 0;
                                 const selectedQty = qtyById[p.id] ?? 1;
@@ -302,32 +267,9 @@ export default function HomeShop() {
                                 );
                             })}
                         </div>
-
-                        {pages > 1 ? (
-                            <div className="d-flex justify-content-end gap-2 mt-4">
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-light btn-sm"
-                                    disabled={!canPrev}
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                >
-                                    Prev
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-light btn-sm"
-                                    disabled={!canNext}
-                                    onClick={() => setPage((p) => Math.min(pages, p + 1))}
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        ) : null}
                     </>
                 )}
-
                 <ReviewsSection />
-
             </div>
         </>
     );

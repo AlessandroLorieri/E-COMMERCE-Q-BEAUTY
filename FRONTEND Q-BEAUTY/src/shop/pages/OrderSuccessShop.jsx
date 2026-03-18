@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useShop } from "../context/ShopContext";
 import BrandSpinner from "../components/BrandSpinner";
+import Seo from "../../components/Seo";
 
 import "./OrderSuccessShop.css";
 
@@ -11,6 +12,9 @@ export default function OrderSuccessShop() {
     const { id } = useParams();
     const { user, loading, authFetch } = useAuth();
     const { clearCart } = useShop();
+    const canonicalPath = id
+        ? `/shop/order-success/${encodeURIComponent(id)}`
+        : "/shop/order-success";
 
     const [order, setOrder] = useState(null);
     const [fetching, setFetching] = useState(true);
@@ -229,159 +233,221 @@ export default function OrderSuccessShop() {
         }
     }
 
-    if (loading) return <BrandSpinner text="Verifico ordine..." />;
-    if (!user) return <BrandSpinner text="Ti porto alla pagina di accesso..." />;
+    if (loading) {
+        return (
+            <>
+                <Seo
+                    title="Verifica ordine | Q•BEAUTY"
+                    description="Verifica dello stato ordine Q•BEAUTY."
+                    canonical={canonicalPath}
+                    noindex
+                />
+                <BrandSpinner text="Verifico ordine..." />
+            </>
+        );
+    }
 
-    if (fetching) return <BrandSpinner text="Sto verificando lo stato del pagamento..." />;
+    if (!user) {
+        return (
+            <>
+                <Seo
+                    title="Verifica ordine | Q•BEAUTY"
+                    description="Verifica dello stato ordine Q•BEAUTY."
+                    canonical={canonicalPath}
+                    noindex
+                />
+                <BrandSpinner text="Ti porto alla pagina di accesso..." />
+            </>
+        );
+    }
+
+    if (fetching) {
+        return (
+            <>
+                <Seo
+                    title="Verifica ordine | Q•BEAUTY"
+                    description="Verifica dello stato ordine Q•BEAUTY."
+                    canonical={canonicalPath}
+                    noindex
+                />
+                <BrandSpinner text="Sto verificando lo stato del pagamento..." />
+            </>
+        );
+    }
 
     const status = order?.status;
 
     return (
-        <div className="container py-4 shop-order-success" style={{ maxWidth: 720 }}>
-            <div className="card p-4">
-                {!error ? (
-                    <>
-                        {status === "paid" ? (
-                            <>
-                                <h1 className="h4 mb-2">Pagamento confermato ✅</h1>
-                                <p className="mb-3">
-                                    Ordine registrato e pagamento ricevuto.
-                                    <br />
-                                    Riceverai aggiornamenti su lavorazione e spedizione.
-                                </p>
-                            </>
-                        ) : (
-                            <>
-                                <h1 className="h4 mb-2">{isBankTransfer ? "Bonifico bancario" : "Ordine creato"}</h1>
+        <>
+            <Seo
+                title={
+                    error
+                        ? "Ordine non verificabile | Q•BEAUTY"
+                        : status === "paid"
+                            ? "Pagamento confermato | Q•BEAUTY"
+                            : isBankTransfer
+                                ? "Bonifico bancario | Q•BEAUTY"
+                                : "Ordine creato | Q•BEAUTY"
+                }
+                description={
+                    error
+                        ? "Non è stato possibile verificare lo stato dell’ordine."
+                        : status === "paid"
+                            ? "Pagamento confermato per il tuo ordine Q•BEAUTY."
+                            : isBankTransfer
+                                ? "Istruzioni per completare il pagamento tramite bonifico."
+                                : "Ordine creato. Il pagamento risulta ancora non completato."
+                }
+                canonical={canonicalPath}
+                noindex
+            />
 
-                                {isBankTransfer ? (
-                                    <>
-                                        <p className="mb-3">
-                                            Hai scelto <strong>bonifico bancario</strong>.
-                                            <br />
-                                            Usa i dati qui sotto.
-                                        </p>
+            <div className="container py-4 shop-order-success" style={{ maxWidth: 720 }}>
+                <div className="card p-4">
+                    {!error ? (
+                        <>
+                            {status === "paid" ? (
+                                <>
+                                    <h1 className="h4 mb-2">Pagamento confermato ✅</h1>
+                                    <p className="mb-3">
+                                        Ordine registrato e pagamento ricevuto.
+                                        <br />
+                                        Riceverai aggiornamenti su lavorazione e spedizione.
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <h1 className="h4 mb-2">{isBankTransfer ? "Bonifico bancario" : "Ordine creato"}</h1>
 
-                                        {bankSending ? (
-                                            <div className="alert alert-secondary py-2">
-                                                Sto inviando le istruzioni del bonifico via email...
-                                            </div>
-                                        ) : bankInfo ? (
-                                            <div className={`alert ${bankSent ? "alert-success" : "alert-warning"} py-2`}>
-                                                <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
-                                                    <div>{bankInfo}</div>
+                                    {isBankTransfer ? (
+                                        <>
+                                            <p className="mb-3">
+                                                Hai scelto <strong>bonifico bancario</strong>.
+                                                <br />
+                                                Usa i dati qui sotto.
+                                            </p>
 
-                                                    {bankCanResend ? (
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-outline-secondary btn-sm"
-                                                            onClick={() => requestBankInstructions(true)}
-                                                            disabled={bankSending}
-                                                        >
-                                                            Reinvia
-                                                        </button>
-                                                    ) : null}
+                                            {bankSending ? (
+                                                <div className="alert alert-secondary py-2">
+                                                    Sto inviando le istruzioni del bonifico via email...
+                                                </div>
+                                            ) : bankInfo ? (
+                                                <div className={`alert ${bankSent ? "alert-success" : "alert-warning"} py-2`}>
+                                                    <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                                        <div>{bankInfo}</div>
+
+                                                        {bankCanResend ? (
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-outline-secondary btn-sm"
+                                                                onClick={() => requestBankInstructions(true)}
+                                                                disabled={bankSending}
+                                                            >
+                                                                Reinvia
+                                                            </button>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+                                            ) : null}
+
+                                            <div className="alert alert-secondary mt-3" style={{ borderRadius: 14 }}>
+                                                <div className="text-muted" style={{ fontSize: 15 }}>Intestatario:</div>
+                                                <div className="fw-semibold">{BANK.beneficiary}</div>
+
+                                                <div className="mt-2 text-muted" style={{ fontSize: 15 }}>IBAN:</div>
+                                                <div className="fw-semibold">{BANK.iban}</div>
+
+                                                {BANK.bankName ? (
+                                                    <>
+                                                        <div className="mt-2 text-muted" style={{ fontSize: 15 }}>Banca:</div>
+                                                        <div className="fw-semibold">{BANK.bankName}</div>
+                                                    </>
+                                                ) : null}
+
+                                                {BANK.bic ? (
+                                                    <>
+                                                        <div className="mt-2 text-muted" style={{ fontSize: 15 }}>BIC/SWIFT:</div>
+                                                        <div className="fw-semibold">{BANK.bic}</div>
+                                                    </>
+                                                ) : null}
+
+                                                <div className="mt-3 text-muted" style={{ fontSize: 15 }}>Causale:</div>
+                                                <div className="fw-semibold">{order?.publicId || "—"}</div>
+
+                                                <div className="mt-3 text-muted" style={{ fontSize: 14 }}>
+                                                    Lo stato passerà a <strong>Pagato</strong> quando registriamo il bonifico.
                                                 </div>
                                             </div>
-                                        ) : null}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="mb-3">
+                                                Il tuo ordine è stato creato, ma il pagamento risulta ancora <strong>non completato</strong>.
+                                                <br />
+                                                Se hai annullato Stripe o hai chiuso la pagina, puoi riprovare.
+                                            </p>
 
-                                        <div className="alert alert-secondary mt-3" style={{ borderRadius: 14 }}>
-                                            <div className="text-muted" style={{ fontSize: 15 }}>Intestatario:</div>
-                                            <div className="fw-semibold">{BANK.beneficiary}</div>
+                                            <button className="btn btn-primary" onClick={retryPayment} disabled={paying}>
+                                                {paying ? "Apro Stripe..." : "Riprova pagamento"}
+                                            </button>
+                                        </>
+                                    )}
+                                </>
+                            )}
 
-                                            <div className="mt-2 text-muted" style={{ fontSize: 15 }}>IBAN:</div>
-                                            <div className="fw-semibold">{BANK.iban}</div>
-
-                                            {BANK.bankName ? (
-                                                <>
-                                                    <div className="mt-2 text-muted" style={{ fontSize: 15 }}>Banca:</div>
-                                                    <div className="fw-semibold">{BANK.bankName}</div>
-                                                </>
-                                            ) : null}
-
-                                            {BANK.bic ? (
-                                                <>
-                                                    <div className="mt-2 text-muted" style={{ fontSize: 15 }}>BIC/SWIFT:</div>
-                                                    <div className="fw-semibold">{BANK.bic}</div>
-                                                </>
-                                            ) : null}
-
-                                            <div className="mt-3 text-muted" style={{ fontSize: 15 }}>Causale:</div>
-                                            <div className="fw-semibold">{order?.publicId || "—"}</div>
-
-                                            <div className="mt-3 text-muted" style={{ fontSize: 14 }}>
-                                                Lo stato passerà a <strong>Pagato</strong> quando registriamo il bonifico.
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p className="mb-3">
-                                            Il tuo ordine è stato creato, ma il pagamento risulta ancora <strong>non completato</strong>.
-                                            <br />
-                                            Se hai annullato Stripe o hai chiuso la pagina, puoi riprovare.
-                                        </p>
-
-                                        <button className="btn btn-primary" onClick={retryPayment} disabled={paying}>
-                                            {paying ? "Apro Stripe..." : "Riprova pagamento"}
-                                        </button>
-                                    </>
-                                )}
-                            </>
-                        )}
-
-                        <div className="mt-3">
-                            <div className="text-muted" style={{ fontSize: 15 }}>
-                                Numero ordine:
-                            </div>
-                            <div className="fw-semibold">
-                                {order?.publicId || "—"}
-                            </div>
-
-                            {status ? (
+                            <div className="mt-3">
                                 <div className="text-muted" style={{ fontSize: 15 }}>
-                                    Stato: <span className="fw-semibold">{status}</span>
+                                    Numero ordine:
+                                </div>
+                                <div className="fw-semibold">
+                                    {order?.publicId || "—"}
+                                </div>
+
+                                {status ? (
+                                    <div className="text-muted" style={{ fontSize: 15 }}>
+                                        Stato: <span className="fw-semibold">{status}</span>
+                                    </div>
+                                ) : null}
+                            </div>
+
+                            <div className="d-flex gap-2 mt-4">
+                                <Link to="/shop/orders" className="btn btn-outline-secondary">
+                                    I miei ordini
+                                </Link>
+
+                                <Link to="/shop" className="btn btn-outline-secondary">
+                                    Torna allo shop
+                                </Link>
+
+                                <Link to="/" className="btn btn-outline-secondary">
+                                    Torna al sito
+                                </Link>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <h1 className="h4 mb-2">Non riesco a verificare l’ordine</h1>
+                            <div className="alert alert-warning py-2 mb-3">{error}</div>
+
+                            {id ? (
+                                <div className="mb-3">
+                                    <span className="text-muted" style={{ fontSize: 13 }}>ID ordine:</span>
+                                    <div className="fw-semibold">{id}</div>
                                 </div>
                             ) : null}
-                        </div>
 
-                        <div className="d-flex gap-2 mt-4">
-                            <Link to="/shop/orders" className="btn btn-outline-secondary">
-                                I miei ordini
-                            </Link>
-
-                            <Link to="/shop" className="btn btn-outline-secondary">
-                                Torna allo shop
-                            </Link>
-
-                            <Link to="/" className="btn btn-outline-secondary">
-                                Torna al sito
-                            </Link>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <h1 className="h4 mb-2">Non riesco a verificare l’ordine</h1>
-                        <div className="alert alert-warning py-2 mb-3">{error}</div>
-
-                        {id ? (
-                            <div className="mb-3">
-                                <span className="text-muted" style={{ fontSize: 13 }}>ID ordine:</span>
-                                <div className="fw-semibold">{id}</div>
+                            <div className="d-flex gap-2">
+                                <Link to="/shop/orders" className="btn btn-outline-secondary">
+                                    I miei ordini
+                                </Link>
+                                <Link to="/shop" className="btn btn-outline-secondary">
+                                    Torna allo shop
+                                </Link>
                             </div>
-                        ) : null}
-
-                        <div className="d-flex gap-2">
-                            <Link to="/shop/orders" className="btn btn-outline-secondary">
-                                I miei ordini
-                            </Link>
-                            <Link to="/shop" className="btn btn-outline-secondary">
-                                Torna allo shop
-                            </Link>
-                        </div>
-                    </>
-                )}
+                        </>
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 }

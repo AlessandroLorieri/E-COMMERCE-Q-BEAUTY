@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useShop } from "../context/ShopContext";
 import { toCents, formatEURFromCents } from "../utils/money";
 import { useAuth } from "../context/AuthContext";
+import Seo from "../../components/Seo";
 
 import "./CartShop.css";
 
@@ -186,293 +187,303 @@ export default function CartShop() {
     }
 
     return (
-        <div className="container py-4 shop-cart">
-            <div className="d-flex align-items-center mb-4 shop-cart-header gap-2">
-                <h1 className="mb-0 flex-grow-1" style={{ minWidth: 0 }}>
-                    Carrello
-                </h1>
+        <>
+            <Seo
+                title="Carrello | Q•BEAUTY"
+                description="Carrello acquisti Q•BEAUTY."
+                canonical="/shop/cart"
+                noindex
+            />
 
-                <Link
-                    to="/shop"
-                    className="btn btn-outline-light btn-sm flex-shrink-0 text-nowrap"
-                >
-                    Torna allo shop
-                </Link>
-            </div>
+            <div className="container py-4 shop-cart">
+                <div className="d-flex align-items-center mb-4 shop-cart-header gap-2">
+                    <h1 className="mb-0 flex-grow-1" style={{ minWidth: 0 }}>
+                        Carrello
+                    </h1>
 
-            {productsError ? (
-                <div className="alert alert-warning py-2">
-                    Non riesco a caricare i prodotti. Alcuni dettagli potrebbero mancare.
-                    <div className="text-muted" style={{ fontSize: 13 }}>{productsError}</div>
+                    <Link
+                        to="/shop"
+                        className="btn btn-outline-light btn-sm flex-shrink-0 text-nowrap"
+                    >
+                        Torna allo shop
+                    </Link>
                 </div>
-            ) : null}
 
-            {cart.length === 0 ? (
-                <p>Il carrello è vuoto.</p>
-            ) : (
-                <>
-                    <div className="list-group mb-4 shop-cart-list">
-                        {cart.map((p) => {
-                            const imgSrc = p.image || IMG_PLACEHOLDER;
+                {productsError ? (
+                    <div className="alert alert-warning py-2">
+                        Non riesco a caricare i prodotti. Alcuni dettagli potrebbero mancare.
+                        <div className="text-muted" style={{ fontSize: 13 }}>{productsError}</div>
+                    </div>
+                ) : null}
 
-                            const qi = getQuoteItemForCartRow(p);
+                {cart.length === 0 ? (
+                    <p>Il carrello è vuoto.</p>
+                ) : (
+                    <>
+                        <div className="list-group mb-4 shop-cart-list">
+                            {cart.map((p) => {
+                                const imgSrc = p.image || IMG_PLACEHOLDER;
 
-                            const SET_PRODUCT_ID = "SET EXPERIENCE";
-                            const SET_ID_NORM = SET_PRODUCT_ID.trim().toLowerCase();
+                                const qi = getQuoteItemForCartRow(p);
 
-                            const idKey = String(p?.id ?? "").trim().toLowerCase();
-                            const nameKey = String(p?.name ?? "").trim().toLowerCase();
+                                const SET_PRODUCT_ID = "SET EXPERIENCE";
+                                const SET_ID_NORM = SET_PRODUCT_ID.trim().toLowerCase();
 
-                            const isSet =
-                                idKey === SET_ID_NORM ||
-                                nameKey.includes(SET_ID_NORM);
+                                const idKey = String(p?.id ?? "").trim().toLowerCase();
+                                const nameKey = String(p?.name ?? "").trim().toLowerCase();
 
-                            const qty = Number(p?.qty) || 1;
+                                const isSet =
+                                    idKey === SET_ID_NORM ||
+                                    nameKey.includes(SET_ID_NORM);
 
-                            const forcedUnitCents = isSet ? (isPiva ? 5400 : 6000) : null;
-                            const forcedLineCents = forcedUnitCents != null ? forcedUnitCents * qty : null;
+                                const qty = Number(p?.qty) || 1;
 
-                            const lineCents = forcedLineCents != null
-                                ? forcedLineCents
-                                : (Number.isFinite(Number(qi?.lineTotalCents))
-                                    ? Number(qi.lineTotalCents)
-                                    : (p.price !== "" && p.price != null ? toCents(p.price) * qty : null));
+                                const forcedUnitCents = isSet ? (isPiva ? 5400 : 6000) : null;
+                                const forcedLineCents = forcedUnitCents != null ? forcedUnitCents * qty : null;
 
-                            return (
-                                <div key={p.id} className="list-group-item d-flex gap-3 align-items-center">
-                                    <img
-                                        key={imgSrc}
-                                        src={imgSrc}
-                                        alt={p.name || "Prodotto"}
-                                        loading="lazy"
-                                        decoding="async"
-                                        onError={(e) => {
-                                            e.currentTarget.src = IMG_PLACEHOLDER;
-                                        }}
-                                        style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8 }}
-                                    />
+                                const lineCents = forcedLineCents != null
+                                    ? forcedLineCents
+                                    : (Number.isFinite(Number(qi?.lineTotalCents))
+                                        ? Number(qi.lineTotalCents)
+                                        : (p.price !== "" && p.price != null ? toCents(p.price) * qty : null));
 
-                                    <div className="flex-grow-1">
-                                        <div className="d-flex justify-content-between">
-                                            <strong>{p.name || "Prodotto"}</strong>
+                                return (
+                                    <div key={p.id} className="list-group-item d-flex gap-3 align-items-center">
+                                        <img
+                                            key={imgSrc}
+                                            src={imgSrc}
+                                            alt={p.name || "Prodotto"}
+                                            loading="lazy"
+                                            decoding="async"
+                                            onError={(e) => {
+                                                e.currentTarget.src = IMG_PLACEHOLDER;
+                                            }}
+                                            style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8 }}
+                                        />
 
-                                            {lineCents == null ? (
-                                                <span className="text-muted">{productsLoading ? "…" : "—"}</span>
-                                            ) : (
-                                                <span>{formatEURFromCents(lineCents)}</span>
-                                            )}
+                                        <div className="flex-grow-1">
+                                            <div className="d-flex justify-content-between">
+                                                <strong>{p.name || "Prodotto"}</strong>
+
+                                                {lineCents == null ? (
+                                                    <span className="text-muted">{productsLoading ? "…" : "—"}</span>
+                                                ) : (
+                                                    <span>{formatEURFromCents(lineCents)}</span>
+                                                )}
+                                            </div>
+
+                                            <div className="d-flex align-items-center gap-2 mt-2">
+                                                <button className="btn btn-outline-secondary btn-sm" onClick={() => dec(p.id)}>
+                                                    -
+                                                </button>
+
+                                                <span style={{ minWidth: 28, textAlign: "center" }}>{p.qty}</span>
+
+                                                <button className="btn btn-outline-secondary btn-sm" onClick={() => inc(p.id)}>
+                                                    +
+                                                </button>
+
+                                                <button
+                                                    className="btn btn-outline-danger btn-sm ms-auto"
+                                                    onClick={() => removeFromCart(p.id)}
+                                                >
+                                                    Rimuovi
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="card p-3 shop-cart-summary">
+                            <div className="d-flex justify-content-between">
+                                <span>Subtotale</span>
+                                <strong>{formatEURFromCents(quote?.subtotalCents || 0)}</strong>
+                            </div>
+
+                            {globalDiscountCents > 0 ? (
+                                <div className="d-flex justify-content-between mt-2">
+                                    <span>{globalDiscountLabel}</span>
+                                    <strong>- {formatEURFromCents(globalDiscountCents)}</strong>
+                                </div>
+                            ) : null}
+
+                            {couponDiscountCents > 0 ? (
+                                <div className="d-flex justify-content-between mt-2">
+                                    <span>Coupon{couponLabelCode ? ` ${couponLabelCode}` : ""}</span>
+                                    <strong>- {formatEURFromCents(couponDiscountCents)}</strong>
+                                </div>
+                            ) : null}
+
+                            {(globalDiscountCents + couponDiscountCents) > 0 ? (
+                                <div className="d-flex justify-content-between mt-2">
+                                    <span className="text-muted">Sconto totale</span>
+                                    <strong className="text-muted">- {formatEURFromCents(globalDiscountCents + couponDiscountCents)}</strong>
+                                </div>
+                            ) : null}
+
+                            <hr />
+
+                            <div className="d-flex justify-content-between">
+                                <span>Totale</span>
+                                <strong>{formatEURFromCents(totalNoShippingCents)}</strong>
+                            </div>
+
+                            <div className="mt-3 shop-coupon">
+                                {couponEnabled ? (
+                                    <>
+                                        <div className="d-flex align-items-center justify-content-between mb-1">
+                                            <label className="form-label m-0" style={{ fontSize: 15 }}>
+                                                Codice sconto
+                                            </label>
+
+                                            {couponAppliedCode ? (
+                                                <span className="shop-coupon__badge" title="Coupon applicato">
+                                                    <span className="shop-coupon__badge-label">Applicato:</span>
+                                                    <strong className="shop-coupon__badge-code">{couponAppliedCode}</strong>
+                                                    <button
+                                                        type="button"
+                                                        className="shop-coupon__badge-x"
+                                                        onClick={clearCoupon}
+                                                        disabled={quoteLoading}
+                                                        aria-label="Rimuovi coupon"
+                                                        title="Rimuovi coupon"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </span>
+                                            ) : null}
                                         </div>
 
-                                        <div className="d-flex align-items-center gap-2 mt-2">
-                                            <button className="btn btn-outline-secondary btn-sm" onClick={() => dec(p.id)}>
-                                                -
-                                            </button>
+                                        <div className="shop-coupon__group">
+                                            <input
+                                                className="form-control shop-coupon__input"
+                                                placeholder="Es. PROMO10"
+                                                value={couponDraft}
+                                                onChange={(e) => setCouponDraft(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter") {
+                                                        e.preventDefault();
+                                                        applyCoupon();
+                                                    }
+                                                }}
+                                                disabled={quoteLoading}
+                                                inputMode="text"
+                                                autoCapitalize="characters"
+                                                autoCorrect="off"
+                                                spellCheck={false}
+                                            />
 
-                                            <span style={{ minWidth: 28, textAlign: "center" }}>{p.qty}</span>
-
-                                            <button className="btn btn-outline-secondary btn-sm" onClick={() => inc(p.id)}>
-                                                +
+                                            <button
+                                                className="btn shop-coupon__btn shop-coupon__btn--apply"
+                                                type="button"
+                                                onClick={applyCoupon}
+                                                disabled={quoteLoading}
+                                            >
+                                                Applica
                                             </button>
 
                                             <button
-                                                className="btn btn-outline-danger btn-sm ms-auto"
-                                                onClick={() => removeFromCart(p.id)}
+                                                className="btn shop-coupon__btn shop-coupon__btn--reset"
+                                                type="button"
+                                                onClick={clearCoupon}
+                                                disabled={quoteLoading}
                                             >
-                                                Rimuovi
+                                                Reset
                                             </button>
                                         </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
 
-                    <div className="card p-3 shop-cart-summary">
-                        <div className="d-flex justify-content-between">
-                            <span>Subtotale</span>
-                            <strong>{formatEURFromCents(quote?.subtotalCents || 0)}</strong>
-                        </div>
-
-                        {globalDiscountCents > 0 ? (
-                            <div className="d-flex justify-content-between mt-2">
-                                <span>{globalDiscountLabel}</span>
-                                <strong>- {formatEURFromCents(globalDiscountCents)}</strong>
-                            </div>
-                        ) : null}
-
-                        {couponDiscountCents > 0 ? (
-                            <div className="d-flex justify-content-between mt-2">
-                                <span>Coupon{couponLabelCode ? ` ${couponLabelCode}` : ""}</span>
-                                <strong>- {formatEURFromCents(couponDiscountCents)}</strong>
-                            </div>
-                        ) : null}
-
-                        {(globalDiscountCents + couponDiscountCents) > 0 ? (
-                            <div className="d-flex justify-content-between mt-2">
-                                <span className="text-muted">Sconto totale</span>
-                                <strong className="text-muted">- {formatEURFromCents(globalDiscountCents + couponDiscountCents)}</strong>
-                            </div>
-                        ) : null}
-
-                        <hr />
-
-                        <div className="d-flex justify-content-between">
-                            <span>Totale</span>
-                            <strong>{formatEURFromCents(totalNoShippingCents)}</strong>
-                        </div>
-
-                        <div className="mt-3 shop-coupon">
-                            {couponEnabled ? (
-                                <>
-                                    <div className="d-flex align-items-center justify-content-between mb-1">
-                                        <label className="form-label m-0" style={{ fontSize: 15 }}>
-                                            Codice sconto
-                                        </label>
-
-                                        {couponAppliedCode ? (
-                                            <span className="shop-coupon__badge" title="Coupon applicato">
-                                                <span className="shop-coupon__badge-label">Applicato:</span>
-                                                <strong className="shop-coupon__badge-code">{couponAppliedCode}</strong>
-                                                <button
-                                                    type="button"
-                                                    className="shop-coupon__badge-x"
-                                                    onClick={clearCoupon}
-                                                    disabled={quoteLoading}
-                                                    aria-label="Rimuovi coupon"
-                                                    title="Rimuovi coupon"
-                                                >
-                                                    ×
-                                                </button>
-                                            </span>
+                                        {autoCouponMsg ? (
+                                            <div className="shop-coupon__msg shop-coupon__msg--error">
+                                                {autoCouponMsg}
+                                            </div>
                                         ) : null}
-                                    </div>
 
-                                    <div className="shop-coupon__group">
-                                        <input
-                                            className="form-control shop-coupon__input"
-                                            placeholder="Es. PROMO10"
-                                            value={couponDraft}
-                                            onChange={(e) => setCouponDraft(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") {
-                                                    e.preventDefault();
-                                                    applyCoupon();
-                                                }
-                                            }}
-                                            disabled={quoteLoading}
-                                            inputMode="text"
-                                            autoCapitalize="characters"
-                                            autoCorrect="off"
-                                            spellCheck={false}
-                                        />
+                                        {!autoCouponMsg && couponErrorMsg && !quoteLoading ? (
+                                            <div className="shop-coupon__msg shop-coupon__msg--error">
+                                                {couponErrorMsg}
+                                            </div>
+                                        ) : null}
 
-                                        <button
-                                            className="btn shop-coupon__btn shop-coupon__btn--apply"
-                                            type="button"
-                                            onClick={applyCoupon}
-                                            disabled={quoteLoading}
-                                        >
-                                            Applica
-                                        </button>
+                                        {!couponErrorMsg && couponAppliedCode && couponDiscountCents > 0 && !quoteLoading ? (
+                                            <div className="shop-coupon__msg shop-coupon__msg--success">
+                                                Coupon <b>{couponAppliedCode}</b> applicato: - {formatEURFromCents(couponDiscountCents)}
+                                            </div>
+                                        ) : null}
 
-                                        <button
-                                            className="btn shop-coupon__btn shop-coupon__btn--reset"
-                                            type="button"
-                                            onClick={clearCoupon}
-                                            disabled={quoteLoading}
-                                        >
-                                            Reset
-                                        </button>
-                                    </div>
+                                        {!couponErrorMsg && genericQuoteMsg ? (
+                                            <div className="shop-coupon__msg shop-coupon__msg--info">
+                                                {genericQuoteMsg}
+                                            </div>
+                                        ) : null}
 
-                                    {autoCouponMsg ? (
-                                        <div className="shop-coupon__msg shop-coupon__msg--error">
-                                            {autoCouponMsg}
-                                        </div>
-                                    ) : null}
+                                        {!authUser ? (
+                                            <div className="shop-coupon__hint">
+                                                Il coupon verrà verificato dopo l’accesso (il quote richiede login).
+                                            </div>
+                                        ) : null}
 
-                                    {!autoCouponMsg && couponErrorMsg && !quoteLoading ? (
-                                        <div className="shop-coupon__msg shop-coupon__msg--error">
-                                            {couponErrorMsg}
-                                        </div>
-                                    ) : null}
-
-                                    {!couponErrorMsg && couponAppliedCode && couponDiscountCents > 0 && !quoteLoading ? (
-                                        <div className="shop-coupon__msg shop-coupon__msg--success">
-                                            Coupon <b>{couponAppliedCode}</b> applicato: - {formatEURFromCents(couponDiscountCents)}
-                                        </div>
-                                    ) : null}
-
-                                    {!couponErrorMsg && genericQuoteMsg ? (
+                                        {quoteLoading ? (
+                                            <div className="shop-coupon__hint">
+                                                Verifica coupon in corso…
+                                            </div>
+                                        ) : null}
+                                    </>
+                                ) : (
+                                    <>
                                         <div className="shop-coupon__msg shop-coupon__msg--info">
-                                            {genericQuoteMsg}
+                                            {couponDisabledReason}
                                         </div>
-                                    ) : null}
 
-                                    {!authUser ? (
-                                        <div className="shop-coupon__hint">
-                                            Il coupon verrà verificato dopo l’accesso (il quote richiede login).
-                                        </div>
-                                    ) : null}
+                                        {bulkDiscountActive ? (
+                                            <div className="shop-coupon__hint">
+                                                Pezzi conteggiati per la soglia quantità: <b>{bulkPiecesCount}</b>
+                                            </div>
+                                        ) : null}
+                                    </>
+                                )}
+                            </div>
 
-                                    {quoteLoading ? (
-                                        <div className="shop-coupon__hint">
-                                            Verifica coupon in corso…
-                                        </div>
-                                    ) : null}
-                                </>
-                            ) : (
-                                <>
-                                    <div className="shop-coupon__msg shop-coupon__msg--info">
-                                        {couponDisabledReason}
-                                    </div>
+                            <div className="mt-3">
+                                <label className="form-label m-0" style={{ fontSize: 15 }}>
+                                    Note ordine
+                                </label>
 
-                                    {bulkDiscountActive ? (
-                                        <div className="shop-coupon__hint">
-                                            Pezzi conteggiati per la soglia quantità: <b>{bulkPiecesCount}</b>
-                                        </div>
-                                    ) : null}
-                                </>
-                            )}
-                        </div>
+                                <textarea
+                                    className="form-control mt-2"
+                                    rows={4}
+                                    maxLength={500}
+                                    placeholder="Inserisci eventuali note per il tuo ordine..."
+                                    value={orderNote}
+                                    onChange={(e) => setOrderNote(e.target.value)}
+                                />
 
-                        <div className="mt-3">
-                            <label className="form-label m-0" style={{ fontSize: 15 }}>
-                                Note ordine
-                            </label>
+                                <div className="text-muted mt-1" style={{ fontSize: 12 }}>
+                                    {String(orderNote || "").length}/500
+                                </div>
+                            </div>
 
-                            <textarea
-                                className="form-control mt-2"
-                                rows={4}
-                                maxLength={500}
-                                placeholder="Inserisci eventuali note per il tuo ordine..."
-                                value={orderNote}
-                                onChange={(e) => setOrderNote(e.target.value)}
-                            />
+                            <div className="d-flex justify-content-end gap-2 mt-3">
+                                {!authUser ? (
+                                    <Link to="/shop/login?next=/shop/cart" className="btn shop-btn-primary">
+                                        Accedi per continuare
+                                    </Link>
+                                ) : (
+                                    <button className="btn shop-btn-primary" type="button" onClick={handleCheckout}>
+                                        Checkout
+                                    </button>
+                                )}
+                            </div>
 
-                            <div className="text-muted mt-1" style={{ fontSize: 12 }}>
-                                {String(orderNote || "").length}/500
+                            <div className="text-muted mt-2" style={{ fontSize: 12 }}>
+                                Articoli: {totals.items}
                             </div>
                         </div>
+                    </>
+                )}
+            </div>
+        </>
 
-                        <div className="d-flex justify-content-end gap-2 mt-3">
-                            {!authUser ? (
-                                <Link to="/shop/login?next=/shop/cart" className="btn shop-btn-primary">
-                                    Accedi per continuare
-                                </Link>
-                            ) : (
-                                <button className="btn shop-btn-primary" type="button" onClick={handleCheckout}>
-                                    Checkout
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="text-muted mt-2" style={{ fontSize: 12 }}>
-                            Articoli: {totals.items}
-                        </div>
-                    </div>
-                </>
-            )}
-        </div>
     );
 }

@@ -1,13 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HelmetProvider } from "react-helmet-async";
 
 import HomePage from './Home';        // <-- se il file è HomePage.jsx, usa: './HomePage'
-import Articolo1 from './articoli/Articolo1';
-import Siero from './prodotti/Siero';
-import Olio from './prodotti/Olio';
-import Spray from './prodotti/Spray';
-import SetPage from './Set';
 import ScrollToTop from './components/ScrollToTop';
 import CookieBanner from './components/CookieBanner';
 import PrivacyPolicy from './PrivacyPolicy';
@@ -36,6 +32,8 @@ import ResetPasswordShop from "./shop/pages/ResetPasswordShop";
 import AdminCoupons from "./admin/pages/AdminCoupons";
 import AdminReviews from "./admin/pages/AdminReviews";
 
+import NotFoundPage from './NotFoundPage';
+
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
@@ -47,69 +45,65 @@ import './i18n';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <ScrollToTop />
-      <CookieBanner />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/home" element={<Navigate to="/" replace />} />
+    <HelmetProvider>
+      <BrowserRouter>
+        <ScrollToTop />
+        <CookieBanner />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/home" element={<Navigate to="/" replace />} />
 
-        {/* redirect per chi arriva su /Home (maiuscolo) */}
-        <Route path="/Home" element={<Navigate to="/" replace />} />
+          {/* redirect per chi arriva su /Home (maiuscolo) */}
+          <Route path="/Home" element={<Navigate to="/" replace />} />
 
-        <Route path="/prodotti/Siero" element={<Siero />} />
-        <Route path="/prodotti/Olio" element={<Olio />} />
-        <Route path="/prodotti/Spray" element={<Spray />} />
-        <Route path="/articoli" element={<Articolo1 />} />
-        <Route path="/set" element={<SetPage />} />
-
-        <Route
-          path="/shop"
-          element={
-            <AuthProvider>
-              <ShopProvider>
-                <ShopLayout />
-              </ShopProvider>
-            </AuthProvider>
-          }
-        >
-          <Route index element={<HomeShop />} />
-          <Route path="cart" element={<CartShop />} />
-          <Route path="login" element={<LoginShop />} />
-          <Route path="forgot-password" element={<ForgotPasswordShop />} />
-          <Route path="reset-password" element={<ResetPasswordShop />} />
-          <Route path="register" element={<RegisterShop />} />
-          <Route path="product/:id" element={<ProductDetailShop />} />
-          <Route path="checkout" element={<CheckoutShop />} />
-          <Route path="order-success/:id" element={<OrderSuccessShop />} />
-          <Route path="orders" element={<OrdersShop />} />
-        </Route>
+          <Route
+            path="/shop"
+            element={
+              <AuthProvider>
+                <ShopProvider>
+                  <ShopLayout />
+                </ShopProvider>
+              </AuthProvider>
+            }
+          >
+            <Route index element={<HomeShop />} />
+            <Route path="cart" element={<CartShop />} />
+            <Route path="login" element={<LoginShop />} />
+            <Route path="forgot-password" element={<ForgotPasswordShop />} />
+            <Route path="reset-password" element={<ResetPasswordShop />} />
+            <Route path="register" element={<RegisterShop />} />
+            <Route path="product/:id" element={<ProductDetailShop />} />
+            <Route path="checkout" element={<CheckoutShop />} />
+            <Route path="order-success/:id" element={<OrderSuccessShop />} />
+            <Route path="orders" element={<OrdersShop />} />
+          </Route>
 
 
-        <Route
-          path="/admin"
-          element={
-            <AuthProvider>
-              <RequireAdmin>
-                <AdminLayout />
-              </RequireAdmin>
-            </AuthProvider>
-          }
-        >
-          <Route index element={<AdminHome />} />
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="coupons" element={<AdminCoupons />} />
-          <Route path="reviews" element={<AdminReviews />} />
+          <Route
+            path="/admin"
+            element={
+              <AuthProvider>
+                <RequireAdmin>
+                  <AdminLayout />
+                </RequireAdmin>
+              </AuthProvider>
+            }
+          >
+            <Route index element={<AdminHome />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="coupons" element={<AdminCoupons />} />
+            <Route path="reviews" element={<AdminReviews />} />
 
-        </Route>
+          </Route>
 
 
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
-        {/* catch-all: qualunque altra rotta → home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* catch-all: qualunque altra rotta → home */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </BrowserRouter>
+    </HelmetProvider>
   </React.StrictMode>
 );

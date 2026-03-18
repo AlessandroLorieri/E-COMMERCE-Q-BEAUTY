@@ -4,6 +4,7 @@ import { toCents, formatEURFromCents } from "../utils/money";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import BrandSpinner from "../components/BrandSpinner";
+import Seo from "../../components/Seo";
 
 import "./CheckoutShop.css";
 
@@ -673,499 +674,533 @@ export default function CheckoutShop() {
         }
     }
 
-    if (loading) return <BrandSpinner text="Sto preparando il checkout..." />;
-    if (!user) return <BrandSpinner text="Ti porto alla pagina di accesso..." />;
+    if (loading) {
+        return (
+            <>
+                <Seo
+                    title="Checkout | Q•BEAUTY"
+                    description="Checkout Q•BEAUTY."
+                    canonical="/shop/checkout"
+                    noindex
+                />
+                <BrandSpinner text="Sto preparando il checkout..." />
+            </>
+        );
+    }
+
+    if (!user) {
+        return (
+            <>
+                <Seo
+                    title="Checkout | Q•BEAUTY"
+                    description="Checkout Q•BEAUTY."
+                    canonical="/shop/checkout"
+                    noindex
+                />
+                <BrandSpinner text="Ti porto alla pagina di accesso..." />
+            </>
+        );
+    }
 
     const busy = submitting || paying || banking;
 
     return (
-        <div className="container py-4 shop-checkout" style={{ maxWidth: 820 }}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <h1 className="mb-0">Checkout</h1>
-                <Link to="/shop/cart" className="btn btn-outline-light shop-checkout-back-btn">
-                    Torna al carrello
-                </Link>
-            </div>
+        <>
+            <Seo
+                title="Checkout | Q•BEAUTY"
+                description="Completa il tuo ordine nello shop Q•BEAUTY."
+                canonical="/shop/checkout"
+                noindex
+            />
 
-            <div className="row g-4">
-                {/* Colonna sinistra: form */}
-                <div className="col-12 col-lg-7">
-                    <div className="card p-3">
-                        <h5>Dati spedizione</h5>
+            <div className="container py-4 shop-checkout" style={{ maxWidth: 820 }}>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h1 className="mb-0">Checkout</h1>
+                    <Link to="/shop/cart" className="btn btn-outline-light shop-checkout-back-btn">
+                        Torna al carrello
+                    </Link>
+                </div>
 
-                        <div className="mb-3">
-                            <label className="form-label">Indirizzo di spedizione</label>
+                <div className="row g-4">
+                    {/* Colonna sinistra: form */}
+                    <div className="col-12 col-lg-7">
+                        <div className="card p-3">
+                            <h5>Dati spedizione</h5>
 
-                            {addressesLoading ? (
-                                <div className="text-muted" style={{ fontSize: 13 }}>
-                                    Carico indirizzi...
-                                </div>
-                            ) : addresses.length > 0 ? (
-                                <>
+                            <div className="mb-3">
+                                <label className="form-label">Indirizzo di spedizione</label>
+
+                                {addressesLoading ? (
+                                    <div className="text-muted" style={{ fontSize: 13 }}>
+                                        Carico indirizzi...
+                                    </div>
+                                ) : addresses.length > 0 ? (
+                                    <>
+                                        <div className="form-check">
+                                            <input
+                                                className="form-check-input"
+                                                type="radio"
+                                                id="addrSaved"
+                                                checked={addressMode === "saved"}
+                                                onChange={() => {
+                                                    setAddressMode("saved");
+                                                    const id = selectedAddressId || (addresses[0]?._id ?? "");
+                                                    if (id) handleSelectSaved(id);
+                                                }}
+                                                disabled={busy}
+                                            />
+                                            <label className="form-check-label" htmlFor="addrSaved">
+                                                Usa un indirizzo salvato
+                                            </label>
+                                        </div>
+
+                                        {addressMode === "saved" && (
+                                            <>
+                                                <select
+                                                    className="form-select mt-2"
+                                                    value={selectedAddressId}
+                                                    onChange={(e) => handleSelectSaved(e.target.value)}
+                                                    disabled={busy}
+                                                >
+                                                    {addresses.map((a) => {
+                                                        const civic = a.streetNumber ? `, ${a.streetNumber}` : "";
+                                                        return (
+                                                            <option key={a._id} value={a._id}>
+                                                                {a.address}{civic}, {a.city} ({a.cap})
+                                                            </option>
+                                                        );
+                                                    })}
+
+                                                </select>
+
+                                                <div className="text-muted mt-2" style={{ fontSize: 13 }}>
+                                                    Dati compilati automaticamente dall’indirizzo salvato.
+                                                </div>
+                                            </>
+
+                                        )}
+
+                                        <div className="form-check mt-2">
+                                            <input
+                                                className="form-check-input"
+                                                type="radio"
+                                                id="addrNew"
+                                                checked={addressMode === "new"}
+                                                onChange={switchToNew}
+                                                disabled={busy}
+                                            />
+                                            <label className="form-check-label" htmlFor="addrNew">
+                                                Inserisci un nuovo indirizzo
+                                            </label>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-muted" style={{ fontSize: 13 }}>
+                                        Nessun indirizzo salvato. Inserisci un nuovo indirizzo qui sotto.
+                                    </div>
+                                )}
+                            </div>
+
+                            {addressMode === "new" && (
+                                <div className="mb-3">
                                     <div className="form-check">
                                         <input
                                             className="form-check-input"
-                                            type="radio"
-                                            id="addrSaved"
-                                            checked={addressMode === "saved"}
-                                            onChange={() => {
-                                                setAddressMode("saved");
-                                                const id = selectedAddressId || (addresses[0]?._id ?? "");
-                                                if (id) handleSelectSaved(id);
-                                            }}
+                                            type="checkbox"
+                                            id="saveAddr"
+                                            checked={saveToAddressBook}
+                                            onChange={(e) => setSaveToAddressBook(e.target.checked)}
                                             disabled={busy}
                                         />
-                                        <label className="form-check-label" htmlFor="addrSaved">
-                                            Usa un indirizzo salvato
+                                        <label className="form-check-label" htmlFor="saveAddr">
+                                            Salva questo indirizzo per i prossimi acquisti
                                         </label>
                                     </div>
-
-                                    {addressMode === "saved" && (
-                                        <>
-                                            <select
-                                                className="form-select mt-2"
-                                                value={selectedAddressId}
-                                                onChange={(e) => handleSelectSaved(e.target.value)}
-                                                disabled={busy}
-                                            >
-                                                {addresses.map((a) => {
-                                                    const civic = a.streetNumber ? `, ${a.streetNumber}` : "";
-                                                    return (
-                                                        <option key={a._id} value={a._id}>
-                                                            {a.address}{civic}, {a.city} ({a.cap})
-                                                        </option>
-                                                    );
-                                                })}
-
-                                            </select>
-
-                                            <div className="text-muted mt-2" style={{ fontSize: 13 }}>
-                                                Dati compilati automaticamente dall’indirizzo salvato.
-                                            </div>
-                                        </>
-
-                                    )}
-
-                                    <div className="form-check mt-2">
-                                        <input
-                                            className="form-check-input"
-                                            type="radio"
-                                            id="addrNew"
-                                            checked={addressMode === "new"}
-                                            onChange={switchToNew}
-                                            disabled={busy}
-                                        />
-                                        <label className="form-check-label" htmlFor="addrNew">
-                                            Inserisci un nuovo indirizzo
-                                        </label>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="text-muted" style={{ fontSize: 13 }}>
-                                    Nessun indirizzo salvato. Inserisci un nuovo indirizzo qui sotto.
                                 </div>
                             )}
-                        </div>
 
-                        {addressMode === "new" && (
-                            <div className="mb-3">
-                                <div className="form-check">
-                                    <input
-                                        className="form-check-input"
-                                        type="checkbox"
-                                        id="saveAddr"
-                                        checked={saveToAddressBook}
-                                        onChange={(e) => setSaveToAddressBook(e.target.checked)}
-                                        disabled={busy}
-                                    />
-                                    <label className="form-check-label" htmlFor="saveAddr">
-                                        Salva questo indirizzo per i prossimi acquisti
-                                    </label>
+                            {submitError && (
+                                <div className="alert alert-danger py-2" role="alert">
+                                    {submitError}
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {submitError && (
-                            <div className="alert alert-danger py-2" role="alert">
-                                {submitError}
-                            </div>
-                        )}
-
-                        <div className="row g-2">
-                            <div className="col-12 col-md-6">
-                                <label className="form-label">Nome</label>
-                                <input
-                                    className={`form-control ${fieldErrors.name ? "is-invalid" : ""}`}
-                                    name="name"
-                                    value={form.name}
-                                    onChange={onChange}
-                                    onBlur={(e) =>
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            name: normalizeHumanText(e.target.value),
-                                        }))
-                                    }
-                                    disabled={busy || (addressMode === "saved" && selectedAddressId)}
-                                />
-                                {fieldErrors.name && <div className="invalid-feedback">{fieldErrors.name}</div>}
-                            </div>
-
-                            <div className="col-12 col-md-6">
-                                <label className="form-label">Cognome</label>
-                                <input
-                                    className={`form-control ${fieldErrors.surname ? "is-invalid" : ""}`}
-                                    name="surname"
-                                    value={form.surname}
-                                    onChange={onChange}
-                                    onBlur={(e) =>
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            surname: normalizeHumanText(e.target.value),
-                                        }))
-                                    }
-                                    disabled={busy || (addressMode === "saved" && selectedAddressId)}
-                                />
-                                {fieldErrors.surname && <div className="invalid-feedback">{fieldErrors.surname}</div>}
-                            </div>
-
-                            <div className="col-12">
-                                <label className="form-label">Telefono</label>
-                                <input
-                                    className={`form-control ${fieldErrors.phone ? "is-invalid" : ""}`}
-                                    name="phone"
-                                    value={form.phone}
-                                    onChange={onChange}
-                                    disabled={busy || (addressMode === "saved" && selectedAddressId)}
-                                />
-                                {fieldErrors.phone && <div className="invalid-feedback">{fieldErrors.phone}</div>}
-                            </div>
-
-                            <div className="col-12">
-                                <label className="form-label">Indirizzo</label>
-                                <input
-                                    className={`form-control ${fieldErrors.streetNumber ? "is-invalid" : ""}`}
-                                    name="streetNumber"
-                                    value={form.streetNumber}
-                                    onChange={onChange}
-                                    disabled={busy || (addressMode === "saved" && selectedAddressId)}
-                                />
-                                {fieldErrors.address && <div className="invalid-feedback">{fieldErrors.address}</div>}
-                            </div>
-
-                            <div className="col-12 col-md-3">
-                                <label className="form-label">N° civico</label>
-                                <input
-                                    className={`form-control ${fieldErrors.streetNumber ? "is-invalid" : ""}`}
-                                    name="streetNumber"
-                                    value={form.streetNumber}
-                                    onChange={onChange}
-                                    disabled={busy || (addressMode === "saved" && selectedAddressId)}
-                                />
-                                {fieldErrors.streetNumber && <div className="invalid-feedback">{fieldErrors.streetNumber}</div>}
-                            </div>
-
-                            <div className="col-12 col-md-6">
-                                <label className="form-label">Città</label>
-                                <input
-                                    className={`form-control ${fieldErrors.city ? "is-invalid" : ""}`}
-                                    name="city"
-                                    value={form.city}
-                                    onChange={onChange}
-                                    onBlur={(e) =>
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            city: normalizeHumanText(e.target.value),
-                                        }))
-                                    }
-                                    disabled={busy || (addressMode === "saved" && selectedAddressId)}
-                                />
-                                {fieldErrors.city && <div className="invalid-feedback">{fieldErrors.city}</div>}
-                            </div>
-
-                            <div className="col-12 col-md-3">
-                                <label className="form-label">CAP</label>
-                                <input
-                                    className={`form-control ${fieldErrors.cap ? "is-invalid" : ""}`}
-                                    name="cap"
-                                    value={form.cap}
-                                    onChange={onChange}
-                                    disabled={busy || (addressMode === "saved" && selectedAddressId)}
-                                />
-                                {fieldErrors.cap && <div className="invalid-feedback">{fieldErrors.cap}</div>}
-                            </div>
-                        </div>
-
-                        {!isVatUser ? (
-                            <>
-                                <hr className="my-4" />
-
-                                <h5 className="mb-2">Dati di fatturazione</h5>
-
-                                <div className="form-check mb-3">
+                            <div className="row g-2">
+                                <div className="col-12 col-md-6">
+                                    <label className="form-label">Nome</label>
                                     <input
-                                        className="form-check-input"
-                                        type="checkbox"
-                                        id="billingSameAsShipping"
-                                        checked={billingSameAsShipping}
-                                        onChange={(e) => onToggleBillingSameAsShipping(e.target.checked)}
-                                        disabled={busy}
+                                        className={`form-control ${fieldErrors.name ? "is-invalid" : ""}`}
+                                        name="name"
+                                        value={form.name}
+                                        onChange={onChange}
+                                        onBlur={(e) =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                name: normalizeHumanText(e.target.value),
+                                            }))
+                                        }
+                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
                                     />
-                                    <label className="form-check-label" htmlFor="billingSameAsShipping">
-                                        Confermo che i dati di fatturazione sono uguali a quelli di spedizione
-                                    </label>
+                                    {fieldErrors.name && <div className="invalid-feedback">{fieldErrors.name}</div>}
                                 </div>
 
-                                {billingSameAsShipping ? (
-                                    <div className="text-muted mb-3" style={{ fontSize: 13 }}>
-                                        Nome, cognome e indirizzo di fatturazione verranno presi dai dati di spedizione.
-                                        Inserisci comunque il Codice Fiscale dell’intestatario.
+                                <div className="col-12 col-md-6">
+                                    <label className="form-label">Cognome</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.surname ? "is-invalid" : ""}`}
+                                        name="surname"
+                                        value={form.surname}
+                                        onChange={onChange}
+                                        onBlur={(e) =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                surname: normalizeHumanText(e.target.value),
+                                            }))
+                                        }
+                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                    />
+                                    {fieldErrors.surname && <div className="invalid-feedback">{fieldErrors.surname}</div>}
+                                </div>
+
+                                <div className="col-12">
+                                    <label className="form-label">Telefono</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.phone ? "is-invalid" : ""}`}
+                                        name="phone"
+                                        value={form.phone}
+                                        onChange={onChange}
+                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                    />
+                                    {fieldErrors.phone && <div className="invalid-feedback">{fieldErrors.phone}</div>}
+                                </div>
+
+                                <div className="col-12">
+                                    <label className="form-label">Indirizzo</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.address ? "is-invalid" : ""}`}
+                                        name="address"
+                                        value={form.address}
+                                        onChange={onChange}
+                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                    />
+                                    {fieldErrors.address && <div className="invalid-feedback">{fieldErrors.address}</div>}
+                                </div>
+
+                                <div className="col-12 col-md-3">
+                                    <label className="form-label">N° civico</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.streetNumber ? "is-invalid" : ""}`}
+                                        name="streetNumber"
+                                        value={form.streetNumber}
+                                        onChange={onChange}
+                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                    />
+                                    {fieldErrors.streetNumber && <div className="invalid-feedback">{fieldErrors.streetNumber}</div>}
+                                </div>
+
+                                <div className="col-12 col-md-6">
+                                    <label className="form-label">Città</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.city ? "is-invalid" : ""}`}
+                                        name="city"
+                                        value={form.city}
+                                        onChange={onChange}
+                                        onBlur={(e) =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                city: normalizeHumanText(e.target.value),
+                                            }))
+                                        }
+                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                    />
+                                    {fieldErrors.city && <div className="invalid-feedback">{fieldErrors.city}</div>}
+                                </div>
+
+                                <div className="col-12 col-md-3">
+                                    <label className="form-label">CAP</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.cap ? "is-invalid" : ""}`}
+                                        name="cap"
+                                        value={form.cap}
+                                        onChange={onChange}
+                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                    />
+                                    {fieldErrors.cap && <div className="invalid-feedback">{fieldErrors.cap}</div>}
+                                </div>
+                            </div>
+
+                            {!isVatUser ? (
+                                <>
+                                    <hr className="my-4" />
+
+                                    <h5 className="mb-2">Dati di fatturazione</h5>
+
+                                    <div className="form-check mb-3">
+                                        <input
+                                            className="form-check-input"
+                                            type="checkbox"
+                                            id="billingSameAsShipping"
+                                            checked={billingSameAsShipping}
+                                            onChange={(e) => onToggleBillingSameAsShipping(e.target.checked)}
+                                            disabled={busy}
+                                        />
+                                        <label className="form-check-label" htmlFor="billingSameAsShipping">
+                                            Confermo che i dati di fatturazione sono uguali a quelli di spedizione
+                                        </label>
                                     </div>
-                                ) : null}
 
-                                <div className="row g-2">
-                                    {!billingSameAsShipping ? (
-                                        <>
-                                            <div className="col-12 col-md-6">
-                                                <label className="form-label">Nome intestatario</label>
-                                                <input
-                                                    className={`form-control ${fieldErrors.billingName ? "is-invalid" : ""}`}
-                                                    name="name"
-                                                    value={billingForm.name}
-                                                    onChange={onBillingChange}
-                                                    onBlur={(e) =>
-                                                        setBillingForm((prev) => ({
-                                                            ...prev,
-                                                            name: normalizeHumanText(e.target.value),
-                                                        }))
-                                                    }
-                                                    disabled={busy}
-                                                />
-                                                {fieldErrors.billingName && <div className="invalid-feedback">{fieldErrors.billingName}</div>}
-                                            </div>
-
-                                            <div className="col-12 col-md-6">
-                                                <label className="form-label">Cognome intestatario</label>
-                                                <input
-                                                    className={`form-control ${fieldErrors.billingSurname ? "is-invalid" : ""}`}
-                                                    name="surname"
-                                                    value={billingForm.surname}
-                                                    onChange={onBillingChange}
-                                                    onBlur={(e) =>
-                                                        setBillingForm((prev) => ({
-                                                            ...prev,
-                                                            surname: normalizeHumanText(e.target.value),
-                                                        }))
-                                                    }
-                                                    disabled={busy}
-                                                />
-                                                {fieldErrors.billingSurname && <div className="invalid-feedback">{fieldErrors.billingSurname}</div>}
-                                            </div>
-                                        </>
+                                    {billingSameAsShipping ? (
+                                        <div className="text-muted mb-3" style={{ fontSize: 13 }}>
+                                            Nome, cognome e indirizzo di fatturazione verranno presi dai dati di spedizione.
+                                            Inserisci comunque il Codice Fiscale dell’intestatario.
+                                        </div>
                                     ) : null}
 
-                                    <div className="col-12">
-                                        <label className="form-label">Codice Fiscale</label>
-                                        <input
-                                            className={`form-control ${fieldErrors.billingTaxCode ? "is-invalid" : ""}`}
-                                            name="taxCode"
-                                            value={billingForm.taxCode}
-                                            onChange={onBillingChange}
-                                            disabled={busy || Boolean(storedTaxCode)}
-                                            placeholder="Es. RSSMRA80A01H501U"
-                                            autoCapitalize="characters"
-                                            autoCorrect="off"
-                                            spellCheck={false}
-                                            inputMode="text"
-                                        />
-                                        {fieldErrors.billingTaxCode && <div className="invalid-feedback">{fieldErrors.billingTaxCode}</div>}
-                                        {!fieldErrors.billingTaxCode ? (
-                                            storedTaxCode ? (
-                                                <div className="form-text">Codice fiscale già salvato nel profilo: lo useremo automaticamente.</div>
-                                            ) : (
-                                                <div className="form-text">16 caratteri.</div>
-                                            )
+                                    <div className="row g-2">
+                                        {!billingSameAsShipping ? (
+                                            <>
+                                                <div className="col-12 col-md-6">
+                                                    <label className="form-label">Nome intestatario</label>
+                                                    <input
+                                                        className={`form-control ${fieldErrors.billingName ? "is-invalid" : ""}`}
+                                                        name="name"
+                                                        value={billingForm.name}
+                                                        onChange={onBillingChange}
+                                                        onBlur={(e) =>
+                                                            setBillingForm((prev) => ({
+                                                                ...prev,
+                                                                name: normalizeHumanText(e.target.value),
+                                                            }))
+                                                        }
+                                                        disabled={busy}
+                                                    />
+                                                    {fieldErrors.billingName && <div className="invalid-feedback">{fieldErrors.billingName}</div>}
+                                                </div>
+
+                                                <div className="col-12 col-md-6">
+                                                    <label className="form-label">Cognome intestatario</label>
+                                                    <input
+                                                        className={`form-control ${fieldErrors.billingSurname ? "is-invalid" : ""}`}
+                                                        name="surname"
+                                                        value={billingForm.surname}
+                                                        onChange={onBillingChange}
+                                                        onBlur={(e) =>
+                                                            setBillingForm((prev) => ({
+                                                                ...prev,
+                                                                surname: normalizeHumanText(e.target.value),
+                                                            }))
+                                                        }
+                                                        disabled={busy}
+                                                    />
+                                                    {fieldErrors.billingSurname && <div className="invalid-feedback">{fieldErrors.billingSurname}</div>}
+                                                </div>
+                                            </>
+                                        ) : null}
+
+                                        <div className="col-12">
+                                            <label className="form-label">Codice Fiscale</label>
+                                            <input
+                                                className={`form-control ${fieldErrors.billingTaxCode ? "is-invalid" : ""}`}
+                                                name="taxCode"
+                                                value={billingForm.taxCode}
+                                                onChange={onBillingChange}
+                                                disabled={busy || Boolean(storedTaxCode)}
+                                                placeholder="Es. RSSMRA80A01H501U"
+                                                autoCapitalize="characters"
+                                                autoCorrect="off"
+                                                spellCheck={false}
+                                                inputMode="text"
+                                            />
+                                            {fieldErrors.billingTaxCode && <div className="invalid-feedback">{fieldErrors.billingTaxCode}</div>}
+                                            {!fieldErrors.billingTaxCode ? (
+                                                storedTaxCode ? (
+                                                    <div className="form-text">Codice fiscale già salvato nel profilo: lo useremo automaticamente.</div>
+                                                ) : (
+                                                    <div className="form-text">16 caratteri.</div>
+                                                )
+                                            ) : null}
+                                        </div>
+
+                                        {!billingSameAsShipping ? (
+                                            <>
+                                                <div className="col-12">
+                                                    <label className="form-label">Indirizzo di fatturazione</label>
+                                                    <input
+                                                        className={`form-control ${fieldErrors.billingAddress ? "is-invalid" : ""}`}
+                                                        name="address"
+                                                        value={billingForm.address}
+                                                        onChange={onBillingChange}
+                                                        disabled={busy}
+                                                    />
+                                                    {fieldErrors.billingAddress && <div className="invalid-feedback">{fieldErrors.billingAddress}</div>}
+                                                </div>
+
+                                                <div className="col-12 col-md-3">
+                                                    <label className="form-label">N° civico</label>
+                                                    <input
+                                                        className={`form-control ${fieldErrors.billingStreetNumber ? "is-invalid" : ""}`}
+                                                        name="streetNumber"
+                                                        value={billingForm.streetNumber}
+                                                        onChange={onBillingChange}
+                                                        disabled={busy}
+                                                    />
+                                                    {fieldErrors.billingStreetNumber && <div className="invalid-feedback">{fieldErrors.billingStreetNumber}</div>}
+                                                </div>
+
+                                                <div className="col-12 col-md-6">
+                                                    <label className="form-label">Città</label>
+                                                    <input
+                                                        className={`form-control ${fieldErrors.billingCity ? "is-invalid" : ""}`}
+                                                        name="city"
+                                                        value={billingForm.city}
+                                                        onChange={onBillingChange}
+                                                        onBlur={(e) =>
+                                                            setBillingForm((prev) => ({
+                                                                ...prev,
+                                                                city: normalizeHumanText(e.target.value),
+                                                            }))
+                                                        }
+                                                        disabled={busy}
+                                                    />
+                                                    {fieldErrors.billingCity && <div className="invalid-feedback">{fieldErrors.billingCity}</div>}
+                                                </div>
+
+                                                <div className="col-12 col-md-3">
+                                                    <label className="form-label">CAP</label>
+                                                    <input
+                                                        className={`form-control ${fieldErrors.billingCap ? "is-invalid" : ""}`}
+                                                        name="cap"
+                                                        value={billingForm.cap}
+                                                        onChange={onBillingChange}
+                                                        disabled={busy}
+                                                    />
+                                                    {fieldErrors.billingCap && <div className="invalid-feedback">{fieldErrors.billingCap}</div>}
+                                                </div>
+                                            </>
                                         ) : null}
                                     </div>
+                                </>
+                            ) : null}
 
-                                    {!billingSameAsShipping ? (
-                                        <>
-                                            <div className="col-12">
-                                                <label className="form-label">Indirizzo di fatturazione</label>
-                                                <input
-                                                    className={`form-control ${fieldErrors.billingAddress ? "is-invalid" : ""}`}
-                                                    name="address"
-                                                    value={billingForm.address}
-                                                    onChange={onBillingChange}
-                                                    disabled={busy}
-                                                />
-                                                {fieldErrors.billingAddress && <div className="invalid-feedback">{fieldErrors.billingAddress}</div>}
-                                            </div>
+                        </div>
+                    </div>
 
-                                            <div className="col-12 col-md-3">
-                                                <label className="form-label">N° civico</label>
-                                                <input
-                                                    className={`form-control ${fieldErrors.billingStreetNumber ? "is-invalid" : ""}`}
-                                                    name="streetNumber"
-                                                    value={billingForm.streetNumber}
-                                                    onChange={onBillingChange}
-                                                    disabled={busy}
-                                                />
-                                                {fieldErrors.billingStreetNumber && <div className="invalid-feedback">{fieldErrors.billingStreetNumber}</div>}
-                                            </div>
+                    {/* Colonna destra: riepilogo */}
+                    <div className="col-12 col-lg-5">
+                        <div className="card p-3">
+                            <h5>Riepilogo</h5>
 
-                                            <div className="col-12 col-md-6">
-                                                <label className="form-label">Città</label>
-                                                <input
-                                                    className={`form-control ${fieldErrors.billingCity ? "is-invalid" : ""}`}
-                                                    name="city"
-                                                    value={billingForm.city}
-                                                    onChange={onBillingChange}
-                                                    onBlur={(e) =>
-                                                        setBillingForm((prev) => ({
-                                                            ...prev,
-                                                            city: normalizeHumanText(e.target.value),
-                                                        }))
-                                                    }
-                                                    disabled={busy}
-                                                />
-                                                {fieldErrors.billingCity && <div className="invalid-feedback">{fieldErrors.billingCity}</div>}
-                                            </div>
-
-                                            <div className="col-12 col-md-3">
-                                                <label className="form-label">CAP</label>
-                                                <input
-                                                    className={`form-control ${fieldErrors.billingCap ? "is-invalid" : ""}`}
-                                                    name="cap"
-                                                    value={billingForm.cap}
-                                                    onChange={onBillingChange}
-                                                    disabled={busy}
-                                                />
-                                                {fieldErrors.billingCap && <div className="invalid-feedback">{fieldErrors.billingCap}</div>}
-                                            </div>
-                                        </>
+                            {paymentNotice && (
+                                <div className="alert alert-warning py-2 mb-2">
+                                    {paymentNotice}
+                                    {retryOrderId ? (
+                                        <div className="mt-2 d-flex gap-2">
+                                            <button
+                                                className="btn btn-outline-light btn-sm"
+                                                onClick={() => startStripePayment(retryOrderId)}
+                                                disabled={busy}
+                                            >
+                                                {paying ? "Apro Stripe..." : "Riprova pagamento"}
+                                            </button>
+                                            <Link className="btn btn-outline-light btn-sm" to="/shop/orders">
+                                                Vai ai miei ordini
+                                            </Link>
+                                        </div>
                                     ) : null}
                                 </div>
-                            </>
-                        ) : null}
+                            )}
 
-                    </div>
-                </div>
+                            {quoteLoading && <div className="alert alert-secondary py-2 mb-2">Calcolo sconto...</div>}
+                            {quoteError && <div className="alert alert-warning py-2 mb-2">{quoteError}</div>}
 
-                {/* Colonna destra: riepilogo */}
-                <div className="col-12 col-lg-5">
-                    <div className="card p-3">
-                        <h5>Riepilogo</h5>
-
-                        {paymentNotice && (
-                            <div className="alert alert-warning py-2 mb-2">
-                                {paymentNotice}
-                                {retryOrderId ? (
-                                    <div className="mt-2 d-flex gap-2">
-                                        <button
-                                            className="btn btn-outline-light btn-sm"
-                                            onClick={() => startStripePayment(retryOrderId)}
-                                            disabled={busy}
-                                        >
-                                            {paying ? "Apro Stripe..." : "Riprova pagamento"}
-                                        </button>
-                                        <Link className="btn btn-outline-light btn-sm" to="/shop/orders">
-                                            Vai ai miei ordini
-                                        </Link>
-                                    </div>
-                                ) : null}
+                            <div className="mt-2" style={{ fontSize: 14 }}>
+                                {cart.map((p) => {
+                                    const lineTotalCents = toCents(p.price) * p.qty;
+                                    return (
+                                        <div key={p.id} className="d-flex justify-content-between">
+                                            <span>
+                                                {p.name} × {p.qty}
+                                            </span>
+                                            <span>{formatEURFromCents(lineTotalCents)}</span>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        )}
 
-                        {quoteLoading && <div className="alert alert-secondary py-2 mb-2">Calcolo sconto...</div>}
-                        {quoteError && <div className="alert alert-warning py-2 mb-2">{quoteError}</div>}
+                            <hr />
 
-                        <div className="mt-2" style={{ fontSize: 14 }}>
-                            {cart.map((p) => {
-                                const lineTotalCents = toCents(p.price) * p.qty;
+                            {(() => {
+                                const subtotalCents = quote?.subtotalCents ?? 0;
+                                const discountCents = quote?.discountCents ?? 0;
+                                const discountedTotalCents = Math.max(0, subtotalCents - discountCents);
+                                const thresholdCents = 12000;
+
+                                const shippingCents =
+                                    discountedTotalCents <= 0 ? 0 : discountedTotalCents >= thresholdCents ? 0 : 700;
+
+                                const totalCents = discountedTotalCents + shippingCents;
+
+                                const remainingCents =
+                                    shippingCents === 0 ? 0 : Math.max(0, thresholdCents - discountedTotalCents);
+
                                 return (
-                                    <div key={p.id} className="d-flex justify-content-between">
-                                        <span>
-                                            {p.name} × {p.qty}
-                                        </span>
-                                        <span>{formatEURFromCents(lineTotalCents)}</span>
-                                    </div>
+                                    <>
+                                        <div className="d-flex justify-content-between">
+                                            <span>Subtotale prodotti</span>
+                                            <strong>{formatEURFromCents(subtotalCents)}</strong>
+                                        </div>
+
+                                        <div className="d-flex justify-content-between mt-2">
+                                            <span>Sconto{quote?.discountLabel ? ` (${quote.discountLabel})` : ""}</span>
+                                            <strong>{discountCents > 0 ? `- ${formatEURFromCents(discountCents)}` : "—"}</strong>
+                                        </div>
+
+                                        <div className="d-flex justify-content-between mt-2">
+                                            <span>Totale dopo sconto</span>
+                                            <strong>{formatEURFromCents(discountedTotalCents)}</strong>
+                                        </div>
+
+                                        <div className="d-flex justify-content-between mt-2">
+                                            <span>Spedizione</span>
+                                            <strong>{shippingCents === 0 ? "Gratis" : formatEURFromCents(shippingCents)}</strong>
+                                        </div>
+
+                                        {shippingCents > 0 && remainingCents > 0 ? (
+                                            <div className="mt-1 text-warning" style={{ fontSize: 13 }}>
+                                                Ti mancano <strong>{formatEURFromCents(remainingCents)}</strong> per ottenere la spedizione gratuita.
+                                            </div>
+                                        ) : shippingCents === 0 ? (
+                                            <div className="mt-1 text-success" style={{ fontSize: 13 }}>
+                                                Spedizione gratuita attiva ✅
+                                            </div>
+                                        ) : null}
+
+                                        <hr />
+
+                                        <div className="d-flex justify-content-between">
+                                            <span>Totale ordine</span>
+                                            <strong>{formatEURFromCents(totalCents)}</strong>
+                                        </div>
+                                    </>
                                 );
-                            })}
+                            })()}
+
+                            <button className="btn btn-primary mt-3" onClick={confirmOrderAndPay} disabled={busy}>
+                                {submitting ? "Creo ordine..." : paying ? "Apro Stripe..." : "Conferma e paga"}
+                            </button>
+
+                            <button
+                                type="button"
+                                className="btn btn-outline-light mt-2 w-100"
+                                onClick={confirmOrderBankTransfer}
+                                disabled={busy}
+                            >
+                                {banking ? "Creo l’ordine..." : "Paga con bonifico"}
+                            </button>
                         </div>
-
-                        <hr />
-
-                        {(() => {
-                            const subtotalCents = quote?.subtotalCents ?? 0;
-                            const discountCents = quote?.discountCents ?? 0;
-                            const discountedTotalCents = Math.max(0, subtotalCents - discountCents);
-                            const thresholdCents = 12000;
-
-                            const shippingCents =
-                                discountedTotalCents <= 0 ? 0 : discountedTotalCents >= thresholdCents ? 0 : 700;
-
-                            const totalCents = discountedTotalCents + shippingCents;
-
-                            const remainingCents =
-                                shippingCents === 0 ? 0 : Math.max(0, thresholdCents - discountedTotalCents);
-
-                            return (
-                                <>
-                                    <div className="d-flex justify-content-between">
-                                        <span>Subtotale prodotti</span>
-                                        <strong>{formatEURFromCents(subtotalCents)}</strong>
-                                    </div>
-
-                                    <div className="d-flex justify-content-between mt-2">
-                                        <span>Sconto{quote?.discountLabel ? ` (${quote.discountLabel})` : ""}</span>
-                                        <strong>{discountCents > 0 ? `- ${formatEURFromCents(discountCents)}` : "—"}</strong>
-                                    </div>
-
-                                    <div className="d-flex justify-content-between mt-2">
-                                        <span>Totale dopo sconto</span>
-                                        <strong>{formatEURFromCents(discountedTotalCents)}</strong>
-                                    </div>
-
-                                    <div className="d-flex justify-content-between mt-2">
-                                        <span>Spedizione</span>
-                                        <strong>{shippingCents === 0 ? "Gratis" : formatEURFromCents(shippingCents)}</strong>
-                                    </div>
-
-                                    {shippingCents > 0 && remainingCents > 0 ? (
-                                        <div className="mt-1 text-warning" style={{ fontSize: 13 }}>
-                                            Ti mancano <strong>{formatEURFromCents(remainingCents)}</strong> per ottenere la spedizione gratuita.
-                                        </div>
-                                    ) : shippingCents === 0 ? (
-                                        <div className="mt-1 text-success" style={{ fontSize: 13 }}>
-                                            Spedizione gratuita attiva ✅
-                                        </div>
-                                    ) : null}
-
-                                    <hr />
-
-                                    <div className="d-flex justify-content-between">
-                                        <span>Totale ordine</span>
-                                        <strong>{formatEURFromCents(totalCents)}</strong>
-                                    </div>
-                                </>
-                            );
-                        })()}
-
-                        <button className="btn btn-primary mt-3" onClick={confirmOrderAndPay} disabled={busy}>
-                            {submitting ? "Creo ordine..." : paying ? "Apro Stripe..." : "Conferma e paga"}
-                        </button>
-
-                        <button
-                            type="button"
-                            className="btn btn-outline-light mt-2 w-100"
-                            onClick={confirmOrderBankTransfer}
-                            disabled={busy}
-                        >
-                            {banking ? "Creo l’ordine..." : "Paga con bonifico"}
-                        </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import Seo from "../../components/Seo";
 
 import "./ShopAuth.css";
 
@@ -47,56 +48,65 @@ export default function ForgotPasswordShop() {
 
 
     return (
-        <div className="container py-4 shop-auth" style={{ maxWidth: 720 }}>
-            <div className="d-flex justify-content-between align-items-center mb-3 shop-auth-header">
-                <h1 className="mb-0">Recupero password</h1>
-                <Link to="/shop" className="btn btn-outline-light">
-                    Torna allo shop
-                </Link>
-            </div>
+        <>
+            <Seo
+                title="Recupero password | Q•BEAUTY"
+                description="Richiedi il link per reimpostare la password del tuo account Q•BEAUTY."
+                canonical="/shop/forgot-password"
+                noindex
+            />
 
-            <div className="card p-3 shop-card">
-                {error ? (
-                    <div className="alert alert-danger py-2" role="alert">
-                        {error}
-                    </div>
-                ) : null}
+            <div className="container py-4 shop-auth" style={{ maxWidth: 720 }}>
+                <div className="d-flex justify-content-between align-items-center mb-3 shop-auth-header">
+                    <h1 className="mb-0">Recupero password</h1>
+                    <Link to="/shop" className="btn btn-outline-light">
+                        Torna allo shop
+                    </Link>
+                </div>
 
-                {sent ? (
-                    <div className="alert alert-success py-2" role="alert">
-                        {ok || "Se l’email è registrata, riceverai un link per reimpostare la password."}
-                    </div>
-                ) : (
-                    <form onSubmit={handleSubmit}>
-                        <div className="mb-3">
-                            <label className="form-label">Email</label>
-                            <input
-                                className="form-control"
-                                type="email"
-                                autoComplete="email"
-                                value={email}
-                                onChange={(e) => {
-                                    setEmail(e.target.value);
-                                    setError("");
-                                    setOk("");
-                                    setSent(false);
-                                }}
-                                required
-                                disabled={submitting}
-                            />
+                <div className="card p-3 shop-card">
+                    {error ? (
+                        <div className="alert alert-danger py-2" role="alert">
+                            {error}
                         </div>
+                    ) : null}
 
-                        <button type="submit" className="btn shop-btn-primary" disabled={submitting}>
-                            {submitting ? "Invio..." : "Invia link reset"}
-                        </button>
-
-                        <div className="mt-3 d-flex justify-content-between">
-                            <Link to={`/shop/login?next=${encodeURIComponent(next)}`}>Torna al login</Link>
-                            <Link to={`/shop/register?next=${encodeURIComponent(next)}`}>Registrati</Link>
+                    {sent ? (
+                        <div className="alert alert-success py-2" role="alert">
+                            {ok || "Se l’email è registrata, riceverai un link per reimpostare la password."}
                         </div>
-                    </form>
-                )}
+                    ) : (
+                        <form onSubmit={handleSubmit}>
+                            <div className="mb-3">
+                                <label className="form-label">Email</label>
+                                <input
+                                    className="form-control"
+                                    type="email"
+                                    autoComplete="email"
+                                    value={email}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        setError("");
+                                        setOk("");
+                                        setSent(false);
+                                    }}
+                                    required
+                                    disabled={submitting}
+                                />
+                            </div>
+
+                            <button type="submit" className="btn shop-btn-primary" disabled={submitting}>
+                                {submitting ? "Invio..." : "Invia link reset"}
+                            </button>
+
+                            <div className="mt-3 d-flex justify-content-between">
+                                <Link to={`/shop/login?next=${encodeURIComponent(next)}`}>Torna al login</Link>
+                                <Link to={`/shop/register?next=${encodeURIComponent(next)}`}>Registrati</Link>
+                            </div>
+                        </form>
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 }

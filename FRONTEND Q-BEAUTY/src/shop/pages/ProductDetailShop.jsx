@@ -4,11 +4,13 @@ import { useShop } from "../context/ShopContext";
 import BrandSpinner from "../components/BrandSpinner";
 import { formatEURFromCents } from "../utils/money";
 import { useAuth } from "../context/AuthContext";
+import Seo from "../../components/Seo";
 
 import "./ProductDetailShop.css";
 
 export default function ProductDetailShop() {
     const apiBase = import.meta.env.VITE_API_URL;
+    const siteUrl = String(import.meta.env.VITE_SITE_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
 
     const { id } = useParams();
     const { addToCartQty, cart } = useShop();
@@ -66,6 +68,57 @@ export default function ProductDetailShop() {
         }
         return out;
     }, [product]);
+
+    const canonicalPath = `/shop/product/${encodeURIComponent(id)}`;
+    const productUrl = `${siteUrl}${canonicalPath}`;
+
+    const seoTitle = product?.name
+        ? `${product.name}`
+        : "Prodotto Q•BEAUTY";
+
+    const seoDescription = String(
+        product?.shortDesc ||
+        product?.description ||
+        "Prodotto professionale Q•BEAUTY per pedicure e cura del piede."
+    )
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 160);
+
+    const seoImage = images[0] || "/img/last.jpg";
+
+    const schemaImages = (images.length ? images : [seoImage]).map((img) => {
+        const raw = String(img || "").trim();
+        if (!raw) return `${siteUrl}/img/last.jpg`;
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return `${siteUrl}${raw.startsWith("/") ? raw : `/${raw}`}`;
+    });
+
+    const productStructuredData = product
+        ? {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: product.name,
+            description: String(product?.shortDesc || product?.description || "").trim(),
+            image: schemaImages,
+            sku: String(product?.productId || product?.id || id || "").trim(),
+            brand: {
+                "@type": "Brand",
+                name: "Q•BEAUTY",
+            },
+            offers: {
+                "@type": "Offer",
+                url: productUrl,
+                priceCurrency: "EUR",
+                price: (Number(displayPriceCents || 0) / 100).toFixed(2),
+                availability:
+                    Number(product?.stockQty ?? 0) > 0
+                        ? "https://schema.org/InStock"
+                        : "https://schema.org/OutOfStock",
+                itemCondition: "https://schema.org/NewCondition",
+            },
+        }
+        : null;
 
     function pickNextValidIndex(fromIdx, dir) {
         if (!images.length) return -1;
@@ -175,236 +228,271 @@ export default function ProductDetailShop() {
     }
 
     if (loading) {
-        return <BrandSpinner text="Carico il prodotto..." />;
+        return (
+            <>
+                <Seo
+                    title="Carico prodotto | Q•BEAUTY"
+                    description="Scheda prodotto Q•BEAUTY in caricamento."
+                    canonical={canonicalPath}
+                    noindex
+                />
+                <BrandSpinner text="Carico il prodotto..." />
+            </>
+        );
     }
 
     if (error) {
         return (
-            <div className="shop-page">
-                <div className="container py-4">
-                    <div className="alert alert-danger py-2" role="alert">
-                        {error}
+            <>
+                <Seo
+                    title="Errore prodotto | Q•BEAUTY"
+                    description="Si è verificato un errore nel caricamento del prodotto."
+                    canonical={canonicalPath}
+                    noindex
+                />
+                <div className="shop-page">
+                    <div className="container py-4">
+                        <div className="alert alert-danger py-2" role="alert">
+                            {error}
+                        </div>
+                        <Link to="/shop" className="btn btn-outline-light">Torna allo shop</Link>
                     </div>
-                    <Link to="/shop" className="btn btn-outline-light">Torna allo shop</Link>
                 </div>
-            </div>
+            </>
         );
     }
 
     if (!product) {
         return (
-            <div className="container py-4">
-                <p>Prodotto non trovato.</p>
-                <Link to="/shop" className="btn btn-outline-light">Torna allo shop</Link>
-            </div>
+            <>
+                <Seo
+                    title="Prodotto non trovato | Q•BEAUTY"
+                    description="Il prodotto richiesto non è disponibile."
+                    canonical={canonicalPath}
+                    noindex
+                />
+                <div className="container py-4">
+                    <p>Prodotto non trovato.</p>
+                    <Link to="/shop" className="btn btn-outline-light">Torna allo shop</Link>
+                </div>
+            </>
         );
     }
 
     return (
-        <div className="shop-page">
-            <div className="container py-4 product-detail">
-                <Link to="/shop" className="btn shop-btn-outline mb-3">
-                    ← Indietro
-                </Link>
+        <>
+            <Seo
+                title={seoTitle}
+                description={seoDescription}
+                canonical={canonicalPath}
+                image={seoImage}
+                structuredData={productStructuredData}
+            />
 
-                <div className="card shop-card product-detail-card">
-                    <div className="product-detail-grid">
+            <div className="shop-page">
+                <div className="container py-4 product-detail">
+                    <Link to="/shop" className="btn shop-btn-outline mb-3">
+                        ← Indietro
+                    </Link>
 
-                        <div className="product-detail-media-row">
-                            {/* FOTO */}
-                            <div className="product-detail-media">
-                                {images.length > 0 ? (
-                                    <div style={{ position: "relative" }}>
-                                        {showBadge ? (
-                                            <div className="product-detail-badge" style={badgeStyle}>
-                                                {badgeText}
-                                            </div>
-                                        ) : null}
+                    <div className="card shop-card product-detail-card">
+                        <div className="product-detail-grid">
 
-                                        <img
-                                            src={images[activeImgIdx]}
-                                            alt={product.name}
-                                            className="product-detail-img"
-                                            onError={() => onImgError(activeImgIdx)}
-                                        />
+                            <div className="product-detail-media-row">
+                                {/* FOTO */}
+                                <div className="product-detail-media">
+                                    {images.length > 0 ? (
+                                        <div style={{ position: "relative" }}>
+                                            {showBadge ? (
+                                                <div className="product-detail-badge" style={badgeStyle}>
+                                                    {badgeText}
+                                                </div>
+                                            ) : null}
 
-                                        {images.length > 1 ? (
-                                            <div
-                                                style={{
-                                                    position: "absolute",
-                                                    left: 10,
-                                                    right: 10,
-                                                    top: "50%",
-                                                    transform: "translateY(-50%)",
-                                                    display: "flex",
-                                                    justifyContent: "space-between",
-                                                    pointerEvents: "none",
-                                                }}
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-sm product-detail-nav-btn"
-                                                    onClick={goPrev}
-                                                    style={{ pointerEvents: "auto" }}
-                                                    aria-label="Immagine precedente"
+                                            <img
+                                                src={images[activeImgIdx]}
+                                                alt={product.name}
+                                                className="product-detail-img"
+                                                onError={() => onImgError(activeImgIdx)}
+                                            />
+
+                                            {images.length > 1 ? (
+                                                <div
+                                                    style={{
+                                                        position: "absolute",
+                                                        left: 10,
+                                                        right: 10,
+                                                        top: "50%",
+                                                        transform: "translateY(-50%)",
+                                                        display: "flex",
+                                                        justifyContent: "space-between",
+                                                        pointerEvents: "none",
+                                                    }}
                                                 >
-                                                    ‹
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-sm product-detail-nav-btn"
-                                                    onClick={goNext}
-                                                    style={{ pointerEvents: "auto" }}
-                                                    aria-label="Immagine successiva"
-                                                >
-                                                    ›
-                                                </button>
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                ) : (
-                                    <div className="product-detail-img product-detail-img-fallback d-flex align-items-center justify-content-center">
-                                        <span className="text-muted" style={{ fontSize: 13 }}>
-                                            Nessuna immagine
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* THUMBS */}
-                            {images.length > 1 ? (
-                                <div className="product-detail-thumbs-row">
-                                    {images.map((url, idx) => {
-                                        const isActive = idx === activeImgIdx;
-                                        const isBroken = !!imgErrors[idx];
-                                        if (isBroken) return null;
-
-                                        return (
-                                            <button
-                                                key={url + idx}
-                                                type="button"
-                                                className={`btn btn-sm ${isActive ? "btn-light" : "btn-outline-light"}`}
-                                                onClick={() => setActiveImgIdx(idx)}
-                                                style={{ padding: 0, width: 44, height: 44, overflow: "hidden" }}
-                                                aria-label={`Vai a immagine ${idx + 1}`}
-                                            >
-                                                <img
-                                                    src={url}
-                                                    alt=""
-                                                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                                                    onError={() => onImgError(idx)}
-                                                />
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            ) : null}
-
-                            {/* BOTTONI */}
-                            <div className="product-detail-media-side">
-                                <div className="product-detail-actions product-detail-actions--side">
-                                    <div className="product-detail-qty">
-                                        <label className="form-label mb-0">Quantità</label>
-                                        <input
-                                            type="number"
-                                            className="form-control product-detail-qty-input"
-                                            min={1}
-                                            max={available > 0 ? available : undefined}
-                                            value={qty}
-                                            disabled={isOut}
-                                            onChange={(e) => {
-                                                const v = Math.max(1, Number(e.target.value) || 1);
-                                                setQty(available > 0 ? Math.min(v, available) : 1);
-                                            }}
-                                        />
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        className="btn shop-btn-primary"
-                                        onClick={handleAdd}
-                                        disabled={isOut}
-                                    >
-                                        {isOut ? "Esaurito" : "Aggiungi al carrello"}
-                                    </button>
-
-                                    <Link to="/shop/cart" className="btn shop-btn-outline">
-                                        Vai al carrello
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* CONTENT */}
-                        <div className="product-detail-content">
-                            <div className="product-detail-top">
-                                <div>
-                                    <h2 className="product-detail-title mb-1">{product.name}</h2>
-
-                                    {product.shortDesc ? (
-                                        <div className="text-muted" style={{ fontSize: 14, lineHeight: 1.35 }}>
-                                            {product.shortDesc}
-                                        </div>
-                                    ) : null}
-
-                                    <div className="text-muted" style={{ fontSize: 13 }}>
-                                        {inCartQty > 0 ? (
-                                            <span>Nel carrello: <b>{inCartQty}</b></span>
-                                        ) : null}
-                                    </div>
-                                </div>
-
-                                <div className="product-detail-price">
-                                    {hasCompareAt ? (
-                                        <div className="product-detail-price-row">
-                                            <div className="product-detail-price-old">
-                                                {formatEURFromCents(product.compareAtPriceCents)}
-                                            </div>
-                                            <div className="product-detail-price-now">
-                                                {formatEURFromCents(displayPriceCents)}
-                                            </div>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm product-detail-nav-btn"
+                                                        onClick={goPrev}
+                                                        style={{ pointerEvents: "auto" }}
+                                                        aria-label="Immagine precedente"
+                                                    >
+                                                        ‹
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm product-detail-nav-btn"
+                                                        onClick={goNext}
+                                                        style={{ pointerEvents: "auto" }}
+                                                        aria-label="Immagine successiva"
+                                                    >
+                                                        ›
+                                                    </button>
+                                                </div>
+                                            ) : null}
                                         </div>
                                     ) : (
-                                        <div className="product-detail-price-now">
-                                            {formatEURFromCents(displayPriceCents)}
+                                        <div className="product-detail-img product-detail-img-fallback d-flex align-items-center justify-content-center">
+                                            <span className="text-muted" style={{ fontSize: 13 }}>
+                                                Nessuna immagine
+                                            </span>
                                         </div>
                                     )}
                                 </div>
+
+                                {/* THUMBS */}
+                                {images.length > 1 ? (
+                                    <div className="product-detail-thumbs-row">
+                                        {images.map((url, idx) => {
+                                            const isActive = idx === activeImgIdx;
+                                            const isBroken = !!imgErrors[idx];
+                                            if (isBroken) return null;
+
+                                            return (
+                                                <button
+                                                    key={url + idx}
+                                                    type="button"
+                                                    className={`btn btn-sm ${isActive ? "btn-light" : "btn-outline-light"}`}
+                                                    onClick={() => setActiveImgIdx(idx)}
+                                                    style={{ padding: 0, width: 44, height: 44, overflow: "hidden" }}
+                                                    aria-label={`Vai a immagine ${idx + 1}`}
+                                                >
+                                                    <img
+                                                        src={url}
+                                                        alt=""
+                                                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                                        onError={() => onImgError(idx)}
+                                                    />
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                ) : null}
+
+                                {/* BOTTONI */}
+                                <div className="product-detail-media-side">
+                                    <div className="product-detail-actions product-detail-actions--side">
+                                        <div className="product-detail-qty">
+                                            <label className="form-label mb-0">Quantità</label>
+                                            <input
+                                                type="number"
+                                                className="form-control product-detail-qty-input"
+                                                min={1}
+                                                max={available > 0 ? available : undefined}
+                                                value={qty}
+                                                disabled={isOut}
+                                                onChange={(e) => {
+                                                    const v = Math.max(1, Number(e.target.value) || 1);
+                                                    setQty(available > 0 ? Math.min(v, available) : 1);
+                                                }}
+                                            />
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className="btn shop-btn-primary"
+                                            onClick={handleAdd}
+                                            disabled={isOut}
+                                        >
+                                            {isOut ? "Esaurito" : "Aggiungi al carrello"}
+                                        </button>
+
+                                        <Link to="/shop/cart" className="btn shop-btn-outline">
+                                            Vai al carrello
+                                        </Link>
+                                    </div>
+                                </div>
                             </div>
 
-                            {product.description ? (
-                                <div className="product-detail-block">
-                                    <h5 className="product-detail-block-title">Descrizione</h5>
-                                    <p className="mb-0">{product.description}</p>
-                                </div>
-                            ) : null}
+                            {/* CONTENT */}
+                            <div className="product-detail-content">
+                                <div className="product-detail-top">
+                                    <div>
+                                        <h1 className="product-detail-title mb-1">{product.name}</h1>
 
-                            {Array.isArray(product.howTo) && product.howTo.length > 0 ? (
-                                <div className="product-detail-block">
-                                    <h5 className="product-detail-block-title">Come si usa</h5>
-                                    <ul className="mb-0 product-detail-howto-list">
-                                        {product.howTo.map((step, i) => (
-                                            <li key={i}>{step}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            ) : null}
+                                        {product.shortDesc ? (
+                                            <div className="text-muted" style={{ fontSize: 14, lineHeight: 1.35 }}>
+                                                {product.shortDesc}
+                                            </div>
+                                        ) : null}
 
-                            {Array.isArray(product.ingredients) && product.ingredients.length > 0 ? (
-                                <div className="product-detail-block">
-                                    <h5 className="product-detail-block-title">Ingredienti</h5>
-                                    <ul className="mb-0">
-                                        {product.ingredients.map((ing, i) => (
-                                            <li key={i}>{ing}</li>
-                                        ))}
-                                    </ul>
+                                        <div className="text-muted" style={{ fontSize: 13 }}>
+                                            {inCartQty > 0 ? (
+                                                <span>Nel carrello: <b>{inCartQty}</b></span>
+                                            ) : null}
+                                        </div>
+                                    </div>
+
+                                    <div className="product-detail-price">
+                                        {hasCompareAt ? (
+                                            <div className="product-detail-price-row">
+                                                <div className="product-detail-price-old">
+                                                    {formatEURFromCents(product.compareAtPriceCents)}
+                                                </div>
+                                                <div className="product-detail-price-now">
+                                                    {formatEURFromCents(displayPriceCents)}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="product-detail-price-now">
+                                                {formatEURFromCents(displayPriceCents)}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            ) : null}
+
+                                {product.description ? (
+                                    <div className="product-detail-block">
+                                        <h5 className="product-detail-block-title">Descrizione</h5>
+                                        <p className="mb-0">{product.description}</p>
+                                    </div>
+                                ) : null}
+
+                                {Array.isArray(product.howTo) && product.howTo.length > 0 ? (
+                                    <div className="product-detail-block">
+                                        <h5 className="product-detail-block-title">Come si usa</h5>
+                                        <ul className="mb-0 product-detail-howto-list">
+                                            {product.howTo.map((step, i) => (
+                                                <li key={i}>{step}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : null}
+
+                                {Array.isArray(product.ingredients) && product.ingredients.length > 0 ? (
+                                    <div className="product-detail-block">
+                                        <h5 className="product-detail-block-title">Ingredienti</h5>
+                                        <ul className="mb-0">
+                                            {product.ingredients.map((ing, i) => (
+                                                <li key={i}>{ing}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : null}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
-
 }
