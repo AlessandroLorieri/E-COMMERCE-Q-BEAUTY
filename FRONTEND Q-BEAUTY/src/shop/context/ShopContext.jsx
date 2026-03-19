@@ -146,6 +146,17 @@ function mergeCartLines(lines) {
     return Array.from(m.entries()).map(([id, qty]) => ({ id, qty }));
 }
 
+function getProductStockQty(product) {
+    const raw = product?.stockQty;
+
+    if (raw === null || raw === undefined || raw === "") return null;
+
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return null;
+
+    return Math.max(0, Math.floor(n));
+}
+
 export function ShopProvider({ children }) {
     const { user, token, loading, logout: authLogout, authFetch } = useAuth();
     const apiBase = String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
@@ -327,6 +338,18 @@ export function ShopProvider({ children }) {
         return normalizeId(p?._id || p?.id || id);
     }
 
+    function getClampedCartQty(productId, requestedQty) {
+        const id = normalizeId(productId);
+        const p = productsById.get(id);
+        const stockQty = getProductStockQty(p);
+
+        const safeRequested = Math.max(1, Number(requestedQty) || 1);
+
+        if (stockQty === null) return safeRequested;
+
+        return Math.max(0, Math.min(safeRequested, stockQty));
+    }
+
     function isCartLineValid(line) {
         const id = normalizeId(line?.id);
         const p = productsById.get(id);
@@ -381,13 +404,29 @@ export function ShopProvider({ children }) {
             const migrated = prev.map((x) => ({ ...x, id: resolveToMongoId(x.id) }));
             const merged = mergeCartLines(migrated);
 
-            const same =
-                merged.length === prev.length &&
-                merged.every((x, i) => x.id === prev[i].id && x.qty === prev[i].qty);
+            const reconciled = merged
+                .map((line) => {
+                    const id = normalizeId(line.id);
+                    const p = productsById.get(id);
+                    const stockQty = getProductStockQty(p);
 
-            return same ? prev : merged;
+                    if (stockQty === null) return line;
+                    if (stockQty <= 0) return null;
+
+                    return {
+                        ...line,
+                        qty: Math.min(line.qty, stockQty),
+                    };
+                })
+                .filter(Boolean);
+
+            const same =
+                reconciled.length === prev.length &&
+                reconciled.every((x, i) => x.id === prev[i].id && x.qty === prev[i].qty);
+
+            return same ? prev : reconciled;
         });
-    }, [productsLoading, products.length]);
+    }, [productsLoading, productsById, cartRaw.length]);
 
     const cart = useMemo(() => {
         return cartRaw.map((line) => {
@@ -407,26 +446,61 @@ export function ShopProvider({ children }) {
 
         setCartRaw((prev) => {
             const found = prev.find((x) => normalizeId(x.id) === id);
-            if (found) return prev.map((x) => (normalizeId(x.id) === id ? { ...x, qty: x.qty + 1 } : x));
-            return [...prev, { id, qty: 1 }];
+            const currentQty = found ? Number(found.qty) || 0 : 0;
+            const nextQty = getClampedCartQty(id, currentQty + 1);
+
+            if (nextQty <= 0) return prev;
+
+            if (found) {
+                if (nextQty === currentQty) return prev;
+                return prev.map((x) =>
+                    normalizeId(x.id) === id ? { ...x, qty: nextQty } : x
+                );
+            }
+
+            return [...prev, { id, qty: nextQty }];
         });
     }
 
     function addToCartQty(product, qty) {
         const id = resolveToMongoId(pickProductId(product));
         if (!id) return;
+
         const q = Math.max(1, Number(qty) || 1);
 
         setCartRaw((prev) => {
             const found = prev.find((x) => normalizeId(x.id) === id);
-            if (found) return prev.map((x) => (normalizeId(x.id) === id ? { ...x, qty: x.qty + q } : x));
-            return [...prev, { id, qty: q }];
+            const currentQty = found ? Number(found.qty) || 0 : 0;
+            const nextQty = getClampedCartQty(id, currentQty + q);
+
+            if (nextQty <= 0) return prev;
+
+            if (found) {
+                if (nextQty === currentQty) return prev;
+                return prev.map((x) =>
+                    normalizeId(x.id) === id ? { ...x, qty: nextQty } : x
+                );
+            }
+
+            return [...prev, { id, qty: nextQty }];
         });
     }
 
     function inc(productId) {
         const id = normalizeId(productId);
-        setCartRaw((prev) => prev.map((x) => (normalizeId(x.id) === id ? { ...x, qty: x.qty + 1 } : x)));
+
+        setCartRaw((prev) =>
+            prev.map((x) => {
+                if (normalizeId(x.id) !== id) return x;
+
+                const currentQty = Number(x.qty) || 1;
+                const nextQty = getClampedCartQty(id, currentQty + 1);
+
+                if (nextQty === currentQty) return x;
+
+                return { ...x, qty: nextQty };
+            })
+        );
     }
 
     function dec(productId) {

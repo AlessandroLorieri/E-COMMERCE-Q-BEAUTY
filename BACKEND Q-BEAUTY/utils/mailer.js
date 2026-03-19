@@ -198,7 +198,7 @@ Q•BEAUTY
     <meta name="supported-color-schemes" content="light" />
     <title>${esc(subject)}</title>
   </head>
-  <body style="margin:0; padding:0; background:${colors.pageBg};">
+  <body style="margin:0; padding:0; width:100% !important; background:${colors.pageBg}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       ${esc(preheader)}
     </div>
@@ -213,7 +213,7 @@ Q•BEAUTY
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -312,9 +312,9 @@ Q•BEAUTY
 
             <tr>
               <td
-                bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
-              ></td>
+              bgcolor="${colors.cardBg}"
+              style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
+              >&nbsp;</td>
             </tr>
           </table>
         </td>
@@ -395,7 +395,7 @@ Grazie per aver scelto Q•BEAUTY.
     <meta name="supported-color-schemes" content="light" />
     <title>${esc(subject)}</title>
   </head>
-  <body style="margin:0; padding:0; background:${colors.pageBg};">
+  <body style="margin:0; padding:0; width:100% !important; background:${colors.pageBg}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       ${esc(preheader)}
     </div>
@@ -410,7 +410,7 @@ Grazie per aver scelto Q•BEAUTY.
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -543,9 +543,9 @@ Grazie per aver scelto Q•BEAUTY.
             <tr>
               <td
                 bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
-              ></td>
-            </tr>
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
+                >&nbsp;</td>
+              </tr>
           </table>
         </td>
       </tr>
@@ -784,7 +784,7 @@ Q•BEAUTY
     <meta name="supported-color-schemes" content="light" />
     <title>${escapeHtml(subject)}</title>
   </head>
-  <body style="margin:0; padding:0; background:${colors.pageBg};">
+  <body style="margin:0; padding:0; width:100% !important; background:${colors.pageBg}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       ${escapeHtml(preheader)}
     </div>
@@ -799,7 +799,7 @@ Q•BEAUTY
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -893,10 +893,10 @@ Q•BEAUTY
             </tr>
 
             <tr>
-              <td
-                bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
-              ></td>
+            <td
+              bgcolor="${colors.cardBg}"
+              style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
+            >&nbsp;</td>
             </tr>
           </table>
         </td>
@@ -1066,7 +1066,7 @@ Q•BEAUTY
     <meta name="supported-color-schemes" content="light" />
     <title>${escapeHtml(subject)}</title>
   </head>
-  <body style="margin:0; padding:0; background:${colors.pageBg};">
+<body style="margin:0; padding:0; width:100% !important; background:${colors.pageBg}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       ${escapeHtml(preheader)}
     </div>
@@ -1081,7 +1081,7 @@ Q•BEAUTY
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -1211,8 +1211,8 @@ Q•BEAUTY
             <tr>
               <td
                 bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
-              ></td>
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
+              >&nbsp;</td>
             </tr>
           </table>
         </td>
@@ -1297,7 +1297,7 @@ Q•BEAUTY
     <meta name="supported-color-schemes" content="light" />
     <title>${esc(subject)}</title>
   </head>
-  <body style="margin:0; padding:0; background:${colors.pageBg};">
+  <body style="margin:0; padding:0; width:100% !important; background:${colors.pageBg}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       ${esc(preheader)}
     </div>
@@ -1312,7 +1312,7 @@ Q•BEAUTY
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -1417,8 +1417,8 @@ Q•BEAUTY
             <tr>
               <td
                 bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
-              ></td>
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
+              >&nbsp;</td>
             </tr>
           </table>
         </td>
@@ -1740,7 +1740,7 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
     <meta name="supported-color-schemes" content="light" />
     <title>${escapeHtml(subject)}</title>
   </head>
-  <body style="margin:0; padding:0; background:${colors.pageBg};">
+<body style="margin:0; padding:0; width:100% !important; background:${colors.pageBg}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       ${escapeHtml(preheader)}
     </div>
@@ -1755,7 +1755,7 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -1905,11 +1905,11 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
               </td>
             </tr>
 
-            <tr>
+          <tr>
               <td
                 bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
-              ></td>
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
+              >&nbsp;</td>
             </tr>
           </table>
         </td>
@@ -1991,7 +1991,7 @@ Q•BEAUTY
     <meta name="supported-color-schemes" content="light" />
     <title>${escapeHtml(subject)}</title>
   </head>
-  <body style="margin:0; padding:0; background:${colors.pageBg};">
+<body style="margin:0; padding:0; width:100% !important; background:${colors.pageBg}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       ${escapeHtml(preheader)}
     </div>
@@ -2006,7 +2006,7 @@ Q•BEAUTY
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -2091,7 +2091,7 @@ Q•BEAUTY
                   <p style="margin:16px 0 0; font-size:12px; line-height:1.55; color:${colors.muted};">
                     Conserva questo codice e inseriscilo al checkout sul tuo prossimo ordine.
                     È valido per <strong>30 giorni</strong> e poi scadrà automaticamente.
-                    <span<Non è cumulabile con altri codici sconto.</span>
+                    <span>Non è cumulabile con altri codici sconto.</span>
                   </p>
                 </div>
               </td>
@@ -2110,11 +2110,11 @@ Q•BEAUTY
               </td>
             </tr>
 
-            <tr>
+          <tr>
               <td
                 bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
-              ></td>
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
+              >&nbsp;</td>
             </tr>
           </table>
         </td>
@@ -2210,7 +2210,7 @@ ${text}
     <meta name="supported-color-schemes" content="light" />
     <title>${escapeHtml(subject)}</title>
   </head>
-  <body style="margin:0; padding:0; background:${colors.pageBg};">
+<body style="margin:0; padding:0; width:100% !important; background:${colors.pageBg}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       ${escapeHtml(preheader)}
     </div>
@@ -2225,7 +2225,7 @@ ${text}
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -2333,11 +2333,11 @@ ${text}
               </td>
             </tr>
 
-            <tr>
+          <tr>
               <td
                 bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px;"
-              ></td>
+                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
+              >&nbsp;</td>
             </tr>
           </table>
         </td>

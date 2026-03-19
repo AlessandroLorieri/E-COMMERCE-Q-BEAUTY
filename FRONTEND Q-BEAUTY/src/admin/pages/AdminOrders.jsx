@@ -324,49 +324,60 @@ export default function AdminOrders() {
                     const u = o.user || {};
                     const meta = statusMeta(o.status);
                     const ship = o?.shippingAddress || {};
-                    const shipFullName = [ship?.name, ship?.surname].filter(Boolean).join(" ").trim() || "-";
-                    const shipEmail = ship?.email || u?.email || "-";
+                    const shipName = ship?.name || "-";
+                    const shipSurname = ship?.surname || "-";
                     const shipPhone = ship?.phone || "-";
-                    const shipTaxCode =
-                        ship?.taxCode ||
-                        ship?.codiceFiscale ||
-                        ship?.fiscalCode ||
-                        "-";
-
                     const shipStreetNumber = ship?.streetNumber ? `, ${ship.streetNumber}` : "";
                     const shipAddressLine = ship?.address ? `${ship.address}${shipStreetNumber}` : "-";
                     const shipCityCap = `${ship?.city || "-"} (${ship?.cap || "-"})`;
 
                     const bill = o?.billingAddress || {};
-                    const billFullName = [bill?.name, bill?.surname].filter(Boolean).join(" ").trim() || "-";
+                    const billName = bill?.name || ship?.name || "-";
+                    const billSurname = bill?.surname || ship?.surname || "-";
                     const billEmail = bill?.email || ship?.email || u?.email || "-";
                     const billPhone = bill?.phone || ship?.phone || "-";
 
-                    const billCompanyName =
+                    const billCompanyNameRaw =
                         bill?.companyName ||
                         bill?.businessName ||
                         bill?.ragioneSociale ||
                         bill?.denomination ||
+                        o?.companyName ||
                         u?.companyName ||
-                        "-";
+                        "";
 
-                    const billTaxCode =
+                    const billTaxCodeRaw =
                         bill?.taxCode ||
                         bill?.codiceFiscale ||
                         bill?.fiscalCode ||
+                        o?.taxCode ||
                         u?.taxCode ||
-                        "-";
+                        "";
 
-                    const billVatNumber =
+                    const billVatNumberRaw =
                         bill?.vatNumber ||
                         bill?.piva ||
                         bill?.partitaIva ||
+                        o?.vatNumber ||
                         u?.vatNumber ||
-                        "-";
+                        "";
 
-                    const billStreetNumber = bill?.streetNumber ? `, ${bill.streetNumber}` : "";
-                    const billAddressLine = bill?.address ? `${bill.address}${billStreetNumber}` : "-";
-                    const billCityCap = `${bill?.city || "-"} (${bill?.cap || "-"})`;
+                    const billCompanyName = billCompanyNameRaw || "-";
+                    const billTaxCode = billTaxCodeRaw || "-";
+                    const billVatNumber = billVatNumberRaw || "-";
+
+                    const billStreetNumberValue = bill?.streetNumber || ship?.streetNumber || "";
+                    const billStreetNumber = billStreetNumberValue ? `, ${billStreetNumberValue}` : "";
+                    const billAddressBase = bill?.address || ship?.address || "";
+                    const billAddressLine = billAddressBase ? `${billAddressBase}${billStreetNumber}` : "-";
+                    const billCityCap = `${bill?.city || ship?.city || "-"} (${bill?.cap || ship?.cap || "-"})`;
+
+                    const customerTypeRaw = String(o?.customerType || u?.customerType || "").trim().toLowerCase();
+                    const isVatCustomer =
+                        customerTypeRaw === "piva" ||
+                        customerTypeRaw === "business" ||
+                        customerTypeRaw === "company" ||
+                        Boolean(billVatNumberRaw);
 
                     const items = Array.isArray(o?.items) ? o.items : [];
 
@@ -468,41 +479,36 @@ export default function AdminOrders() {
                                 <div className="mt-3 pt-3 border-top">
 
                                     <div className="mb-3">
-                                        <div className="fw-semibold mb-2">Dati cliente</div>
-                                        <div style={{ fontSize: 14 }}>
-                                            <div><span className="text-muted">Nome:</span> <b>{shipFullName}</b></div>
-                                            <div><span className="text-muted">Email:</span> <b>{shipEmail}</b></div>
-                                            <div><span className="text-muted">Telefono:</span> <b>{shipPhone}</b></div>
-                                            <div><span className="text-muted">Tipo:</span> <b>{u?.customerType || "-"}</b></div>
-                                            <div><span className="text-muted">Ragione sociale:</span> <b>{billCompanyName}</b></div>
-                                            <div><span className="text-muted">Codice fiscale:</span> <b>{billTaxCode}</b></div>
-                                            <div><span className="text-muted">Partita IVA:</span> <b>{billVatNumber}</b></div>
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-3">
                                         <div className="fw-semibold mb-2">Spedizione</div>
                                         <div style={{ fontSize: 14 }}>
-                                            <div><span className="text-muted">Nome:</span> <b>{shipFullName}</b></div>
-                                            <div><span className="text-muted">Email:</span> <b>{shipEmail}</b></div>
+                                            <div><span className="text-muted">Nome:</span> <b>{shipName}</b></div>
+                                            <div><span className="text-muted">Cognome:</span> <b>{shipSurname}</b></div>
                                             <div><span className="text-muted">Telefono:</span> <b>{shipPhone}</b></div>
                                             <div><span className="text-muted">Indirizzo:</span> <b>{shipAddressLine}</b></div>
                                             <div><span className="text-muted">Città:</span> <b>{shipCityCap}</b></div>
-                                            <div><span className="text-muted">Codice fiscale:</span> <b>{shipTaxCode}</b></div>
                                         </div>
                                     </div>
 
                                     <div className="mb-3">
                                         <div className="fw-semibold mb-2">Fatturazione</div>
                                         <div style={{ fontSize: 14 }}>
-                                            <div><span className="text-muted">Ragione sociale:</span> <b>{billCompanyName}</b></div>
-                                            <div><span className="text-muted">Nome:</span> <b>{billFullName}</b></div>
+                                            {isVatCustomer ? (
+                                                <>
+                                                    <div><span className="text-muted">Ragione sociale:</span> <b>{billCompanyName}</b></div>
+                                                    <div><span className="text-muted">Partita IVA:</span> <b>{billVatNumber}</b></div>
+                                                </>
+                                            ) : null}
+
+                                            <div><span className="text-muted">Nome:</span> <b>{billName}</b></div>
+                                            <div><span className="text-muted">Cognome:</span> <b>{billSurname}</b></div>
                                             <div><span className="text-muted">Email:</span> <b>{billEmail}</b></div>
                                             <div><span className="text-muted">Telefono:</span> <b>{billPhone}</b></div>
                                             <div><span className="text-muted">Indirizzo:</span> <b>{billAddressLine}</b></div>
                                             <div><span className="text-muted">Città:</span> <b>{billCityCap}</b></div>
-                                            <div><span className="text-muted">Codice fiscale:</span> <b>{billTaxCode}</b></div>
-                                            <div><span className="text-muted">Partita IVA:</span> <b>{billVatNumber}</b></div>
+
+                                            {!isVatCustomer ? (
+                                                <div><span className="text-muted">Codice fiscale:</span> <b>{billTaxCode}</b></div>
+                                            ) : null}
                                         </div>
                                     </div>
 

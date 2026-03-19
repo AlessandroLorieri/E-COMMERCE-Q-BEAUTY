@@ -31,6 +31,7 @@ export default function CheckoutShop() {
     const [form, setForm] = useState({
         name: "",
         surname: "",
+        companyName: "",
         phone: "",
         address: "",
         streetNumber: "",
@@ -108,6 +109,7 @@ export default function CheckoutShop() {
                         ...prev,
                         name: normalizeHumanText(def.name || prev.name),
                         surname: normalizeHumanText(def.surname || prev.surname),
+                        companyName: def.companyName || prev.companyName,
                         phone: def.phone || prev.phone,
                         address: def.address || prev.address,
                         streetNumber: def.streetNumber || prev.streetNumber,
@@ -142,6 +144,7 @@ export default function CheckoutShop() {
             ...prev,
             name: normalizeHumanText(a.name || ""),
             surname: normalizeHumanText(a.surname || ""),
+            companyName: a.companyName || "",
             phone: a.phone || "",
             address: a.address || "",
             streetNumber: a.streetNumber || "",
@@ -160,6 +163,7 @@ export default function CheckoutShop() {
             ...prev,
             name: "",
             surname: "",
+            companyName: "",
             phone: "",
             address: "",
             streetNumber: "",
@@ -413,6 +417,7 @@ export default function CheckoutShop() {
         return {
             name: normalizeHumanText(form.name),
             surname: normalizeHumanText(form.surname),
+            companyName: form.companyName.trim(),
             phone: form.phone.trim(),
             email: user?.email || "",
             address: form.address.trim(),
@@ -825,7 +830,14 @@ export default function CheckoutShop() {
                                 </div>
                             )}
 
-                            <div className="row g-2">
+                            {addressMode === "saved" && selectedAddressId ? (
+                                <div className="checkout-locked-note mb-3" role="status">
+                                    Stai usando un indirizzo salvato. Questi campi non sono modificabili.
+                                    Per cambiarli seleziona <strong>“Inserisci un nuovo indirizzo”</strong>.
+                                </div>
+                            ) : null}
+
+                            <div className={`row g-2 ${addressMode === "saved" && selectedAddressId ? "checkout-fields-locked" : ""}`}>
                                 <div className="col-12 col-md-6">
                                     <label className="form-label">Nome</label>
                                     <input
@@ -860,6 +872,17 @@ export default function CheckoutShop() {
                                         disabled={busy || (addressMode === "saved" && selectedAddressId)}
                                     />
                                     {fieldErrors.surname && <div className="invalid-feedback">{fieldErrors.surname}</div>}
+                                </div>
+
+                                <div className="col-12">
+                                    <label className="form-label">Azienda / Ragione sociale <span className="text-muted">(facoltativo)</span></label>
+                                    <input
+                                        className="form-control"
+                                        name="companyName"
+                                        value={form.companyName}
+                                        onChange={onChange}
+                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                    />
                                 </div>
 
                                 <div className="col-12">

@@ -275,7 +275,22 @@ export default function OrderSuccessShop() {
         );
     }
 
+    function getOrderStatusLabel(status) {
+        const map = {
+            pending_payment: "In attesa di pagamento",
+            paid: "Pagato",
+            processing: "In preparazione",
+            shipped: "Spedito",
+            completed: "Completato",
+            cancelled: "Annullato",
+            refunded: "Rimborsato",
+        };
+
+        return map[String(status || "").trim()] || status || "—";
+    }
+
     const status = order?.status;
+    const statusLabel = getOrderStatusLabel(status);
 
     return (
         <>
@@ -405,7 +420,7 @@ export default function OrderSuccessShop() {
 
                                 {status ? (
                                     <div className="text-muted" style={{ fontSize: 15 }}>
-                                        Stato: <span className="fw-semibold">{status}</span>
+                                        Stato: <span className="fw-semibold">{statusLabel}</span>
                                     </div>
                                 ) : null}
                             </div>

@@ -93,9 +93,23 @@ export default function CartShop() {
     const [autoCouponMsg, setAutoCouponMsg] = useState("");
     const [lastAutoClearedCode, setLastAutoClearedCode] = useState("");
 
+    const [stockNoticeId, setStockNoticeId] = useState("");
+    const [stockNoticeText, setStockNoticeText] = useState("");
+
     useEffect(() => {
         setCouponDraft(couponCode || "");
     }, [couponCode]);
+
+    useEffect(() => {
+        if (!stockNoticeId) return;
+
+        const t = setTimeout(() => {
+            setStockNoticeId("");
+            setStockNoticeText("");
+        }, 2200);
+
+        return () => clearTimeout(t);
+    }, [stockNoticeId, stockNoticeText]);
 
     useEffect(() => {
         if (couponEnabled) return;
@@ -184,6 +198,31 @@ export default function CartShop() {
             return;
         }
         navigate("/shop/checkout");
+    }
+
+    function getProductStockQty(product) {
+        const raw = Number(product?.stockQty);
+        if (!Number.isFinite(raw)) return null;
+        return Math.max(0, Math.floor(raw));
+    }
+
+    function handleInc(product) {
+        const stockQty = getProductStockQty(product);
+        const currentQty = Number(product?.qty) || 0;
+
+        if (stockQty !== null && currentQty >= stockQty) {
+            setStockNoticeId(String(product?.id || ""));
+            setStockNoticeText(
+                stockQty === 0
+                    ? "Prodotto esaurito."
+                    : `Hai raggiunto la quantità massima disponibile (${stockQty}).`
+            );
+            return;
+        }
+
+        setStockNoticeId("");
+        setStockNoticeText("");
+        inc(product.id);
     }
 
     return (
@@ -279,7 +318,7 @@ export default function CartShop() {
 
                                                 <span style={{ minWidth: 28, textAlign: "center" }}>{p.qty}</span>
 
-                                                <button className="btn btn-outline-secondary btn-sm" onClick={() => inc(p.id)}>
+                                                <button className="btn btn-outline-secondary btn-sm" onClick={() => handleInc(p)}>
                                                     +
                                                 </button>
 
@@ -290,6 +329,11 @@ export default function CartShop() {
                                                     Rimuovi
                                                 </button>
                                             </div>
+                                            {stockNoticeId === String(p.id) ? (
+                                                <div className="mt-2 text-warning" style={{ fontSize: 13 }}>
+                                                    {stockNoticeText}
+                                                </div>
+                                            ) : null}
                                         </div>
                                     </div>
                                 );

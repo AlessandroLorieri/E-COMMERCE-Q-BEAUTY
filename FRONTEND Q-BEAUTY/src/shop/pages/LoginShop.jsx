@@ -343,6 +343,7 @@ export default function LoginShop() {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showLoginPassword, setShowLoginPassword] = useState(false);
 
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -905,21 +906,31 @@ export default function LoginShop() {
 
                         <div className="mb-3">
                             <label className="form-label">Password</label>
-                            <input
-                                className="form-control"
-                                type="password"
-                                autoComplete="current-password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                minLength={8}
-                            />
+                            <div className="input-group">
+                                <input
+                                    className="form-control"
+                                    type={showLoginPassword ? "text" : "password"}
+                                    autoComplete="current-password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    minLength={8}
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary shop-eye-btn"
+                                    onClick={() => setShowLoginPassword((v) => !v)}
+                                    aria-label={showLoginPassword ? "Nascondi password" : "Mostra password"}
+                                >
+                                    {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+
                             <div className="mt-2" style={{ fontSize: 16 }}>
                                 <Link to={`/shop/forgot-password?next=${encodeURIComponent(next)}`}>
                                     Password dimenticata?
                                 </Link>
                             </div>
-
                         </div>
 
                         <button type="submit" className="btn shop-btn-primary" disabled={submitting}>

@@ -181,3 +181,27 @@
   align-self: center;
   white-space: nowrap;
 }
+
+.checkout-locked-note {
+  padding: 12px 14px;
+  border: 1px solid rgba(222, 190, 104, 0.28);
+  border-radius: 14px;
+  background: rgba(222, 190, 104, 0.08);
+  color: var(--qb-text);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.checkout-fields-locked .form-control:disabled,
+.checkout-fields-locked .form-select:disabled {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(222, 190, 104, 0.2);
+  color: rgba(255, 255, 255, 0.72);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.72);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.checkout-fields-locked .form-label {
+  opacity: 0.8;
+}
