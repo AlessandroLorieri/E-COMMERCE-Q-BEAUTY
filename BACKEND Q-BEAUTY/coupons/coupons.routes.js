@@ -53,56 +53,65 @@ function pick(obj, allowedKeys) {
 function normalizeCouponBody(req, res, next) {
     const raw = req.body && typeof req.body === "object" ? req.body : {};
 
-    // whitelist: tienila ampia ma controllata (evita mass-assignment)
     const allowed = [
         "code",
-        "type",
-        "amount",
-        "percent",
-        "active",
+        "name",
+        "isActive",
         "startsAt",
         "endsAt",
-        "minOrderCents",
-        "maxDiscountCents",
-        "usageLimit",
-        "scope",
-        "products",
-        "customerType",
-        "note",
+        "maxUses",
+        "rules",
     ];
 
     const body = pick(raw, allowed);
 
-    // normalizzazioni leggere (non invasive)
-    if (body.code != null) body.code = String(body.code).trim().toUpperCase();
-    if (body.type != null) body.type = String(body.type).trim().toLowerCase();
-    if (body.scope != null) body.scope = String(body.scope).trim().toLowerCase();
-    if (body.customerType != null) body.customerType = String(body.customerType).trim().toLowerCase();
-
-    // numeri in Number se arrivano stringhe
-    const numFields = ["amount", "percent", "minOrderCents", "maxDiscountCents", "usageLimit"];
-    for (const f of numFields) {
-        if (body[f] != null && body[f] !== "") {
-            const n = Number(body[f]);
-            if (!Number.isFinite(n)) return res.status(400).json({ message: `Campo non valido: ${f}` });
-            body[f] = n;
-        }
+    if (body.code != null) {
+        body.code = String(body.code).trim().toUpperCase();
     }
 
-    // date parseabili
-    const dateFields = ["startsAt", "endsAt"];
-    for (const f of dateFields) {
+    if (body.name != null) {
+        body.name = String(body.name).trim();
+    }
+
+    if (body.isActive != null) {
+        body.isActive = !!body.isActive;
+    }
+
+    if (body.maxUses != null && body.maxUses !== "") {
+        const n = Number(body.maxUses);
+        if (!Number.isFinite(n)) {
+            return res.status(400).json({ message: "Campo non valido: maxUses" });
+        }
+        body.maxUses = n;
+    }
+
+    for (const f of ["startsAt", "endsAt"]) {
         if (body[f] != null && body[f] !== "") {
             const d = new Date(body[f]);
-            if (Number.isNaN(d.getTime())) return res.status(400).json({ message: `Data non valida: ${f}` });
+            if (Number.isNaN(d.getTime())) {
+                return res.status(400).json({ message: `Data non valida: ${f}` });
+            }
             body[f] = d;
         }
     }
 
-    // products: array di id/slug stringhe (non tocchiamo troppo)
-    if (body.products != null) {
-        if (!Array.isArray(body.products)) return res.status(400).json({ message: "products deve essere un array" });
-        body.products = body.products.map((x) => String(x || "").trim()).filter(Boolean);
+    if (body.rules != null) {
+        if (!Array.isArray(body.rules)) {
+            return res.status(400).json({ message: "rules deve essere un array" });
+        }
+
+        body.rules = body.rules.map((r) => {
+            const rule = r && typeof r === "object" ? r : {};
+
+            return {
+                productId: String(rule.productId || "").trim(),
+                type: String(rule.type || "").trim().toLowerCase(),
+                value:
+                    rule.value === "" || rule.value == null
+                        ? rule.value
+                        : Number(rule.value),
+            };
+        });
     }
 
     req.body = body;
