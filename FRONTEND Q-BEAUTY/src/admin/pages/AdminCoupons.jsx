@@ -1,4 +1,3 @@
-// INIZIO MODIFICA - AdminCoupons.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../shop/context/AuthContext";
@@ -188,7 +187,9 @@ export default function AdminCoupons() {
         const endsAt = c.endsAt ? String(c.endsAt).slice(0, 16) : "";
 
         const rules = Array.isArray(c.rules) ? c.rules : [];
-        const selectedProductIds = rules.map((r) => String(r.productId || "").trim()).filter(Boolean);
+        const selectedProductIds = rules
+            .map((r) => String(r?.productId?._id || r?.productId || "").trim())
+            .filter(Boolean);
 
         let discountType = "percent";
         let discountValue = "10";
@@ -679,7 +680,9 @@ export default function AdminCoupons() {
                                         </thead>
                                         <tbody>
                                             {(products || []).map((p) => {
-                                                const pid = String(p.productId || "").trim();
+                                                const pid = String(p._id || "").trim();
+                                                const publicProductId = String(p.productId || "").trim();
+
                                                 if (!pid) return null;
 
                                                 const checked = selectedSet.has(pid);
@@ -695,7 +698,7 @@ export default function AdminCoupons() {
                                                                 disabled={loading}
                                                             />
                                                         </td>
-                                                        <td><code>{pid}</code></td>
+                                                        <td><code>{publicProductId || "—"}</code></td>
                                                         <td>{p.name || "—"}</td>
                                                         <td>{p.isActive ? "✅" : "⛔️"}</td>
                                                     </tr>
