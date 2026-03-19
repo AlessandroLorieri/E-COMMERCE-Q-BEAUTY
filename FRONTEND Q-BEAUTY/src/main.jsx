@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { HelmetProvider } from "react-helmet-async";
 
-import HomePage from './Home';        // <-- se il file è HomePage.jsx, usa: './HomePage'
+import HomePage from './Home';
 import ScrollToTop from './components/ScrollToTop';
 import CookieBanner from './components/CookieBanner';
 import PrivacyPolicy from './PrivacyPolicy';
@@ -38,16 +38,65 @@ import NotFoundPage from './NotFoundPage';
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
-
 import './App.css';
 import './index.css';
 import './i18n';
+
+const GA_MEASUREMENT_ID = "G-HJ0ZG99350";
+
+function AnalyticsBootstrap() {
+  useEffect(() => {
+    if (!GA_MEASUREMENT_ID) return;
+    if (window.__qbGaLoaded) return;
+
+    const existingScript = document.querySelector(`script[src*="googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}"]`);
+    if (!existingScript) {
+      const script = document.createElement("script");
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+      document.head.appendChild(script);
+    }
+
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function gtag() {
+      window.dataLayer.push(arguments);
+    };
+
+    window.gtag("js", new Date());
+    window.gtag("config", GA_MEASUREMENT_ID, {
+      send_page_view: false,
+    });
+
+    window.__qbGaLoaded = true;
+  }, []);
+
+  return null;
+}
+
+function AnalyticsPageTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!GA_MEASUREMENT_ID) return;
+    if (typeof window.gtag !== "function") return;
+
+    window.gtag("event", "page_view", {
+      page_title: document.title,
+      page_location: window.location.href,
+      page_path: `${location.pathname}${location.search}${location.hash}`,
+    });
+  }, [location]);
+
+  return null;
+}
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <HelmetProvider>
       <BrowserRouter>
+        <AnalyticsBootstrap />
+        <AnalyticsPageTracker />
         <ScrollToTop />
         <CookieBanner />
         <Routes>
@@ -79,7 +128,6 @@ root.render(
             <Route path="orders" element={<OrdersShop />} />
           </Route>
 
-
           <Route
             path="/admin"
             element={
@@ -96,9 +144,7 @@ root.render(
             <Route path="shipping" element={<AdminShipping />} />
             <Route path="coupons" element={<AdminCoupons />} />
             <Route path="reviews" element={<AdminReviews />} />
-
           </Route>
-
 
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
