@@ -31,6 +31,7 @@ import ResetPasswordShop from "./shop/pages/ResetPasswordShop";
 
 import AdminCoupons from "./admin/pages/AdminCoupons";
 import AdminReviews from "./admin/pages/AdminReviews";
+import AdminShipping from "./admin/pages/AdminShipping";
 
 import NotFoundPage from './NotFoundPage';
 
@@ -92,6 +93,7 @@ root.render(
             <Route index element={<AdminHome />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="orders" element={<AdminOrders />} />
+            <Route path="shipping" element={<AdminShipping />} />
             <Route path="coupons" element={<AdminCoupons />} />
             <Route path="reviews" element={<AdminReviews />} />
 

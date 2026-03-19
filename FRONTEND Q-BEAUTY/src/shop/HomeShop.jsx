@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useShop } from "./context/ShopContext";
 import BrandSpinner from "./components/BrandSpinner";
@@ -20,12 +20,19 @@ export default function HomeShop() {
 
     const SET_PRODUCT_ID = "SET EXPERIENCE";
     const SET_ID_NORM = SET_PRODUCT_ID.trim().toLowerCase();
+    const SET_COMPONENT_IDS = [
+        "CREMA IDRATANTE CHERATOLITICA",
+        "BURRO EMOLLIENTE",
+        "SPRAY IGIENIZZANTE",
+    ];
 
     const [products, setProducts] = useState([]);
     const [qtyById, setQtyById] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [imgFailed, setImgFailed] = useState({});
+    const [addedFlashById, setAddedFlashById] = useState({});
+    const addFlashTimersRef = useRef({});
 
     useEffect(() => {
         let alive = true;
@@ -82,17 +89,86 @@ export default function HomeShop() {
         };
     }, [apiBase]);
 
+    useEffect(() => {
+        return () => {
+            Object.values(addFlashTimersRef.current).forEach((timerId) => {
+                clearTimeout(timerId);
+            });
+        };
+    }, []);
+
     function isSetProduct(p) {
         const pid = String(p?.productId || p?.id || "").trim().toLowerCase();
         return pid === SET_ID_NORM;
     }
 
+    function getCartQtyForProduct(product) {
+        const keys = [
+            product?.id,
+            product?.productId,
+            product?._id,
+        ]
+            .filter(Boolean)
+            .map((x) => String(x));
+
+        const found = cart.find((item) => keys.includes(String(item?.id || "")));
+        return found?.qty ?? 0;
+    }
+
+    function normalizeProductKey(v) {
+        return String(v || "").trim().toUpperCase();
+    }
+
+    function getProductStockQty(product) {
+        const n = Number(product?.stockQty);
+        if (!Number.isFinite(n)) return 0;
+        return Math.max(0, Math.floor(n));
+    }
+
+    function findProductByProductId(productId) {
+        const wanted = normalizeProductKey(productId);
+        return (
+            products.find((p) => normalizeProductKey(p?.productId || p?.id) === wanted) || null
+        );
+    }
+
+    function getSetBaseAvailableQty() {
+        const values = SET_COMPONENT_IDS.map((componentId) => {
+            const component = findProductByProductId(componentId);
+            if (!component) return 0;
+            return getProductStockQty(component);
+        });
+
+        return values.length ? Math.min(...values) : 0;
+    }
+
+    function getSetAvailableQty() {
+        const values = SET_COMPONENT_IDS.map((componentId) => {
+            const component = findProductByProductId(componentId);
+            if (!component) return 0;
+
+            const stockQty = getProductStockQty(component);
+            const inCartQty = getCartQtyForProduct(component);
+
+            return Math.max(0, stockQty - inCartQty);
+        });
+
+        return values.length ? Math.min(...values) : 0;
+    }
+
+    function getAvailableQty(product) {
+        if (isSetProduct(product)) {
+            return getSetAvailableQty();
+        }
+
+        const stockQty = getProductStockQty(product);
+        const inCartQty = getCartQtyForProduct(product);
+
+        return Math.max(0, stockQty - inCartQty);
+    }
 
     function handleAdd(product) {
-        const inCart = cart.find((item) => item.id === product.id);
-        const inCartQty = inCart?.qty ?? 0;
-
-        const available = Math.max(0, (product.stockQty ?? 0) - inCartQty);
+        const available = getAvailableQty(product);
         if (available <= 0) return;
 
         const wanted = qtyById[product.id] ?? 1;
@@ -106,8 +182,20 @@ export default function HomeShop() {
 
         addToCartQty(productToAdd, q);
 
-
         setQtyById((prev) => ({ ...prev, [product.id]: 1 }));
+
+        const key = String(product.id);
+
+        if (addFlashTimersRef.current[key]) {
+            clearTimeout(addFlashTimersRef.current[key]);
+        }
+
+        setAddedFlashById((prev) => ({ ...prev, [key]: true }));
+
+        addFlashTimersRef.current[key] = setTimeout(() => {
+            setAddedFlashById((prev) => ({ ...prev, [key]: false }));
+            delete addFlashTimersRef.current[key];
+        }, 1400);
     }
 
 
@@ -162,12 +250,19 @@ export default function HomeShop() {
                     <>
                         <div className="row g-4">
                             {products.map((p) => {
-                                const inCart = cart.find((item) => item.id === p.id);
-                                const inCartQty = inCart?.qty ?? 0;
+                                const inCartQty = getCartQtyForProduct(p);
                                 const selectedQty = qtyById[p.id] ?? 1;
-                                const available = Math.max(0, (p.stockQty ?? 0) - inCartQty);
-                                const isOut = available <= 0;
+
                                 const isSet = isSetProduct(p);
+                                const stockQty = getProductStockQty(p);
+                                const setBaseAvailableQty = isSet ? getSetBaseAvailableQty() : null;
+                                const available = isSet ? getSetAvailableQty() : Math.max(0, stockQty - inCartQty);
+                                const isOut = available <= 0;
+                                const maxReachedInCart = isSet
+                                    ? (setBaseAvailableQty > 0 && available <= 0)
+                                    : (stockQty > 0 && inCartQty >= stockQty);
+
+                                const justAdded = !!addedFlashById[String(p.id)];
                                 const displayPriceCents = isSet ? (isPiva ? 5400 : 6000) : Number(p.priceCents || 0);
 
                                 return (
@@ -253,13 +348,33 @@ export default function HomeShop() {
                                                     }}
                                                 />
 
+                                                {maxReachedInCart ? (
+                                                    <div className="text-warning mb-3" style={{ fontSize: 13 }}>
+                                                        Hai già raggiunto la quantità massima disponibile per questo prodotto.
+                                                    </div>
+                                                ) : null}
+
                                                 <button
                                                     type="button"
                                                     className="btn shop-btn-primary mt-auto"
                                                     disabled={isOut}
                                                     onClick={() => handleAdd(p)}
                                                 >
-                                                    {isOut ? "Esaurito" : "Aggiungi al carrello"}
+                                                    {isSet
+                                                        ? setBaseAvailableQty <= 0
+                                                            ? "Esaurito"
+                                                            : maxReachedInCart
+                                                                ? "Quantità massima raggiunta"
+                                                                : justAdded
+                                                                    ? "Aggiunto ✓"
+                                                                    : "Aggiungi al carrello"
+                                                        : stockQty <= 0
+                                                            ? "Esaurito"
+                                                            : maxReachedInCart
+                                                                ? "Quantità massima raggiunta"
+                                                                : justAdded
+                                                                    ? "Aggiunto ✓"
+                                                                    : "Aggiungi al carrello"}
                                                 </button>
                                             </div>
                                         </div>

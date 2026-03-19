@@ -1153,18 +1153,26 @@ export default function CheckoutShop() {
                             <hr />
 
                             {(() => {
-                                const subtotalCents = quote?.subtotalCents ?? 0;
-                                const discountCents = quote?.discountCents ?? 0;
+                                const subtotalCents = Number(quote?.subtotalCents) || 0;
+                                const discountCents = Number(quote?.discountCents) || 0;
                                 const discountedTotalCents = Math.max(0, subtotalCents - discountCents);
-                                const thresholdCents = 12000;
 
-                                const shippingCents =
-                                    discountedTotalCents <= 0 ? 0 : discountedTotalCents >= thresholdCents ? 0 : 700;
+                                const shippingCents = Number.isFinite(Number(quote?.shippingCents))
+                                    ? Number(quote.shippingCents)
+                                    : 0;
 
-                                const totalCents = discountedTotalCents + shippingCents;
+                                const freeShippingThresholdCents = Number.isFinite(Number(quote?.freeShippingThresholdCents))
+                                    ? Number(quote.freeShippingThresholdCents)
+                                    : 0;
+
+                                const totalCents = Number.isFinite(Number(quote?.totalCents))
+                                    ? Number(quote.totalCents)
+                                    : discountedTotalCents + shippingCents;
 
                                 const remainingCents =
-                                    shippingCents === 0 ? 0 : Math.max(0, thresholdCents - discountedTotalCents);
+                                    shippingCents > 0 && freeShippingThresholdCents > 0
+                                        ? Math.max(0, freeShippingThresholdCents - discountedTotalCents)
+                                        : 0;
 
                                 return (
                                     <>
@@ -1192,9 +1200,9 @@ export default function CheckoutShop() {
                                             <div className="mt-1 text-warning" style={{ fontSize: 13 }}>
                                                 Ti mancano <strong>{formatEURFromCents(remainingCents)}</strong> per ottenere la spedizione gratuita.
                                             </div>
-                                        ) : shippingCents === 0 ? (
+                                        ) : shippingCents === 0 && totalCents > 0 ? (
                                             <div className="mt-1 text-success" style={{ fontSize: 13 }}>
-                                                Spedizione gratuita attiva ✅
+                                                Spedizione gratuita ✅
                                             </div>
                                         ) : null}
 

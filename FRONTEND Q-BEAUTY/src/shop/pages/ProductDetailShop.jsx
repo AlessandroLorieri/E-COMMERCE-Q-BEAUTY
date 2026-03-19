@@ -13,20 +13,74 @@ export default function ProductDetailShop() {
     const siteUrl = String(import.meta.env.VITE_SITE_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
 
     const { id } = useParams();
-    const { addToCartQty, cart } = useShop();
+    const { addToCartQty, cart, products } = useShop();
     const { user } = useAuth();
 
     const [product, setProduct] = useState(null);
     const [qty, setQty] = useState(1);
 
-    const inCart = cart.find((i) => i.id === product?.id);
-    const inCartQty = inCart?.qty ?? 0;
-    const available = Math.max(0, (product?.stockQty ?? 0) - inCartQty);
-    const isOut = available <= 0;
-
     const isPiva = user?.customerType === "piva";
     const SET_PRODUCT_ID = "SET EXPERIENCE";
     const SET_ID_NORM = SET_PRODUCT_ID.trim().toLowerCase();
+    const SET_COMPONENT_IDS = [
+        "CREMA IDRATANTE CHERATOLITICA",
+        "BURRO EMOLLIENTE",
+        "SPRAY IGIENIZZANTE",
+    ];
+
+    function normalizeProductKey(v) {
+        return String(v || "").trim().toUpperCase();
+    }
+
+    function getProductStockQty(p) {
+        const n = Number(p?.stockQty);
+        if (!Number.isFinite(n)) return 0;
+        return Math.max(0, Math.floor(n));
+    }
+
+    function getCartQtyForProduct(p) {
+        const keys = [
+            p?.id,
+            p?.productId,
+            p?._id,
+        ]
+            .filter(Boolean)
+            .map((x) => String(x));
+
+        const found = cart.find((item) => keys.includes(String(item?.id || "")));
+        return found?.qty ?? 0;
+    }
+
+    function findProductByProductId(productId) {
+        const wanted = normalizeProductKey(productId);
+        return (
+            products.find((p) => normalizeProductKey(p?.productId || p?.id) === wanted) || null
+        );
+    }
+
+    function getSetBaseAvailableQty() {
+        const values = SET_COMPONENT_IDS.map((componentId) => {
+            const component = findProductByProductId(componentId);
+            if (!component) return 0;
+            return getProductStockQty(component);
+        });
+
+        return values.length ? Math.min(...values) : 0;
+    }
+
+    function getSetAvailableQty() {
+        const values = SET_COMPONENT_IDS.map((componentId) => {
+            const component = findProductByProductId(componentId);
+            if (!component) return 0;
+
+            const stockQty = getProductStockQty(component);
+            const inCartQty = getCartQtyForProduct(component);
+
+            return Math.max(0, stockQty - inCartQty);
+        });
+
+        return values.length ? Math.min(...values) : 0;
+    }
 
     const badgeObj = product?.badge;
     const badgeTextRaw = badgeObj?.enabled
@@ -44,6 +98,28 @@ export default function ProductDetailShop() {
         : undefined;
 
     const isSet = String(product?.productId || product?.id || "").trim().toLowerCase() === SET_ID_NORM;
+
+    const inCartQty = product ? getCartQtyForProduct(product) : 0;
+    const stockQty = getProductStockQty(product);
+
+    const setBaseAvailableQty = isSet
+        ? (products.length ? getSetBaseAvailableQty() : stockQty)
+        : null;
+
+    const available = product
+        ? (
+            isSet
+                ? (products.length ? getSetAvailableQty() : Math.max(0, stockQty - inCartQty))
+                : Math.max(0, stockQty - inCartQty)
+        )
+        : 0;
+
+    const isOut = available <= 0;
+
+    const maxReachedInCart = isSet
+        ? (setBaseAvailableQty > 0 && available <= 0)
+        : (stockQty > 0 && inCartQty >= stockQty);
+
     const displayPriceCents = isSet ? (isPiva ? 5400 : 6000) : Number(product?.priceCents || 0);
 
     const hasCompareAt =
@@ -405,6 +481,12 @@ export default function ProductDetailShop() {
                                                     setQty(available > 0 ? Math.min(v, available) : 1);
                                                 }}
                                             />
+
+                                            {maxReachedInCart ? (
+                                                <div className="text-warning mt-2" style={{ fontSize: 13 }}>
+                                                    Hai già raggiunto la quantità massima disponibile per questo prodotto.
+                                                </div>
+                                            ) : null}
                                         </div>
 
                                         <button
@@ -413,7 +495,17 @@ export default function ProductDetailShop() {
                                             onClick={handleAdd}
                                             disabled={isOut}
                                         >
-                                            {isOut ? "Esaurito" : "Aggiungi al carrello"}
+                                            {isSet
+                                                ? setBaseAvailableQty <= 0
+                                                    ? "Esaurito"
+                                                    : maxReachedInCart
+                                                        ? "Quantità massima raggiunta"
+                                                        : "Aggiungi al carrello"
+                                                : stockQty <= 0
+                                                    ? "Esaurito"
+                                                    : maxReachedInCart
+                                                        ? "Quantità massima raggiunta"
+                                                        : "Aggiungi al carrello"}
                                         </button>
 
                                         <Link to="/shop/cart" className="btn shop-btn-outline">

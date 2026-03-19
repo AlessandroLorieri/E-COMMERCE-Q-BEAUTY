@@ -543,6 +543,7 @@ export function ShopProvider({ children }) {
         discountCents: 0,
         discountLabel: null,
         shippingCents: null,
+        freeShippingThresholdCents: 0,
         totalCents: totals.amountCents,
         discountType: "none",
         couponCodeApplied: null,
@@ -578,6 +579,7 @@ export function ShopProvider({ children }) {
                 discountCents: 0,
                 discountLabel: null,
                 shippingCents: null,
+                freeShippingThresholdCents: 0,
                 totalCents: subtotalCents,
                 discountType: "none",
                 couponCodeApplied: null,
@@ -643,6 +645,9 @@ export function ShopProvider({ children }) {
                     discountCents: Number(data.discountCents) || 0,
                     discountLabel: data.discountLabel ?? null,
                     shippingCents: Number.isFinite(Number(data.shippingCents)) ? Number(data.shippingCents) : null,
+                    freeShippingThresholdCents: Number.isFinite(Number(data.freeShippingThresholdCents))
+                        ? Number(data.freeShippingThresholdCents)
+                        : 0,
                     totalCents: Number.isFinite(Number(data.totalCents))
                         ? Number(data.totalCents)
                         : Math.max(0, (Number(data.subtotalCents) || 0) - (Number(data.discountCents) || 0)),

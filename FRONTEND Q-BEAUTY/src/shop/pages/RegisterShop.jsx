@@ -75,6 +75,35 @@ export default function RegisterShop() {
             .join(" ");
     }
 
+    function formatRegisterError(err) {
+        const raw = String(err?.message || "").trim();
+        const low = raw.toLowerCase();
+
+        if (
+            low.includes("email already") ||
+            low.includes("already in use") ||
+            low.includes("already exists") ||
+            low.includes("duplicate") ||
+            low.includes("e11000")
+        ) {
+            return "Questa email è già registrata.";
+        }
+
+        if (low.includes("invalid email")) {
+            return "Email non valida.";
+        }
+
+        if (low.includes("password")) {
+            return "Password non valida.";
+        }
+
+        if (low.includes("failed to fetch") || low.includes("network")) {
+            return "Problema di connessione. Riprova tra poco.";
+        }
+
+        return "Registrazione non riuscita. Riprova.";
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         setError("");
@@ -112,7 +141,7 @@ export default function RegisterShop() {
             await register(payload);
             navigate(next, { replace: true });
         } catch (err) {
-            setError(err.message || "Registrazione fallita");
+            setError(formatRegisterError(err));
         } finally {
             setSubmitting(false);
         }

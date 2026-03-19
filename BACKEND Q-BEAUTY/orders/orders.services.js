@@ -7,6 +7,7 @@ const OrderCounter = require("../models/orderCounter.model");
 const mongoose = require("mongoose");
 const Product = require("../products/products.schema");
 const Coupon = require("../coupons/coupons.schema");
+const ShopSettings = require("../models/shopSettings.model");
 const { sendShipmentEmail, sendOrderPaymentConfirmedEmail } = require("../utils/mailer");
 const { findActiveCouponByCode } = require("../coupons/coupons.services");
 
@@ -126,6 +127,33 @@ function pickFirst(...vals) {
         if (s) return s;
     }
     return "";
+}
+
+async function getShopSettings() {
+    let settings = await ShopSettings.findOne({ key: "main" }).lean();
+
+    if (!settings) {
+        const created = await ShopSettings.create({
+            key: "main",
+            shippingCents: 700,
+            freeShippingThresholdCents: 12000,
+        });
+
+        settings = created.toObject();
+    }
+
+    const shippingCents = Number.isFinite(Number(settings?.shippingCents))
+        ? Math.max(0, Math.trunc(Number(settings.shippingCents)))
+        : 700;
+
+    const freeShippingThresholdCents = Number.isFinite(Number(settings?.freeShippingThresholdCents))
+        ? Math.max(0, Math.trunc(Number(settings.freeShippingThresholdCents)))
+        : 12000;
+
+    return {
+        shippingCents,
+        freeShippingThresholdCents,
+    };
 }
 
 async function userHasCompletedOrders(userId) {
@@ -498,7 +526,12 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
 
     const discountedTotalCents = Math.max(0, subtotalCents - discountCents);
 
-    const shippingCents = discountedTotalCents >= 12000 ? 0 : 700;
+    const {
+        shippingCents: standardShippingCents,
+        freeShippingThresholdCents,
+    } = await getShopSettings();
+
+    const shippingCents = discountedTotalCents >= freeShippingThresholdCents ? 0 : standardShippingCents;
 
     const totalCents = discountedTotalCents + shippingCents;
 
@@ -508,6 +541,7 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
         discountCents,
         discountLabel,
         shippingCents,
+        freeShippingThresholdCents,
         totalCents,
         discountType,
         couponCodeApplied,

@@ -17,6 +17,9 @@ export default function AdminLayout() {
                     <NavLink to="/admin/orders" className="admin__link">
                         Ordini
                     </NavLink>
+                    <NavLink to="/admin/shipping" className="admin__link">
+                        Spedizione
+                    </NavLink>
                     <NavLink to="/admin/coupons" className="admin__link">
                         Coupons
                     </NavLink>
