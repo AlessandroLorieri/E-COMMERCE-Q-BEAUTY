@@ -118,6 +118,7 @@ function normalizeCouponBody(req, res, next) {
     next();
 }
 
+
 router.get("/admin", authRequired, adminOnly, adminReadLimiter, controller.adminList);
 
 router.get(

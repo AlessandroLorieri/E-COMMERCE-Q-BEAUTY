@@ -33,7 +33,7 @@ function validateObjectIdParam(paramName) {
 function validateCreateAddressBody(req, res, next) {
     const raw = req.body || {};
 
-    // campi "attesi" (whitelist): aggiungiamo anche alcuni plausibili per non romperti UX
+    //campi "attesi" (whitelist): aggiungiamo anche alcuni plausibili per non romperti UX
     const payload = {
         name: pickString(raw.name, 80),
         surname: pickString(raw.surname, 80),
