@@ -272,10 +272,30 @@ export default function OrdersShop() {
                             const ship = o.shippingAddress || {};
                             const bill = o.billingAddress || {};
 
-                            const shipStreetNumber = ship?.streetNumber ? `, ${ship.streetNumber}` : "";
-                            const billStreetNumber = bill?.streetNumber ? `, ${bill.streetNumber}` : "";
+                            const shipAddressLine =
+                                ship?.address
+                                    ? `${ship.address}${ship?.streetNumber ? `, ${ship.streetNumber}` : ""}`
+                                    : "-";
 
-                            const isPivaOrder = !!String(bill?.vatNumber || "").trim();
+                            const billAddressLine =
+                                bill?.address
+                                    ? `${bill.address}${bill?.streetNumber ? `, ${bill.streetNumber}` : ""}`
+                                    : "-";
+
+                            const shipCityCap =
+                                ship?.city || ship?.cap
+                                    ? `${ship?.city || "-"}${ship?.cap ? ` (${ship.cap})` : ""}`
+                                    : "-";
+
+                            const billCityCap =
+                                bill?.city || bill?.cap
+                                    ? `${bill?.city || "-"}${bill?.cap ? ` (${bill.cap})` : ""}`
+                                    : "-";
+
+                            const isPivaOrder =
+                                !!String(bill?.vatNumber || "").trim() ||
+                                !!String(bill?.companyName || "").trim();
+
                             const meta = statusMeta(o.status);
 
                             const paymentProvider = String(o.paymentProvider || o.paymentMethod || "").trim().toLowerCase();
@@ -400,59 +420,47 @@ export default function OrdersShop() {
                                                 <div className="col-12 col-lg-4">
                                                     <div className="fw-semibold mb-2">Spedizione</div>
                                                     <div style={{ fontSize: 14 }}>
-                                                        <div>
-                                                            {ship.name} {ship.surname}
-                                                        </div>
-                                                        {ship.email ? <div className="text-muted">{ship.email}</div> : null}
-                                                        <div className="mt-2">
-                                                            {ship.address}{shipStreetNumber}
-                                                        </div>
-                                                        <div>
-                                                            {ship.city} ({ship.cap})
-                                                        </div>
+                                                        <div><span className="text-muted">Nome:</span> <b>{ship?.name || "-"}</b></div>
+                                                        <div><span className="text-muted">Cognome:</span> <b>{ship?.surname || "-"}</b></div>
+                                                        {ship?.phone ? (
+                                                            <div><span className="text-muted">Telefono:</span> <b>{ship.phone}</b></div>
+                                                        ) : null}
+                                                        <div><span className="text-muted">Indirizzo:</span> <b>{shipAddressLine}</b></div>
+                                                        <div><span className="text-muted">Città:</span> <b>{shipCityCap}</b></div>
                                                     </div>
                                                 </div>
 
                                                 <div className="col-12 col-lg-4">
                                                     <div className="fw-semibold mb-2">Fatturazione</div>
                                                     <div style={{ fontSize: 14 }}>
-                                                        {isPivaOrder ? (
-                                                            <>
-                                                                <div className="fw-semibold">{bill.companyName || "Ragione sociale"}</div>
-                                                                {bill.vatNumber ? <div>P.IVA: {bill.vatNumber}</div> : null}
+                                                        {isPivaOrder && bill?.companyName ? (
+                                                            <div><span className="text-muted">Ragione sociale:</span> <b>{bill.companyName}</b></div>
+                                                        ) : null}
 
-                                                                <div className="mt-2">
-                                                                    {bill.name} {bill.surname}
-                                                                </div>
+                                                        <div><span className="text-muted">Nome:</span> <b>{bill?.name || "-"}</b></div>
+                                                        <div><span className="text-muted">Cognome:</span> <b>{bill?.surname || "-"}</b></div>
 
-                                                                {bill.email ? <div className="text-muted">{bill.email}</div> : null}
+                                                        {bill?.email ? (
+                                                            <div><span className="text-muted">Email:</span> <b>{bill.email}</b></div>
+                                                        ) : null}
 
-                                                                <div className="mt-2">
-                                                                    {bill.address}{billStreetNumber}
-                                                                </div>
-                                                                <div>
-                                                                    {bill.city} ({bill.cap})
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <div className="fw-semibold">
-                                                                    {bill.name} {bill.surname}
-                                                                </div>
+                                                        {bill?.phone ? (
+                                                            <div><span className="text-muted">Telefono:</span> <b>{bill.phone}</b></div>
+                                                        ) : null}
 
-                                                                {bill.email ? <div className="text-muted">{bill.email}</div> : null}
-                                                                {bill.taxCode ? <div>Cod. fiscale: {bill.taxCode}</div> : null}
+                                                        <div><span className="text-muted">Indirizzo:</span> <b>{billAddressLine}</b></div>
+                                                        <div><span className="text-muted">Città:</span> <b>{billCityCap}</b></div>
 
-                                                                <div className="mt-2">
-                                                                    {bill.address}{billStreetNumber}
-                                                                </div>
-                                                                <div>
-                                                                    {bill.city} ({bill.cap})
-                                                                </div>
-                                                            </>
-                                                        )}
+                                                        {bill?.taxCode ? (
+                                                            <div><span className="text-muted">Codice fiscale:</span> <b>{bill.taxCode}</b></div>
+                                                        ) : null}
+
+                                                        {bill?.vatNumber ? (
+                                                            <div><span className="text-muted">Partita IVA:</span> <b>{bill.vatNumber}</b></div>
+                                                        ) : null}
                                                     </div>
                                                 </div>
+                                                
                                                 <div className="col-12 col-lg-4">
                                                     <div className="fw-semibold mb-2">Totali</div>
 
