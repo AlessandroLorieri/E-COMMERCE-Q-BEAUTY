@@ -65,7 +65,9 @@ Q-BEAUTY è composto da:
   - ordini
   - coupon
   - indirizzi
+  - recensioni
   - contatori ordini
+  - impostazioni spedizione
 
 ## 8. Pagamenti
 - Servizio: Stripe
@@ -89,12 +91,15 @@ Per reinviare le istruzioni bonifico:
 - Gestite su Aruba
 
 ### Email applicative / transazionali
-- Da controllare nel backend tramite i file mailer / env
+- Gestite dal backend
+- Invio via configurazione mail del backend
 - Usate per:
-  - conferma ordine
-  - conferma pagamento
+  - benvenuto
+  - conferma ordine / pagamento
   - spedizione
   - bonifico
+  - reset password
+  - recensioni
 
 ## 10. SEO
 - Search Console verificata per `qbeautyshop.it`
@@ -134,31 +139,87 @@ Per reinviare le istruzioni bonifico:
 - `/admin/orders`
 - `/admin/coupons`
 - `/admin/reviews`
+- `/admin/shipping`
 
-## 12. Variabili ambiente da controllare
+## 12. Gestione spedizione
+
+### Stato attuale
+La spedizione non è più hardcoded solo nel frontend.
+
+Adesso esiste una gestione centralizzata con:
+- configurazione salvata nel backend / database
+- pannello admin dedicato
+- checkout sincronizzato con i valori backend
+
+### Valori gestiti
+- `shippingCents` = costo spedizione standard
+- `freeShippingThresholdCents` = soglia spedizione gratuita
+
+### Logica corretta
+La spedizione gratuita viene calcolata sul **totale finale dopo gli sconti**, non sul subtotale pieno.
+
+Ordine corretto del calcolo:
+1. subtotale prodotti
+2. sconti globali / coupon / quantità / P.IVA / primo ordine
+3. totale scontato
+4. verifica soglia spedizione gratuita
+5. aggiunta eventuale costo spedizione
+
+### Backend admin shipping
+- GET impostazioni: `GET /api/shipping/admin`
+- UPDATE impostazioni: `PATCH /api/shipping/admin`
+
+### Frontend admin shipping
+- sezione admin dedicata: `/admin/shipping`
+- i valori vengono mostrati in euro e salvati in centesimi
+
+### Checkout
+Il checkout usa i dati del `quote` backend:
+- `subtotalCents`
+- `discountCents`
+- `shippingCents`
+- `freeShippingThresholdCents`
+- `totalCents`
+
+Quindi:
+- il totale mostrato è coerente con il backend
+- il messaggio “Ti mancano X per la spedizione gratuita” usa la soglia reale salvata nel backend
+
+## 13. Variabili ambiente da controllare
 
 ### Frontend
 - `VITE_API_URL`
 - `VITE_SITE_URL`
 
 ### Backend
-- `MONGODB_URI`
+- `MONGO_URI`
 - `JWT_SECRET`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+- `CLIENT_ORIGIN`
+- `PUBLIC_SITE_URL`
 - `FRONTEND_URL`
-- `CORS_ORIGIN`
-- eventuali chiavi provider email
+- eventuali chiavi provider email:
+  - `MAIL_TRANSPORT`
+  - `MAIL_FROM`
+  - `MAIL_FROM_NAME`
+  - `MAIL_REPLY_TO`
+  - `SMTP_HOST`
+  - `SMTP_PORT`
+  - `SMTP_USER`
+  - `SMTP_PASS`
+  - `RESEND_API_KEY`
 
-## 13. Regole importanti
+## 14. Regole importanti
 - Non modificare i DNS live da Aruba
 - Non rimuovere il TXT di verifica Search Console da Cloudflare
 - Prima di modificare DNS, controllare sempre i nameserver live
 - Registrar e DNS non sono la stessa cosa:
   - Aruba = dominio acquistato
   - Cloudflare = DNS live
+- Le impostazioni spedizione vanno cambiate dal pannello admin o dal backend, non hardcodate nel frontend
 
-## 14. Comandi utili
+## 15. Comandi utili
 
 ### Controllare nameserver live
 ```bash
@@ -180,7 +241,7 @@ dig +short A qbeautyshop.it
 dig +short CNAME www.qbeautyshop.it
 ```
 
-## 15. Flussi operativi
+## 16. Flussi operativi
 
 ### Deploy frontend
 1. modifica frontend
@@ -206,7 +267,14 @@ dig +short CNAME www.qbeautyshop.it
 3. controllare webhook
 4. controllare ordine su database
 
-## 16. Stato attuale
+### Modifica spedizione
+1. aprire `/admin/shipping`
+2. aggiornare costo spedizione e soglia gratuita
+3. salvare
+4. testare carrello / checkout
+5. verificare che il totale sia corretto con e senza sconti
+
+## 17. Stato attuale
 
 ### Già fatto
 - dominio acquistato
@@ -216,6 +284,10 @@ dig +short CNAME www.qbeautyshop.it
 - 404 migliorata
 - rotte vecchie inutili rimosse
 - distinzione chiara tra homepage vetrina e shop
+- checkout allineato al calcolo backend
+- gestione admin delle spese di spedizione
+- messaggi registrazione email già usata tradotti in italiano
+- migliorata coerenza stock / quantità tra shop, carrello e checkout
 
 ### Da fare
 - collegare definitivamente il dominio al sito live
@@ -223,8 +295,9 @@ dig +short CNAME www.qbeautyshop.it
 - verificare `sitemap.xml`
 - inviare sitemap in Search Console quando il dominio sarà live
 - configurare analytics se necessario
+- passaggio definitivo Stripe da test a live quando pronto
 
-## 17. Checklist pre go-live
+## 18. Checklist pre go-live
 - dominio collegato al frontend live
 - backend produzione online
 - env frontend corrette
@@ -238,10 +311,16 @@ dig +short CNAME www.qbeautyshop.it
 - Stripe ok
 - email ok
 - admin ok
+- admin shipping ok
 - robots.txt ok
 - sitemap.xml ok
+- test spedizione con:
+  - ordine sotto soglia
+  - ordine sopra soglia
+  - ordine con sconto
+  - ordine con coupon
 
-## 18. Riassunto veloce
+## 19. Riassunto veloce
 - Dominio acquistato = Aruba
 - DNS live = Cloudflare
 - Frontend live = Vercel
@@ -250,3 +329,4 @@ dig +short CNAME www.qbeautyshop.it
 - Pagamenti = Stripe
 - SEO = Search Console
 - Caselle mail = Aruba
+- Spedizione = configurabile da admin e calcolata dal backend

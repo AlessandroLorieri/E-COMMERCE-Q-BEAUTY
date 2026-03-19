@@ -270,6 +270,12 @@ export default function OrdersShop() {
                         {orders.map((o) => {
                             const isOpen = openOrderId === o._id;
                             const ship = o.shippingAddress || {};
+                            const bill = o.billingAddress || {};
+
+                            const shipStreetNumber = ship?.streetNumber ? `, ${ship.streetNumber}` : "";
+                            const billStreetNumber = bill?.streetNumber ? `, ${bill.streetNumber}` : "";
+
+                            const isPivaOrder = !!String(bill?.vatNumber || "").trim();
                             const meta = statusMeta(o.status);
 
                             const paymentProvider = String(o.paymentProvider || o.paymentMethod || "").trim().toLowerCase();
@@ -398,7 +404,9 @@ export default function OrdersShop() {
                                                             {ship.name} {ship.surname}
                                                         </div>
                                                         {ship.email ? <div className="text-muted">{ship.email}</div> : null}
-                                                        <div className="mt-2">{ship.address}</div>
+                                                        <div className="mt-2">
+                                                            {ship.address}{shipStreetNumber}
+                                                        </div>
                                                         <div>
                                                             {ship.city} ({ship.cap})
                                                         </div>
@@ -408,39 +416,43 @@ export default function OrdersShop() {
                                                 <div className="col-12 col-lg-4">
                                                     <div className="fw-semibold mb-2">Fatturazione</div>
                                                     <div style={{ fontSize: 14 }}>
-                                                        {user?.customerType === "piva" ? (
+                                                        {isPivaOrder ? (
                                                             <>
-                                                                <div className="fw-semibold">{user.companyName || "Ragione sociale"}</div>
-                                                                {user.vatNumber ? <div>P.IVA: {user.vatNumber}</div> : null}
-                                                                <div className="text-muted">{user.email}</div>
+                                                                <div className="fw-semibold">{bill.companyName || "Ragione sociale"}</div>
+                                                                {bill.vatNumber ? <div>P.IVA: {bill.vatNumber}</div> : null}
 
-                                                                <div className="text-muted mt-2" style={{ fontSize: 13 }}>
-                                                                    Indirizzo fatturazione: uguale a spedizione
+                                                                <div className="mt-2">
+                                                                    {bill.name} {bill.surname}
                                                                 </div>
-                                                                <div>{ship.address}</div>
+
+                                                                {bill.email ? <div className="text-muted">{bill.email}</div> : null}
+
+                                                                <div className="mt-2">
+                                                                    {bill.address}{billStreetNumber}
+                                                                </div>
                                                                 <div>
-                                                                    {ship.city} ({ship.cap})
+                                                                    {bill.city} ({bill.cap})
                                                                 </div>
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <div className="fw-semibold">
-                                                                    {ship.name} {ship.surname}
+                                                                    {bill.name} {bill.surname}
                                                                 </div>
-                                                                <div className="text-muted">{user?.email || ship.email}</div>
 
-                                                                <div className="text-muted mt-2" style={{ fontSize: 13 }}>
-                                                                    Indirizzo fatturazione: uguale a spedizione
+                                                                {bill.email ? <div className="text-muted">{bill.email}</div> : null}
+                                                                {bill.taxCode ? <div>Cod. fiscale: {bill.taxCode}</div> : null}
+
+                                                                <div className="mt-2">
+                                                                    {bill.address}{billStreetNumber}
                                                                 </div>
-                                                                <div>{ship.address}</div>
                                                                 <div>
-                                                                    {ship.city} ({ship.cap})
+                                                                    {bill.city} ({bill.cap})
                                                                 </div>
                                                             </>
                                                         )}
                                                     </div>
                                                 </div>
-
                                                 <div className="col-12 col-lg-4">
                                                     <div className="fw-semibold mb-2">Totali</div>
 
