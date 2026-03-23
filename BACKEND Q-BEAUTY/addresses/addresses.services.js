@@ -1,12 +1,36 @@
 const Address = require("./addresses.schema");
 const { normalizeShippingAddress } = require("../utils/normalizers/address.normalizer");
 
+const ALLOWED_COUNTRY = "IT";
+
+function normalizeCountry(v) {
+    const raw = String(v || "").trim().toUpperCase();
+
+    if (!raw) return ALLOWED_COUNTRY;
+    if (raw === "ITALIA" || raw === "ITALY") return ALLOWED_COUNTRY;
+
+    return raw;
+}
+
+function ensureItalyOnly(countryRaw) {
+    const country = normalizeCountry(countryRaw);
+
+    if (country !== ALLOWED_COUNTRY) {
+        const err = new Error("Spediamo solo in Italia");
+        err.status = 400;
+        throw err;
+    }
+
+    return country;
+}
+
 async function listMyAddresses(userId) {
     return Address.find({ user: userId }).sort({ isDefault: -1, createdAt: -1 }).lean();
 }
 
 async function createAddress(userId, payload) {
     const a = normalizeShippingAddress(payload || {});
+    ensureItalyOnly(payload?.country);
 
     const existingCount = await Address.countDocuments({ user: userId });
 

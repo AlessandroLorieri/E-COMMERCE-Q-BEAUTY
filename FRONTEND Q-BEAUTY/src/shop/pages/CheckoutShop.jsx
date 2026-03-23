@@ -67,6 +67,7 @@ export default function CheckoutShop() {
     const [selectedAddressId, setSelectedAddressId] = useState("");
     const [saveToAddressBook, setSaveToAddressBook] = useState(true);
     const [addressLabel, setAddressLabel] = useState("Casa");
+    const [italyConfirmed, setItalyConfirmed] = useState(false);
 
     useEffect(() => {
         if (loading) return;
@@ -315,6 +316,10 @@ export default function CheckoutShop() {
     function validateClient() {
         const e = {};
 
+        if (!italyConfirmed) {
+            e.shippingItalyConfirm = "Devi confermare che l’indirizzo di spedizione è in Italia";
+        }
+
         if (!form.name.trim()) e.name = "Nome richiesto";
         if (!form.surname.trim()) e.surname = "Cognome richiesto";
 
@@ -424,6 +429,7 @@ export default function CheckoutShop() {
             streetNumber: form.streetNumber.trim(),
             city: normalizeHumanText(form.city),
             cap: form.cap.trim(),
+            country: "IT",
         };
     }
 
@@ -441,6 +447,7 @@ export default function CheckoutShop() {
                 streetNumber: form.streetNumber.trim(),
                 city: normalizeHumanText(form.city),
                 cap: form.cap.trim(),
+                country: "IT",
             };
         }
 
@@ -454,6 +461,7 @@ export default function CheckoutShop() {
             streetNumber: billingForm.streetNumber.trim(),
             city: normalizeHumanText(billingForm.city),
             cap: billingForm.cap.trim(),
+            country: "IT",
         };
     }
 
@@ -733,6 +741,52 @@ export default function CheckoutShop() {
                             <h5>Dati spedizione</h5>
 
                             <div className="mb-3">
+                                <label className="form-label">Paese</label>
+                                <input
+                                    className="form-control"
+                                    value="Italia"
+                                    disabled
+                                    readOnly
+                                />
+                            </div>
+
+                            <div className="mb-3">
+                                <div className="form-check">
+                                    <input
+                                        className={`form-check-input ${fieldErrors.shippingItalyConfirm ? "is-invalid" : ""}`}
+                                        type="checkbox"
+                                        id="shippingItalyConfirm"
+                                        checked={italyConfirmed}
+                                        onChange={(e) => {
+                                            setItalyConfirmed(e.target.checked);
+                                            setSubmitError("");
+                                            setFieldErrors((prev) => {
+                                                if (!prev.shippingItalyConfirm) return prev;
+                                                const next = { ...prev };
+                                                delete next.shippingItalyConfirm;
+                                                return next;
+                                            });
+                                        }}
+                                        disabled={busy}
+                                    />
+                                    <label className="form-check-label" htmlFor="shippingItalyConfirm">
+                                        Spediamo solo in Italia. Confermo che questo indirizzo di spedizione si trova in Italia.
+                                    </label>
+                                </div>
+
+                                {fieldErrors.shippingItalyConfirm ? (
+                                    <div className="text-danger mt-1" style={{ fontSize: 13 }}>
+                                        {fieldErrors.shippingItalyConfirm}
+                                    </div>
+                                ) : null}
+
+                                <div className="text-muted mt-1" style={{ fontSize: 13 }}>
+                                    Per spedizioni fuori dall’Italia, contatta l’assistenza.
+                                </div>
+
+                            </div>
+
+                            <div className="mb-3">
                                 <label className="form-label">Indirizzo di spedizione</label>
 
                                 {addressesLoading ? (
@@ -957,6 +1011,16 @@ export default function CheckoutShop() {
                                     <hr className="my-4" />
 
                                     <h5 className="mb-2">Dati di fatturazione</h5>
+
+                                    <div className="mb-3">
+                                        <label className="form-label">Paese</label>
+                                        <input
+                                            className="form-control"
+                                            value="Italia"
+                                            disabled
+                                            readOnly
+                                        />
+                                    </div>
 
                                     <div className="form-check mb-3">
                                         <input

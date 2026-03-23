@@ -84,6 +84,34 @@ function isValidHttpUrlString(s) {
     return isValidProductMediaUrl(s);
 }
 
+const SET_PRODUCT_ID = "SET EXPERIENCE";
+const SET_COMPONENT_IDS = [
+    "CREMA IDRATANTE CHERATOLITICA",
+    "BURRO EMOLLIENTE",
+    "SPRAY IGIENIZZANTE",
+];
+
+function normalizeProductKey(v) {
+    return String(v || "").trim().toUpperCase();
+}
+
+function isSetExperience(productId) {
+    return normalizeProductKey(productId) === normalizeProductKey(SET_PRODUCT_ID);
+}
+
+function getCalculatedSetStock(productsList) {
+    const values = SET_COMPONENT_IDS.map((componentId) => {
+        const product = (productsList || []).find(
+            (p) => normalizeProductKey(p?.productId || p?.id) === normalizeProductKey(componentId)
+        );
+
+        const stock = Number(product?.stockQty);
+        return Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0;
+    });
+
+    return values.length ? Math.min(...values) : 0;
+}
+
 export default function AdminProducts() {
     const navigate = useNavigate();
     const { authFetch } = useAuth();
@@ -135,6 +163,9 @@ export default function AdminProducts() {
         if (q.trim()) sp.set("q", q.trim());
         return sp.toString();
     }, [page, limit, q]);
+
+    const calculatedSetStock = useMemo(() => getCalculatedSetStock(products), [products]);
+    const formIsSet = isSetExperience(form.productId);
 
     async function apiFetch(path, options = {}) {
         let res;
@@ -566,12 +597,18 @@ export default function AdminProducts() {
                             <input
                                 type="number"
                                 min={0}
+                                disabled={formIsSet}
                                 className={`form-control ${formErrors.stockQty ? "is-invalid" : ""}`}
-                                value={form.stockQty}
+                                value={formIsSet ? String(calculatedSetStock) : form.stockQty}
                                 onChange={(e) => setForm((f) => ({ ...f, stockQty: e.target.value }))}
                             />
                             {formErrors.stockQty ? (
                                 <div className="invalid-feedback">{formErrors.stockQty}</div>
+                            ) : null}
+                            {formIsSet ? (
+                                <div className="form-text">
+                                    Calcolato automaticamente dai componenti del set.
+                                </div>
                             ) : null}
                         </div>
 
@@ -805,7 +842,7 @@ export default function AdminProducts() {
                                 </td>
 
                                 <td className="text-nowrap" style={{ padding: "14px 18px" }}>
-                                    <code>{p.stockQty ?? 0}</code>
+                                    <code>{isSetExperience(p.productId || p.id) ? calculatedSetStock : (p.stockQty ?? 0)}</code>
                                 </td>
 
                                 <td className="text-nowrap" style={{ padding: "14px 18px" }}>

@@ -6,6 +6,19 @@ const ShopContext = createContext(null);
 
 const CART_KEY = "qbeauty_shop_cart_v3";
 
+const SET_PRODUCT_ID = "SET EXPERIENCE";
+const SET_COMPONENT_IDS = [
+    "CREMA IDRATANTE CHERATOLITICA",
+    "BURRO EMOLLIENTE",
+    "SPRAY IGIENIZZANTE",
+];
+
+function normalizeProductKey(v) {
+    return String(v || "").trim().toUpperCase();
+}
+
+const SET_PRODUCT_KEY = normalizeProductKey(SET_PRODUCT_ID);
+
 function getCouponStorageKey(cartKey) {
     return `${cartKey}:coupon`;
 }
@@ -331,6 +344,59 @@ export function ShopProvider({ children }) {
         return m;
     }, [products]);
 
+    function findProductByProductId(productId) {
+        const wanted = normalizeProductKey(productId);
+        return (
+            products.find((p) => normalizeProductKey(p?.productId || p?.id) === wanted) || null
+        );
+    }
+
+    function buildCartStockMovements(lines = []) {
+        const map = new Map();
+
+        function add(productId, qty) {
+            const key = normalizeProductKey(productId);
+            const amount = Math.max(0, Math.trunc(Number(qty) || 0));
+            if (!key || amount <= 0) return;
+            map.set(key, (map.get(key) || 0) + amount);
+        }
+
+        for (const line of lines) {
+            const id = normalizeId(line?.id);
+            const qty = Math.max(0, Math.trunc(Number(line?.qty) || 0));
+            if (!id || qty <= 0) continue;
+
+            const product = productsById.get(id);
+            const productKey = normalizeProductKey(product?.productId || product?.id);
+            if (!productKey) continue;
+
+            if (productKey === SET_PRODUCT_KEY) {
+                for (const componentId of SET_COMPONENT_IDS) {
+                    add(componentId, qty);
+                }
+                continue;
+            }
+
+            add(product?.productId || product?.id, qty);
+        }
+
+        return Array.from(map.entries()).map(([productId, qty]) => ({ productId, qty }));
+    }
+
+    function replaceLineQty(lines, targetId, nextQty) {
+        const id = normalizeId(targetId);
+        const qty = Math.max(0, Math.trunc(Number(nextQty) || 0));
+        const exists = lines.some((x) => normalizeId(x.id) === id);
+
+        if (exists) {
+            return qty > 0
+                ? lines.map((x) => (normalizeId(x.id) === id ? { ...x, qty } : x))
+                : lines.filter((x) => normalizeId(x.id) !== id);
+        }
+
+        return qty > 0 ? [...lines, { id, qty }] : lines;
+    }
+
     function resolveToMongoId(anyId) {
         const id = normalizeId(anyId);
         if (!id) return "";
@@ -338,16 +404,24 @@ export function ShopProvider({ children }) {
         return normalizeId(p?._id || p?.id || id);
     }
 
-    function getClampedCartQty(productId, requestedQty) {
+    function getClampedCartQty(productId, requestedQty, baseLines = cartRaw) {
         const id = normalizeId(productId);
-        const p = productsById.get(id);
-        const stockQty = getProductStockQty(p);
+        const desiredQty = Math.max(0, Math.trunc(Number(requestedQty) || 0));
 
-        const safeRequested = Math.max(1, Number(requestedQty) || 1);
+        for (let qty = desiredQty; qty >= 0; qty--) {
+            const candidateLines = replaceLineQty(baseLines, id, qty);
+            const movements = buildCartStockMovements(candidateLines);
 
-        if (stockQty === null) return safeRequested;
+            const overflow = movements.find(({ productId: movementId, qty: movementQty }) => {
+                const product = findProductByProductId(movementId);
+                const stockQty = getProductStockQty(product);
+                return stockQty !== null && movementQty > stockQty;
+            });
 
-        return Math.max(0, Math.min(safeRequested, stockQty));
+            if (!overflow) return qty;
+        }
+
+        return 0;
     }
 
     function isCartLineValid(line) {
@@ -404,21 +478,23 @@ export function ShopProvider({ children }) {
             const migrated = prev.map((x) => ({ ...x, id: resolveToMongoId(x.id) }));
             const merged = mergeCartLines(migrated);
 
-            const reconciled = merged
-                .map((line) => {
-                    const id = normalizeId(line.id);
-                    const p = productsById.get(id);
-                    const stockQty = getProductStockQty(p);
+            const reconciled = [];
 
-                    if (stockQty === null) return line;
-                    if (stockQty <= 0) return null;
+            for (const line of merged) {
+                const id = normalizeId(line.id);
+                const p = productsById.get(id);
 
-                    return {
-                        ...line,
-                        qty: Math.min(line.qty, stockQty),
-                    };
-                })
-                .filter(Boolean);
+                if (!p || p.__active !== true) continue;
+
+                const allowedQty = getClampedCartQty(id, line.qty, reconciled);
+
+                if (allowedQty <= 0) continue;
+
+                reconciled.push({
+                    ...line,
+                    qty: allowedQty,
+                });
+            }
 
             const same =
                 reconciled.length === prev.length &&
@@ -447,7 +523,7 @@ export function ShopProvider({ children }) {
         setCartRaw((prev) => {
             const found = prev.find((x) => normalizeId(x.id) === id);
             const currentQty = found ? Number(found.qty) || 0 : 0;
-            const nextQty = getClampedCartQty(id, currentQty + 1);
+            const nextQty = getClampedCartQty(id, currentQty + 1, prev);
 
             if (nextQty <= 0) return prev;
 
@@ -471,7 +547,7 @@ export function ShopProvider({ children }) {
         setCartRaw((prev) => {
             const found = prev.find((x) => normalizeId(x.id) === id);
             const currentQty = found ? Number(found.qty) || 0 : 0;
-            const nextQty = getClampedCartQty(id, currentQty + q);
+            const nextQty = getClampedCartQty(id, currentQty + q, prev);
 
             if (nextQty <= 0) return prev;
 
@@ -489,18 +565,19 @@ export function ShopProvider({ children }) {
     function inc(productId) {
         const id = normalizeId(productId);
 
-        setCartRaw((prev) =>
-            prev.map((x) => {
-                if (normalizeId(x.id) !== id) return x;
+        setCartRaw((prev) => {
+            const found = prev.find((x) => normalizeId(x.id) === id);
+            if (!found) return prev;
 
-                const currentQty = Number(x.qty) || 1;
-                const nextQty = getClampedCartQty(id, currentQty + 1);
+            const currentQty = Number(found.qty) || 1;
+            const nextQty = getClampedCartQty(id, currentQty + 1, prev);
 
-                if (nextQty === currentQty) return x;
+            if (nextQty === currentQty) return prev;
 
-                return { ...x, qty: nextQty };
-            })
-        );
+            return prev.map((x) =>
+                normalizeId(x.id) === id ? { ...x, qty: nextQty } : x
+            );
+        });
     }
 
     function dec(productId) {

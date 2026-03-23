@@ -16,6 +16,71 @@ const BULK_DISCOUNT_RATE = 0.25;
 const SET_BULK_EQUIVALENT_QTY = 3;
 const SET_FULL_PRICE_CENTS = 6770;
 
+const SET_PRODUCT_ID = "SET EXPERIENCE";
+const SET_COMPONENT_IDS = [
+    "CREMA IDRATANTE CHERATOLITICA",
+    "BURRO EMOLLIENTE",
+    "SPRAY IGIENIZZANTE",
+];
+
+const ALLOWED_COUNTRY = "IT";
+
+function normalizeCountry(v) {
+    const raw = String(v || "").trim().toUpperCase();
+
+    if (!raw) return ALLOWED_COUNTRY;
+    if (raw === "ITALIA" || raw === "ITALY") return ALLOWED_COUNTRY;
+
+    return raw;
+}
+
+function ensureItalyOnly(countryRaw) {
+    const country = normalizeCountry(countryRaw);
+
+    if (country !== ALLOWED_COUNTRY) {
+        const err = new Error("Spediamo solo in Italia");
+        err.status = 400;
+        throw err;
+    }
+
+    return country;
+}
+
+function normProductId(v) {
+    return String(v ?? "").trim().toLowerCase();
+}
+
+const SET_ID_NORM = normProductId(SET_PRODUCT_ID);
+
+function buildStockMovements(items = []) {
+    const map = new Map();
+
+    function add(productId, qty) {
+        const key = String(productId || "").trim();
+        const quantity = Math.max(0, Math.trunc(Number(qty) || 0));
+        if (!key || quantity <= 0) return;
+        map.set(key, (map.get(key) || 0) + quantity);
+    }
+
+    for (const it of items || []) {
+        const qty = Math.max(0, Math.trunc(Number(it?.qty) || 0));
+        const slug = String(it?.productSlug || it?.productId || "").trim();
+
+        if (!slug || qty <= 0) continue;
+
+        if (normProductId(slug) === SET_ID_NORM) {
+            for (const componentId of SET_COMPONENT_IDS) {
+                add(componentId, qty);
+            }
+            continue;
+        }
+
+        add(slug, qty);
+    }
+
+    return Array.from(map.entries()).map(([productId, qty]) => ({ productId, qty }));
+}
+
 function normalizeTaxCode(v) {
     return String(v || "").trim().replace(/\s+/g, "").toUpperCase();
 }
@@ -222,44 +287,52 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
 
     const products = await getProductsByIds(ids);
 
+    const needsSetComponents = products.some(
+        (p) => normProductId(p?.productId) === SET_ID_NORM
+    );
+
+    const setComponentProducts = needsSetComponents
+        ? await Product.find({
+            isActive: true,
+            productId: { $in: SET_COMPONENT_IDS },
+        }).lean()
+        : [];
+
     const map = new Map();
-    for (const p of products) {
+    for (const p of [...products, ...setComponentProducts]) {
         if (p?._id) map.set(String(p._id), p);
-        if (p?.productId) map.set(String(p.productId), p);
+        if (p?.productId) {
+            map.set(String(p.productId), p);
+            map.set(normProductId(p.productId), p);
+        }
     }
 
-    const SET_PRODUCT_ID = "SET EXPERIENCE";
-    const normId = (v) => String(v ?? "").trim().toLowerCase();
-    const SET_ID_NORM = normId(SET_PRODUCT_ID);
-
-    for (const p of products) {
-        if (p?.productId) map.set(normId(p.productId), p);
-    }
-
-    const missing = ids.filter((id) => !map.has(String(id)) && !map.has(normId(id)));
+    const missing = ids.filter((id) => !map.has(String(id)) && !map.has(normProductId(id)));
     if (missing.length) {
         const err = new Error(`Unknown or inactive products: ${missing.join(", ")}`);
         err.status = 400;
         throw err;
     }
 
-    const resolvedItems = items.map((i) => {
-        const p = map.get(i.productId) || map.get(normId(i.productId));
-
-        const stock = Number(p.stockQty ?? 0);
-        if (i.qty > stock) {
+    if (needsSetComponents) {
+        const missingSetComponents = SET_COMPONENT_IDS.filter((id) => !map.has(normProductId(id)));
+        if (missingSetComponents.length) {
             const err = new Error("Stock insufficiente");
             err.status = 409;
             err.errors = {
                 stock: {
-                    [i.productId]: `Disponibili: ${stock}`,
+                    [SET_PRODUCT_ID]: "Set non disponibile",
                 },
             };
             throw err;
         }
+    }
+
+    const resolvedItems = items.map((i) => {
+        const p = map.get(i.productId) || map.get(normProductId(i.productId));
 
         const slug = p.productId ? String(p.productId) : null;
-        const isSet = normId(slug) === SET_ID_NORM;
+        const isSet = normProductId(slug) === SET_ID_NORM;
 
         let unitPriceCents = Number(p.priceCents);
 
@@ -277,10 +350,8 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
 
         return {
             productId: i.productId,
-
             productRef: String(p._id),
             productSlug: p.productId ? String(p.productId) : null,
-
             name: p.name,
             qty: i.qty,
             unitPriceCents,
@@ -293,9 +364,27 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
         it.couponDiscountCents = 0;
     }
 
+    const stockMovements = buildStockMovements(resolvedItems);
+
+    for (const movement of stockMovements) {
+        const product = map.get(normProductId(movement.productId));
+        const stockQty = Math.max(0, Number(product?.stockQty || 0));
+
+        if (movement.qty > stockQty) {
+            const err = new Error("Stock insufficiente");
+            err.status = 409;
+            err.errors = {
+                stock: {
+                    [movement.productId]: `Disponibili: ${stockQty}`,
+                },
+            };
+            throw err;
+        }
+    }
+
     const bulkPiecesCount = resolvedItems.reduce((sum, it) => {
         const qty = Number(it.qty || 0);
-        const isSetLine = normId(it.productSlug || "") === SET_ID_NORM;
+        const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
         return sum + (isSetLine ? qty * SET_BULK_EQUIVALENT_QTY : qty);
     }, 0);
 
@@ -303,7 +392,7 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
 
     if (bulkDiscountActive) {
         for (const it of resolvedItems) {
-            const isSetLine = normId(it.productSlug || "") === SET_ID_NORM;
+            const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
             if (!isSetLine) continue;
 
             it.unitPriceCents = SET_FULL_PRICE_CENTS;
@@ -316,7 +405,7 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
     }, 0);
 
     const discountBaseCents = resolvedItems.reduce((sum, it) => {
-        const isSetLine = normId(it.productSlug || "") === SET_ID_NORM;
+        const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
 
         if (!bulkDiscountActive && isSetLine) {
             return sum;
@@ -356,7 +445,7 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
     const discountableIdx = [];
     for (let i = 0; i < resolvedItems.length; i++) {
         const it = resolvedItems[i];
-        const isSetLine = normId(it.productSlug || "") === SET_ID_NORM;
+        const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
 
         if (bulkDiscountActive) {
             discountableIdx.push(i);
@@ -454,18 +543,18 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw) {
 
         const ruleMap = new Map();
         for (const r of coupon.rules || []) {
-            const slug = r?.productId != null ? normId(r.productId) : "";
+            const slug = r?.productId != null ? normProductId(r.productId) : "";
             if (slug) ruleMap.set(slug, r);
         }
 
         for (let i = 0; i < resolvedItems.length; i++) {
             const it = resolvedItems[i];
-            const isSetLine = normId(it.productSlug || "") === SET_ID_NORM;
+            const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
             if (isSetLine && !ruleMap.has(SET_ID_NORM)) {
                 continue;
             }
 
-            const rule = ruleMap.get(normId(it.productSlug || ""));
+            const rule = ruleMap.get(normProductId(it.productSlug || ""));
             if (!rule) continue;
 
             const type = String(rule.type || "").trim();
@@ -570,6 +659,20 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         const err = new Error("User not found");
         err.status = 404;
         throw err;
+    }
+
+    if (shippingAddressId) {
+        // ok: gli indirizzi salvati li blocchiamo già in addresses.services.js
+    } else if (shippingAddress) {
+        ensureItalyOnly(shippingAddress?.country);
+    }
+
+    if (
+        billingAddressRaw &&
+        typeof billingAddressRaw === "object" &&
+        !Array.isArray(billingAddressRaw)
+    ) {
+        ensureItalyOnly(billingAddressRaw?.country);
     }
 
     const incomingTaxCode =
@@ -760,22 +863,24 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
     let order = null;
 
     try {
-        for (const it of quote.items || []) {
+        const stockMovements = buildStockMovements(quote.items);
+
+        for (const movement of stockMovements) {
             const res = await Product.updateOne(
-                { _id: it.productRef, isActive: true, stockQty: { $gte: it.qty } },
-                { $inc: { stockQty: -it.qty } }
+                { productId: movement.productId, isActive: true, stockQty: { $gte: movement.qty } },
+                { $inc: { stockQty: -movement.qty } }
             );
 
             if (res.modifiedCount !== 1) {
-                const err = new Error(`Stock insufficiente per ${it.name}`);
+                const err = new Error(`Stock insufficiente per ${movement.productId}`);
                 err.status = 409;
                 err.errors = {
-                    stock: { [it.productId]: "Stock insufficiente" },
+                    stock: { [movement.productId]: "Stock insufficiente" },
                 };
                 throw err;
             }
 
-            decremented.push({ _id: it.productRef, qty: it.qty });
+            decremented.push({ productId: movement.productId, qty: movement.qty });
         }
 
         if (quote.couponCodeApplied) {
@@ -837,7 +942,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
 
         for (const d of decremented) {
             try {
-                await Product.updateOne({ _id: d._id }, { $inc: { stockQty: d.qty } });
+                await Product.updateOne({ productId: d.productId }, { $inc: { stockQty: d.qty } });
             } catch { }
         }
 
@@ -1364,30 +1469,13 @@ async function adminCancelOrderAndRestock(id) {
     }
 
     if (order.status === "pending_payment") {
-        for (const it of order.items || []) {
-            const ref = it.productRef != null ? String(it.productRef) : "";
-            const pid = it.productId != null ? String(it.productId) : "";
+        const stockMovements = buildStockMovements(order.items || []);
 
-            let q = null;
-
-            if (ref && mongoose.Types.ObjectId.isValid(ref)) {
-                q = { _id: ref };
-            } else {
-                const or = [];
-
-                if (pid && mongoose.Types.ObjectId.isValid(pid)) {
-                    or.push({ _id: pid });
-                }
-                if (pid) {
-                    or.push({ productId: pid });
-                }
-
-                if (!or.length) continue;
-
-                q = or.length === 1 ? or[0] : { $or: or };
-            }
-
-            await Product.findOneAndUpdate(q, { $inc: { stockQty: it.qty } });
+        for (const movement of stockMovements) {
+            await Product.updateOne(
+                { productId: movement.productId },
+                { $inc: { stockQty: movement.qty } }
+            );
         }
     }
 

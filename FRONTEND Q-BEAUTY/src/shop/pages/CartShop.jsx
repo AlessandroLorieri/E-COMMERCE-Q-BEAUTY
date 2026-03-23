@@ -18,6 +18,19 @@ const IMG_PLACEHOLDER =
     </svg>
 `);
 
+const SET_PRODUCT_ID = "SET EXPERIENCE";
+const SET_COMPONENT_IDS = [
+    "CREMA IDRATANTE CHERATOLITICA",
+    "BURRO EMOLLIENTE",
+    "SPRAY IGIENIZZANTE",
+];
+
+function normalizeProductKey(v) {
+    return String(v || "").trim().toUpperCase();
+}
+
+const SET_PRODUCT_KEY = normalizeProductKey(SET_PRODUCT_ID);
+
 export default function CartShop() {
     const navigate = useNavigate();
     const {
@@ -206,24 +219,70 @@ export default function CartShop() {
         return Math.max(0, Math.floor(raw));
     }
 
-    function handleInc(product) {
-        const stockQty = getProductStockQty(product);
-        const currentQty = Number(product?.qty) || 0;
+    function getProductKey(product) {
+        return normalizeProductKey(product?.productId || product?.id || product?.name);
+    }
 
-        if (stockQty !== null && currentQty >= stockQty) {
-            setStockNoticeId(String(product?.id || ""));
-            setStockNoticeText(
-                stockQty === 0
-                    ? "Prodotto esaurito."
-                    : `Hai raggiunto la quantità massima disponibile (${stockQty}).`
-            );
-            return;
+    function isSetProduct(product) {
+        return getProductKey(product) === SET_PRODUCT_KEY;
+    }
+
+    function isSetComponentProduct(product) {
+        const key = getProductKey(product);
+        return SET_COMPONENT_IDS.some((componentId) => normalizeProductKey(componentId) === key);
+    }
+
+    function getSetQtyInCart() {
+        return cart.reduce((sum, item) => {
+            return sum + (isSetProduct(item) ? Number(item?.qty || 0) : 0);
+        }, 0);
+    }
+
+    function getAdditionalAvailableQty(product) {
+        const stockQty = getProductStockQty(product);
+        if (stockQty === null) return Infinity;
+
+        const currentQty = Number(product?.qty) || 0;
+        const setQtyInCart = getSetQtyInCart();
+
+        if (isSetProduct(product)) {
+            const componentStocks = cart
+                .filter((item) => isSetComponentProduct(item))
+                .map((item) => {
+                    const itemStock = getProductStockQty(item);
+                    const itemQty = Number(item?.qty) || 0;
+                    if (itemStock === null) return 0;
+                    return Math.max(0, itemStock - itemQty - setQtyInCart);
+                });
+
+            return componentStocks.length ? Math.min(...componentStocks) : 0;
         }
 
-        setStockNoticeId("");
-        setStockNoticeText("");
-        inc(product.id);
+        if (isSetComponentProduct(product)) {
+            return Math.max(0, stockQty - currentQty - setQtyInCart);
+        }
+
+        return Math.max(0, stockQty - currentQty);
     }
+
+    function handleInc(product) {
+    const additionalAvailable = getAdditionalAvailableQty(product);
+    const stockQty = getProductStockQty(product);
+
+    if (additionalAvailable <= 0) {
+        setStockNoticeId(String(product?.id || ""));
+        setStockNoticeText(
+            stockQty === 0
+                ? "Prodotto esaurito."
+                : "Hai raggiunto la quantità massima disponibile per questo prodotto."
+        );
+        return;
+    }
+
+    setStockNoticeId("");
+    setStockNoticeText("");
+    inc(product.id);
+}
 
     return (
         <>
@@ -265,15 +324,7 @@ export default function CartShop() {
 
                                 const qi = getQuoteItemForCartRow(p);
 
-                                const SET_PRODUCT_ID = "SET EXPERIENCE";
-                                const SET_ID_NORM = SET_PRODUCT_ID.trim().toLowerCase();
-
-                                const idKey = String(p?.id ?? "").trim().toLowerCase();
-                                const nameKey = String(p?.name ?? "").trim().toLowerCase();
-
-                                const isSet =
-                                    idKey === SET_ID_NORM ||
-                                    nameKey.includes(SET_ID_NORM);
+                                const isSet = isSetProduct(p);
 
                                 const qty = Number(p?.qty) || 1;
 

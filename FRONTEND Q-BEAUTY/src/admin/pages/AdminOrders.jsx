@@ -478,37 +478,36 @@ export default function AdminOrders() {
                             {isOpen ? (
                                 <div className="mt-3 pt-3 border-top">
 
-                                    <div className="mb-3">
-                                        <div className="fw-semibold mb-2">Spedizione</div>
-                                        <div style={{ fontSize: 14 }}>
-                                            <div><span className="text-muted">Nome:</span> <b>{shipName}</b></div>
-                                            <div><span className="text-muted">Cognome:</span> <b>{shipSurname}</b></div>
-                                            <div><span className="text-muted">Telefono:</span> <b>{shipPhone}</b></div>
-                                            <div><span className="text-muted">Indirizzo:</span> <b>{shipAddressLine}</b></div>
-                                            <div><span className="text-muted">Città:</span> <b>{shipCityCap}</b></div>
+                                    <div className="row g-3 mb-3">
+                                        <div className="col-12 col-lg-6">
+                                            <div className="fw-semibold mb-2">Spedizione</div>
+                                            <div style={{ fontSize: 14 }}>
+                                                <div><span className="text-muted">Nome:</span> <b>{shipName}</b></div>
+                                                <div><span className="text-muted">Cognome:</span> <b>{shipSurname}</b></div>
+                                                <div><span className="text-muted">Telefono:</span> <b>{shipPhone}</b></div>
+                                                <div><span className="text-muted">Indirizzo:</span> <b>{shipAddressLine}</b></div>
+                                                <div><span className="text-muted">Città:</span> <b>{shipCityCap}</b></div>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div className="mb-3">
-                                        <div className="fw-semibold mb-2">Fatturazione</div>
-                                        <div style={{ fontSize: 14 }}>
-                                            {isVatCustomer ? (
-                                                <>
-                                                    <div><span className="text-muted">Ragione sociale:</span> <b>{billCompanyName}</b></div>
-                                                    <div><span className="text-muted">Partita IVA:</span> <b>{billVatNumber}</b></div>
-                                                </>
-                                            ) : null}
+                                        <div className="col-12 col-lg-6">
+                                            <div className="fw-semibold mb-2">Fatturazione</div>
+                                            <div style={{ fontSize: 14 }}>
+                                                {isVatCustomer ? (
+                                                    <>
+                                                        <div><span className="text-muted">Ragione sociale:</span> <b>{billCompanyName}</b></div>
+                                                        <div><span className="text-muted">Partita IVA:</span> <b>{billVatNumber}</b></div>
+                                                    </>
+                                                ) : null}
 
-                                            <div><span className="text-muted">Nome:</span> <b>{billName}</b></div>
-                                            <div><span className="text-muted">Cognome:</span> <b>{billSurname}</b></div>
-                                            <div><span className="text-muted">Email:</span> <b>{billEmail}</b></div>
-                                            <div><span className="text-muted">Telefono:</span> <b>{billPhone}</b></div>
-                                            <div><span className="text-muted">Indirizzo:</span> <b>{billAddressLine}</b></div>
-                                            <div><span className="text-muted">Città:</span> <b>{billCityCap}</b></div>
-
-                                            {!isVatCustomer ? (
+                                                <div><span className="text-muted">Nome:</span> <b>{billName}</b></div>
+                                                <div><span className="text-muted">Cognome:</span> <b>{billSurname}</b></div>
+                                                <div><span className="text-muted">Email:</span> <b>{billEmail}</b></div>
+                                                <div><span className="text-muted">Telefono:</span> <b>{billPhone}</b></div>
+                                                <div><span className="text-muted">Indirizzo:</span> <b>{billAddressLine}</b></div>
+                                                <div><span className="text-muted">Città:</span> <b>{billCityCap}</b></div>
                                                 <div><span className="text-muted">Codice fiscale:</span> <b>{billTaxCode}</b></div>
-                                            ) : null}
+                                            </div>
                                         </div>
                                     </div>
 

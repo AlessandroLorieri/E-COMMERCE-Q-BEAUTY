@@ -132,6 +132,19 @@ export default function HomeShop() {
         );
     }
 
+    function getSetQtyInCart() {
+        const setProduct = findProductByProductId(SET_PRODUCT_ID);
+        if (!setProduct) return 0;
+        return getCartQtyForProduct(setProduct);
+    }
+
+    function isSetComponentProduct(product) {
+        const pid = normalizeProductKey(product?.productId || product?.id);
+        return SET_COMPONENT_IDS.some(
+            (componentId) => normalizeProductKey(componentId) === pid
+        );
+    }
+
     function getSetBaseAvailableQty() {
         const values = SET_COMPONENT_IDS.map((componentId) => {
             const component = findProductByProductId(componentId);
@@ -143,14 +156,16 @@ export default function HomeShop() {
     }
 
     function getSetAvailableQty() {
+        const setQtyInCart = getSetQtyInCart();
+
         const values = SET_COMPONENT_IDS.map((componentId) => {
             const component = findProductByProductId(componentId);
             if (!component) return 0;
 
             const stockQty = getProductStockQty(component);
-            const inCartQty = getCartQtyForProduct(component);
+            const singleQtyInCart = getCartQtyForProduct(component);
 
-            return Math.max(0, stockQty - inCartQty);
+            return Math.max(0, stockQty - singleQtyInCart - setQtyInCart);
         });
 
         return values.length ? Math.min(...values) : 0;
@@ -163,6 +178,11 @@ export default function HomeShop() {
 
         const stockQty = getProductStockQty(product);
         const inCartQty = getCartQtyForProduct(product);
+        const setQtyInCart = getSetQtyInCart();
+
+        if (isSetComponentProduct(product)) {
+            return Math.max(0, stockQty - inCartQty - setQtyInCart);
+        }
 
         return Math.max(0, stockQty - inCartQty);
     }
@@ -256,11 +276,11 @@ export default function HomeShop() {
                                 const isSet = isSetProduct(p);
                                 const stockQty = getProductStockQty(p);
                                 const setBaseAvailableQty = isSet ? getSetBaseAvailableQty() : null;
-                                const available = isSet ? getSetAvailableQty() : Math.max(0, stockQty - inCartQty);
+                                const available = getAvailableQty(p);
                                 const isOut = available <= 0;
                                 const maxReachedInCart = isSet
                                     ? (setBaseAvailableQty > 0 && available <= 0)
-                                    : (stockQty > 0 && inCartQty >= stockQty);
+                                    : (stockQty > 0 && available <= 0);
 
                                 const justAdded = !!addedFlashById[String(p.id)];
                                 const displayPriceCents = isSet ? (isPiva ? 5400 : 6000) : Number(p.priceCents || 0);
@@ -336,7 +356,7 @@ export default function HomeShop() {
                                                     type="number"
                                                     min={1}
                                                     max={available > 0 ? available : 1}
-                                                    className="form-control mb-3"
+                                                    className="form-control mb-3 shop-qty-input"
                                                     value={available > 0 ? Math.min(selectedQty, available) : 0}
                                                     disabled={isOut}
                                                     onChange={(e) => {

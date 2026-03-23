@@ -34,18 +34,30 @@ function HomePage() {
         title="Q•BEAUTY | Pedicure professionale e cura del piede"
         description="Q•BEAUTY è una linea professionale per pedicure: prodotti di alta qualità, identità forte e shop online dedicato alla cura del piede."
         canonical="/"
-        image="/img/last.jpg"
+        image="/img/qbeauty-home-seo.jpg"
         structuredData={{
           "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "Q•BEAUTY",
-          url: "https://qbeautyshop.it/",
-          logo: "https://qbeautyshop.it/qbeautyvettoriale.png",
-          email: "assistenza@qbeautyshop.it",
-          sameAs: [
-            "https://www.instagram.com/q.beauty_pedicurexperience",
-            "https://www.instagram.com/queenhelene_nails",
-            "https://www.tiktok.com/@q.beauty_pedicure"
+          "@graph": [
+            {
+              "@type": "WebSite",
+              "@id": "https://www.qbeautyshop.it/#website",
+              url: "https://www.qbeautyshop.it/",
+              name: "Q-BEAUTY",
+              alternateName: "Q•BEAUTY"
+            },
+            {
+              "@type": "Organization",
+              "@id": "https://www.qbeautyshop.it/#organization",
+              name: "Q•BEAUTY",
+              url: "https://www.qbeautyshop.it/",
+              logo: "https://www.qbeautyshop.it/qbeautyvettoriale.png",
+              email: "assistenza@qbeautyshop.it",
+              sameAs: [
+                "https://www.instagram.com/q.beauty_pedicurexperience",
+                "https://www.instagram.com/queenhelene_nails",
+                "https://www.tiktok.com/@q.beauty_pedicure"
+              ]
+            }
           ]
         }}
       />
@@ -245,7 +257,7 @@ function HomePage() {
                     height: "25px",
                     width: "auto",
                     display: "block",
-                    marginLeft: "5px"
+                    marginLeft: "5px",
                   }}
                 />
               </a>
