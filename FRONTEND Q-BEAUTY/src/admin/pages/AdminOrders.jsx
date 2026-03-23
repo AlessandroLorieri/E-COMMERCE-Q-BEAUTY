@@ -381,6 +381,13 @@ export default function AdminOrders() {
 
                     const items = Array.isArray(o?.items) ? o.items : [];
 
+                    const paymentMethodLabel =
+                        o?.paymentProvider === "bank_transfer"
+                            ? "Bonifico"
+                            : o?.stripeCheckoutSessionId
+                                ? "Stripe"
+                                : "Non disponibile";
+
                     const canShip = o.status === "processing" || o.status === "paid";
 
                     const draft = trackingDraft[o._id] || {
@@ -508,6 +515,13 @@ export default function AdminOrders() {
                                                 <div><span className="text-muted">Città:</span> <b>{billCityCap}</b></div>
                                                 <div><span className="text-muted">Codice fiscale:</span> <b>{billTaxCode}</b></div>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-3">
+                                        <div className="fw-semibold mb-2">Pagamento</div>
+                                        <div style={{ fontSize: 14 }}>
+                                            <div><span className="text-muted">Metodo:</span> <b>{paymentMethodLabel}</b></div>
                                         </div>
                                     </div>
 
