@@ -201,6 +201,15 @@ function validateAdminStatusBody(req, res, next) {
     next();
 }
 
+function validateAdminBankReminderBody(req, res, next) {
+    if (req.body?.confirm !== true) {
+        return res.status(400).json({ message: "Conferma invio mancante" });
+    }
+
+    req.body = { confirm: true };
+    next();
+}
+
 // POST quote
 router.post("/quote", authRequired, validateQuoteBody, controller.quote);
 
@@ -235,6 +244,16 @@ router.patch(
     validateObjectIdParam("id"),
     validateAdminStatusBody,
     controller.adminSetStatus
+);
+
+router.post(
+    "/admin/:id/bank-reminder",
+    authRequired,
+    adminOnly,
+    adminWriteLimiter,
+    validateObjectIdParam("id"),
+    validateAdminBankReminderBody,
+    controller.adminSendBankReminder
 );
 
 router.patch(

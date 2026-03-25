@@ -30,6 +30,19 @@ function normalizeTaxCode(v) {
         .toUpperCase();
 }
 
+function normalizeSdiCode(v) {
+    return String(v || "")
+        .trim()
+        .replace(/\s+/g, "")
+        .toUpperCase();
+}
+
+function normalizePec(v) {
+    return String(v || "")
+        .trim()
+        .toLowerCase();
+}
+
 function makeResetToken() {
     return crypto.randomBytes(32).toString("hex");
 }
@@ -49,6 +62,8 @@ async function registerUser(payload) {
         companyName,
         vatNumber,
         taxCode,
+        sdiCode,
+        pec,
         confirmBusinessData,
     } = payload || {};
 
@@ -77,6 +92,8 @@ async function registerUser(payload) {
     const normalizedCompanyName = companyName ? String(companyName).trim() : "";
     const normalizedVatNumber = vatNumber ? String(vatNumber).trim() : "";
     const normalizedTaxCode = normalizeTaxCode(taxCode);
+    const normalizedSdiCode = normalizeSdiCode(sdiCode);
+    const normalizedPec = normalizePec(pec);
 
     const confirmedBusinessData =
         confirmBusinessData === true ||
@@ -87,6 +104,12 @@ async function registerUser(payload) {
     if (customerType === "piva") {
         if (!normalizedCompanyName || !normalizedVatNumber || !normalizedTaxCode) {
             const err = new Error("companyName, vatNumber and taxCode are required for piva");
+            err.status = 400;
+            throw err;
+        }
+
+        if (!normalizedSdiCode && !normalizedPec) {
+            const err = new Error("At least one of sdiCode or pec is required for piva");
             err.status = 400;
             throw err;
         }
@@ -118,6 +141,8 @@ async function registerUser(payload) {
         companyName: customerType === "piva" ? normalizedCompanyName : undefined,
         vatNumber: customerType === "piva" ? normalizedVatNumber : undefined,
         taxCode: customerType === "piva" ? normalizedTaxCode : undefined,
+        sdiCode: customerType === "piva" ? (normalizedSdiCode || undefined) : undefined,
+        pec: customerType === "piva" ? (normalizedPec || undefined) : undefined,
     });
 
     const token = signToken(user);

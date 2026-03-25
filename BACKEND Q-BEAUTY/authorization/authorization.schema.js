@@ -13,6 +13,36 @@ function normalizeTaxCode(v) {
     return s || null;
 }
 
+function normalizeSdiCode(v) {
+    const s = String(v || "")
+        .trim()
+        .replace(/\s+/g, "")
+        .toUpperCase();
+
+    return s || null;
+}
+
+function normalizePec(v) {
+    const s = String(v || "")
+        .trim()
+        .toLowerCase();
+
+    return s || null;
+}
+
+function isValidSdiCode(v) {
+    const s = normalizeSdiCode(v);
+    if (!s) return false;
+    if (s === "0000000") return false;
+    return /^[A-Z0-9]{7}$/.test(s);
+}
+
+function isValidPec(v) {
+    const s = normalizePec(v);
+    if (!s) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+
 // Validazione P.IVA italiana (11 cifre) con checksum
 function isValidItalianVatNumber(v) {
     const p = normalizeVatNumber(v);
@@ -107,6 +137,20 @@ const UserSchema = new mongoose.Schema(
             ],
         },
 
+        sdiCode: {
+            type: String,
+            trim: true,
+            default: null,
+            set: (v) => normalizeSdiCode(v),
+        },
+
+        pec: {
+            type: String,
+            trim: true,
+            default: null,
+            set: (v) => normalizePec(v),
+        },
+
 
         role: { type: String, enum: ["user", "admin"], default: "user" },
 
@@ -118,6 +162,27 @@ const UserSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
+
+UserSchema.pre("validate", function () {
+    if (this.customerType !== "piva") return;
+
+    const sdi = normalizeSdiCode(this.sdiCode);
+    const pec = normalizePec(this.pec);
+
+    if (!sdi && !pec) {
+        this.invalidate("sdiCode", "Inserisci almeno uno tra Codice SDI e PEC");
+        this.invalidate("pec", "Inserisci almeno uno tra Codice SDI e PEC");
+        return;
+    }
+
+    if (sdi && !isValidSdiCode(sdi)) {
+        this.invalidate("sdiCode", "Codice SDI non valido");
+    }
+
+    if (pec && !isValidPec(pec)) {
+        this.invalidate("pec", "PEC non valida");
+    }
+});
 
 UserSchema.methods.toSafeObject = function () {
     return {
@@ -133,6 +198,8 @@ UserSchema.methods.toSafeObject = function () {
         companyName: this.companyName,
         vatNumber: this.vatNumber,
         taxCode: this.taxCode,
+        sdiCode: this.sdiCode,
+        pec: this.pec,
         billingAddressRef: this.billingAddressRef,
 
         createdAt: this.createdAt,

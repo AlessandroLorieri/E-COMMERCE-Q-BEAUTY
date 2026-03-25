@@ -38,6 +38,9 @@ const BillingAddressSchema = new mongoose.Schema(
         companyName: { type: String, trim: true, default: "" },
         vatNumber: { type: String, trim: true, default: "" },
 
+        sdiCode: { type: String, trim: true, uppercase: true, default: "" },
+        pec: { type: String, trim: true, lowercase: true, default: "" },
+
         name: { type: String, trim: true, default: "" },
         surname: { type: String, trim: true, default: "" },
         phone: { type: String, trim: true, default: "" },
@@ -96,6 +99,14 @@ const OrderSchema = new mongoose.Schema(
         discountLabel: { type: String, default: null },
         shippingCents: { type: Number, required: true, min: 0, default: 0 },
         totalCents: { type: Number, required: true, min: 0, default: 0 },
+
+        paymentProvider: { type: String, trim: true, default: null },
+        paymentMethodType: { type: String, trim: true, default: null },
+        paymentMethodLabel: { type: String, trim: true, default: null },
+        paymentCardBrand: { type: String, trim: true, default: null },
+        paymentCardLast4: { type: String, trim: true, default: null },
+
+        paymentReminderSentAt: { type: Date, default: null },
 
         shipment: {
             carrierName: { type: String, trim: true, default: "" },

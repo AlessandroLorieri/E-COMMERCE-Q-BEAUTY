@@ -268,6 +268,33 @@
   color: rgba(255, 140, 140, .95) !important;
 }
 
+.shop-auth .form-control.is-invalid,
+.shop-auth .form-select.is-invalid {
+  border-color: rgba(255, 95, 95, .9) !important;
+  background-image: none !important;
+  box-shadow: 0 0 0 1px rgba(255, 95, 95, .22) inset !important;
+}
+
+.shop-auth .form-control.is-invalid:focus,
+.shop-auth .form-select.is-invalid:focus {
+  border-color: rgba(255, 95, 95, .95) !important;
+  box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .18) !important;
+}
+
+.shop-auth .input-group .form-control.is-invalid {
+  position: relative;
+  z-index: 2;
+}
+
+.shop-auth .form-check-input.is-invalid {
+  border-color: rgba(255, 95, 95, .9) !important;
+  box-shadow: 0 0 0 .15rem rgba(220, 53, 69, .12) !important;
+}
+
+.shop-auth .invalid-feedback {
+  color: rgba(255, 140, 140, .95) !important;
+}
+
 .shop-auth .list-group {
   --bs-list-group-bg: var(--qb-card);
   --bs-list-group-color: var(--qb-text);
@@ -343,24 +370,25 @@
 .shop-auth input:-webkit-autofill,
 .shop-auth input:-webkit-autofill:hover,
 .shop-auth input:-webkit-autofill:focus,
+.shop-auth input:-webkit-autofill:active,
 .shop-auth textarea:-webkit-autofill,
 .shop-auth textarea:-webkit-autofill:hover,
 .shop-auth textarea:-webkit-autofill:focus,
+.shop-auth textarea:-webkit-autofill:active,
 .shop-auth select:-webkit-autofill,
 .shop-auth select:-webkit-autofill:hover,
 .shop-auth select:-webkit-autofill:focus,
+.shop-auth select:-webkit-autofill:active,
 .auth-input:-webkit-autofill,
 .auth-input:-webkit-autofill:hover,
-.auth-input:-webkit-autofill:focus {
+.auth-input:-webkit-autofill:focus,
+.auth-input:-webkit-autofill:active {
   -webkit-text-fill-color: var(--qb-text) !important;
   caret-color: var(--qb-text) !important;
   border: 1px solid var(--qb-border) !important;
-  -webkit-box-shadow:
-    0 0 0 1000px rgba(255, 255, 255, .04) inset,
-    0 0 0 1px var(--qb-border) inset !important;
-  box-shadow:
-    0 0 0 1000px rgba(255, 255, 255, .04) inset,
-    0 0 0 1px var(--qb-border) inset !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, .04) inset !important;
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, .04) inset !important;
+  background-color: transparent !important;
   transition: background-color 9999s ease-out 0s !important;
 }
 
@@ -371,10 +399,8 @@
   border-color: var(--qb-border-strong) !important;
   -webkit-box-shadow:
     0 0 0 1000px rgba(255, 255, 255, .05) inset,
-    0 0 0 1px var(--qb-border-strong) inset,
     0 0 0 .2rem rgba(222, 190, 104, .15) !important;
   box-shadow:
     0 0 0 1000px rgba(255, 255, 255, .05) inset,
-    0 0 0 1px var(--qb-border-strong) inset,
     0 0 0 .2rem rgba(222, 190, 104, .15) !important;
 }

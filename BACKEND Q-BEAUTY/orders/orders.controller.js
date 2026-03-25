@@ -9,6 +9,7 @@ const {
     adminGetDashboardStats,
     adminCancelOrderAndRestock,
     adminGetDashboardYears,
+    adminSendBankReminder: adminSendBankReminderService,
 } = require("./orders.services");
 
 const Order = require("./orders.schema");
@@ -107,7 +108,9 @@ async function create(req, res) {
             note
         );
 
-        if (String(paymentMethod || "").trim().toLowerCase() === "bank_transfer") {
+        const normalizedPaymentMethod = String(paymentMethod || "").trim().toLowerCase();
+
+        if (normalizedPaymentMethod === "bank_transfer" || normalizedPaymentMethod === "bonifico") {
             setImmediate(async () => {
                 try {
                     const u = await User.findById(userId).select("email firstName lastName").lean();
@@ -304,6 +307,26 @@ async function adminSetStatus(req, res) {
     }
 }
 
+async function adminSendBankReminder(req, res) {
+    try {
+        const { id } = req.params;
+
+        const order = await adminSendBankReminderService(id);
+
+        return res.json({
+            orderId: order._id,
+            status: order.status,
+            paymentReminderSentAt: order.paymentReminderSentAt || null,
+        });
+    } catch (err) {
+        const status = err.status || 500;
+        return res.status(status).json({
+            message: err.message || "Server error",
+            errors: err.errors || undefined,
+        });
+    }
+}
+
 async function adminList(req, res) {
     try {
         const { page, limit } = parsePagination(req.query);
@@ -373,6 +396,7 @@ module.exports = {
     adminList,
     adminGet,
     adminSetStatus,
+    adminSendBankReminder,
     adminStats,
     adminCancel,
     adminStatsYears,

@@ -35,6 +35,18 @@ function safeMetaKeys(obj) {
     }
 }
 
+function mapStripePaymentMethodLabel(type) {
+    const t = String(type || "").trim().toLowerCase();
+
+    if (!t) return "Stripe";
+
+    if (t === "card") return "Carta";
+    if (t === "paypal") return "PayPal";
+    if (t === "klarna") return "Klarna";
+
+    return `Stripe (${t})`;
+}
+
 const STRIPE_EVENTS_TTL_DAYS = 30;
 const STRIPE_EVENTS_TTL_SECONDS = STRIPE_EVENTS_TTL_DAYS * 24 * 60 * 60;
 const STRIPE_EVENTS_TTL_INDEX_NAME = "receivedAt_ttl_30d";
@@ -263,6 +275,40 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                     const session = event.data.object;
                     const orderId = session?.metadata?.orderId;
 
+                    let stripeMethodType = null;
+                    let stripeMethodLabel = "Stripe";
+                    let paymentCardBrand = null;
+                    let paymentCardLast4 = null;
+
+                    if (session?.payment_intent) {
+                        try {
+                            const pi = await stripe.paymentIntents.retrieve(session.payment_intent, {
+                                expand: ["latest_charge"],
+                            });
+
+                            const charge =
+                                pi?.latest_charge && typeof pi.latest_charge === "object"
+                                    ? pi.latest_charge
+                                    : null;
+
+                            const details = charge?.payment_method_details || null;
+
+                            stripeMethodType = String(details?.type || "").trim().toLowerCase() || null;
+                            stripeMethodLabel = mapStripePaymentMethodLabel(stripeMethodType);
+
+                            if (stripeMethodType === "card") {
+                                paymentCardBrand = String(details?.card?.brand || "").trim() || null;
+                                paymentCardLast4 = String(details?.card?.last4 || "").trim() || null;
+                            }
+                        } catch (e) {
+                            console.warn("Stripe webhook: impossibile leggere il metodo di pagamento reale", {
+                                sessionId: maskStripeId(session?.id),
+                                paymentIntentId: maskStripeId(session?.payment_intent),
+                                error: String(e?.message || e),
+                            });
+                        }
+                    }
+
                     if (!orderId) {
                         console.warn("Stripe webhook: metadata.orderId mancante", {
                             eventId: maskStripeId(event?.id),
@@ -301,6 +347,10 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                         {
                             $set: {
                                 paymentProvider: "stripe",
+                                paymentMethodType: stripeMethodType,
+                                paymentMethodLabel: stripeMethodLabel,
+                                paymentCardBrand,
+                                paymentCardLast4,
                                 stripeCheckoutSessionId: session?.id || null,
                                 stripePaymentIntentId: session?.payment_intent || null,
                                 updatedAt: new Date(),
@@ -362,7 +412,7 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                                             name,
                                             email: fallbackEmail,
                                         },
-                                        paymentMethod: "stripe",
+                                        paymentMethod: stripeMethodLabel,
                                     }),
                                     15000,
                                     "sendAdminNewOrderEmail"

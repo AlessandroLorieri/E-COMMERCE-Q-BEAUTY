@@ -8,7 +8,11 @@ const mongoose = require("mongoose");
 const Product = require("../products/products.schema");
 const Coupon = require("../coupons/coupons.schema");
 const ShopSettings = require("../models/shopSettings.model");
-const { sendShipmentEmail, sendOrderPaymentConfirmedEmail } = require("../utils/mailer");
+const {
+    sendShipmentEmail,
+    sendOrderPaymentConfirmedEmail,
+    sendBankTransferReminderEmail,
+} = require("../utils/mailer");
 const { findActiveCouponByCode } = require("../coupons/coupons.services");
 
 const BULK_DISCOUNT_MIN_PIECES = 30;
@@ -91,6 +95,31 @@ function normalizeVatNumber(v) {
 
 function normalizeCouponCode(v) {
     return String(v || "").trim().toUpperCase();
+}
+
+function normalizeIncomingPaymentMethod(v) {
+    const raw = String(v || "").trim().toLowerCase();
+
+    if (raw === "bonifico") return "bank_transfer";
+    if (raw === "bank_transfer") return "bank_transfer";
+    if (raw === "stripe") return "stripe";
+
+    return "";
+}
+
+function isBankTransferOrder(order) {
+    const paymentMethodType = String(order?.paymentMethodType || "").trim().toLowerCase();
+    const paymentProvider = String(order?.paymentProvider || "").trim().toLowerCase();
+    const paymentMethodLabel = String(order?.paymentMethodLabel || "").trim().toLowerCase();
+    const legacyPaymentMethod = String(order?.paymentMethod || "").trim().toLowerCase();
+
+    return (
+        paymentMethodType === "bank_transfer" ||
+        paymentProvider === "bank_transfer" ||
+        paymentMethodLabel === "bonifico" ||
+        legacyPaymentMethod === "bank_transfer" ||
+        legacyPaymentMethod === "bonifico"
+    );
 }
 
 async function reserveCouponUsage(codeRaw) {
@@ -651,8 +680,10 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
 
     const note = String(noteRaw || "").trim();
 
+    const normalizedPaymentMethod = normalizeIncomingPaymentMethod(paymentMethodRaw);
+
     const user = await User.findById(userId)
-        .select("email firstName lastName phone customerType companyName vatNumber taxCode billingAddressRef")
+        .select("email firstName lastName phone customerType companyName vatNumber taxCode sdiCode pec billingAddressRef")
         .lean();
 
     if (!user) {
@@ -846,6 +877,8 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         billingAddress = {
             companyName: user?.customerType === "piva" ? String(user?.companyName || "").trim() : "",
             vatNumber: user?.customerType === "piva" ? normalizeVatNumber(user?.vatNumber) : "",
+            sdiCode: user?.customerType === "piva" ? String(user?.sdiCode || "").trim().toUpperCase() : "",
+            pec: user?.customerType === "piva" ? String(user?.pec || "").trim().toLowerCase() : "",
             name: billingBase.name || "",
             surname: billingBase.surname || "",
             phone: billingBase.phone || "",
@@ -903,6 +936,20 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             publicId,
             status: "pending_payment",
             items: quote.items,
+
+            ...(normalizedPaymentMethod === "bank_transfer"
+                ? {
+                    paymentProvider: "bank_transfer",
+                    paymentMethodType: "bank_transfer",
+                    paymentMethodLabel: "Bonifico",
+                }
+                : normalizedPaymentMethod === "stripe"
+                    ? {
+                        paymentProvider: "stripe",
+                        paymentMethodType: "stripe",
+                        paymentMethodLabel: "Stripe",
+                    }
+                    : {}),
 
             shippingAddress: normalizedAddress,
             shippingAddressRef,
@@ -1208,6 +1255,64 @@ async function adminSetOrderStatus(orderId, newStatus, shipment) {
     return order;
 }
 
+async function adminSendBankReminder(orderId) {
+    const id = String(orderId || "").trim();
+
+    if (!id) {
+        const err = new Error("Order id required");
+        err.status = 400;
+        throw err;
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+        const err = new Error("Order not found");
+        err.status = 404;
+        throw err;
+    }
+
+    if (order.status !== "pending_payment") {
+        const err = new Error("Il sollecito può essere inviato solo per ordini in attesa di pagamento");
+        err.status = 400;
+        throw err;
+    }
+
+    if (!isBankTransferOrder(order)) {
+        const err = new Error("Il sollecito è disponibile solo per ordini con pagamento tramite bonifico");
+        err.status = 400;
+        throw err;
+    }
+
+    const user = await User.findById(order.user)
+        .select("email firstName lastName")
+        .lean();
+
+    const to = String(order?.shippingAddress?.email || user?.email || "").trim();
+    if (!to) {
+        const err = new Error("Email cliente non disponibile");
+        err.status = 400;
+        throw err;
+    }
+
+    const name = String(
+        order?.shippingAddress?.name ||
+        user?.firstName ||
+        ""
+    ).trim();
+
+    await sendBankTransferReminderEmail({
+        to,
+        name,
+        order,
+        deadlineHours: 24,
+    });
+
+    order.paymentReminderSentAt = new Date();
+    await order.save();
+
+    return order;
+}
+
 async function adminListOrders({ page = 1, limit = 20, status, q, year, month, week } = {}) {
     const filter = {};
 
@@ -1238,6 +1343,8 @@ async function adminListOrders({ page = 1, limit = 20, status, q, year, month, w
                     { companyName: rx },
                     { vatNumber: rx },
                     { taxCode: rx },
+                    { sdiCode: rx },
+                    { pec: rx },
                 ],
             })
                 .select("_id")
@@ -1259,7 +1366,7 @@ async function adminListOrders({ page = 1, limit = 20, status, q, year, month, w
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Math.max(1, limit))
-        .populate("user", "email firstName lastName customerType role companyName vatNumber taxCode billingAddressRef")
+        .populate("user", "email firstName lastName customerType role companyName vatNumber taxCode sdiCode pec billingAddressRef")
         .lean();
 
     return {
@@ -1283,7 +1390,7 @@ async function adminGetOrder(idOrPublicId) {
     const query = isObjectId ? { _id: raw } : { publicId: raw };
 
     const order = await Order.findOne(query)
-        .populate("user", "email firstName lastName customerType role companyName vatNumber taxCode billingAddressRef")
+        .populate("user", "email firstName lastName customerType role companyName vatNumber taxCode sdiCode pec billingAddressRef")
         .lean();
 
     if (!order) {
@@ -1496,6 +1603,7 @@ module.exports = {
     adminListOrders,
     adminGetOrder,
     adminSetOrderStatus,
+    adminSendBankReminder,
     adminGetDashboardStats,
     adminCancelOrderAndRestock,
     adminGetDashboardYears,

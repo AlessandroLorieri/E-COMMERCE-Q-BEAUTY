@@ -23,6 +23,8 @@ export default function RegisterShop() {
         companyName: "",
         vatNumber: "",
         taxCode: "",
+        sdiCode: "",
+        pec: "",
         taxCodeSameAsVat: false,
         confirmBusinessData: false,
     });
@@ -30,10 +32,41 @@ export default function RegisterShop() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const [error, setError] = useState("");
+    const [fieldErrors, setFieldErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
 
     function onChange(e) {
         const { name, value, type, checked } = e.target;
+
+        setFieldErrors((prev) => {
+            const next = { ...prev };
+
+            if (name in next) delete next[name];
+
+            if (name === "sdiCode" || name === "pec") {
+                delete next.sdiPec;
+            }
+
+            if (name === "password" || name === "confirmPassword") {
+                delete next.password;
+                delete next.confirmPassword;
+            }
+
+            if (name === "vatNumber" && form.taxCodeSameAsVat) {
+                delete next.vatNumber;
+                delete next.taxCode;
+            }
+
+            if (name === "taxCodeSameAsVat") {
+                delete next.taxCode;
+            }
+
+            if (name === "confirmBusinessData") {
+                delete next.confirmBusinessData;
+            }
+
+            return next;
+        });
 
         setForm((prev) => {
             if (type === "checkbox") {
@@ -104,19 +137,72 @@ export default function RegisterShop() {
         return "Registrazione non riuscita. Riprova.";
     }
 
+    function validateForm() {
+        const nextErrors = {};
+
+        if (!String(form.firstName || "").trim()) {
+            nextErrors.firstName = "Inserisci il nome.";
+        }
+
+        if (!String(form.lastName || "").trim()) {
+            nextErrors.lastName = "Inserisci il cognome.";
+        }
+
+        if (!String(form.email || "").trim()) {
+            nextErrors.email = "Inserisci l'email.";
+        }
+
+        if (!String(form.password || "").trim()) {
+            nextErrors.password = "Inserisci la password.";
+        } else if (String(form.password).length < 8) {
+            nextErrors.password = "La password deve contenere almeno 8 caratteri.";
+        }
+
+        if (!String(form.confirmPassword || "").trim()) {
+            nextErrors.confirmPassword = "Conferma la password.";
+        } else if (form.password !== form.confirmPassword) {
+            nextErrors.confirmPassword = "Le password non coincidono.";
+        }
+
+        if (customerType === "piva") {
+            if (!String(form.companyName || "").trim()) {
+                nextErrors.companyName = "Inserisci la ragione sociale.";
+            }
+
+            if (!String(form.vatNumber || "").trim()) {
+                nextErrors.vatNumber = "Inserisci la Partita IVA.";
+            }
+
+            if (!form.taxCodeSameAsVat && !String(form.taxCode || "").trim()) {
+                nextErrors.taxCode = "Inserisci il codice fiscale.";
+            }
+
+            const sdiCode = String(form.sdiCode || "").trim().toUpperCase();
+            const pec = String(form.pec || "").trim().toLowerCase();
+
+            if (!sdiCode && !pec) {
+                nextErrors.sdiPec = "Inserisci almeno uno tra Codice SDI e PEC.";
+            }
+
+            if (!form.confirmBusinessData) {
+                nextErrors.confirmBusinessData = "Devi confermare la veridicità dei dati inseriti.";
+            }
+        }
+
+        return nextErrors;
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         setError("");
+        setFieldErrors({});
         setSubmitting(true);
 
-        if (form.password !== form.confirmPassword) {
-            setError("Le password non coincidono");
-            setSubmitting(false);
-            return;
-        }
+        const nextErrors = validateForm();
 
-        if (customerType === "piva" && !form.confirmBusinessData) {
-            setError("Devi confermare la veridicità dei dati inseriti.");
+        if (Object.keys(nextErrors).length) {
+            setError("");
+            setFieldErrors(nextErrors);
             setSubmitting(false);
             return;
         }
@@ -135,6 +221,8 @@ export default function RegisterShop() {
                 payload.companyName = form.companyName;
                 payload.vatNumber = form.vatNumber;
                 payload.taxCode = form.taxCodeSameAsVat ? form.vatNumber : form.taxCode;
+                payload.sdiCode = String(form.sdiCode || "").trim().toUpperCase();
+                payload.pec = String(form.pec || "").trim().toLowerCase();
                 payload.confirmBusinessData = form.confirmBusinessData;
             }
 
@@ -170,7 +258,14 @@ export default function RegisterShop() {
                     </Link>
                 </div>
 
-                <form className="card p-3 shop-card" onSubmit={handleSubmit}>
+                <form
+                    className="card p-3 shop-card"
+                    onSubmit={handleSubmit}
+                    noValidate
+                    spellCheck={false}
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                >
                     {error && (
                         <div className="alert alert-danger py-2" role="alert">
                             {error}
@@ -215,7 +310,7 @@ export default function RegisterShop() {
                                 {customerType === "piva" ? "Nome referente" : "Nome"}
                             </label>
                             <input
-                                className="form-control"
+                                className={`form-control ${fieldErrors.firstName ? "is-invalid" : ""}`}
                                 name="firstName"
                                 value={form.firstName}
                                 onChange={onChange}
@@ -227,13 +322,16 @@ export default function RegisterShop() {
                                 }
                                 required
                             />
+                            {fieldErrors.firstName ? (
+                                <div className="invalid-feedback d-block">{fieldErrors.firstName}</div>
+                            ) : null}
                         </div>
                         <div className="col-12 col-md-6">
                             <label className="form-label">
                                 {customerType === "piva" ? "Cognome referente" : "Cognome"}
                             </label>
                             <input
-                                className="form-control"
+                                className={`form-control ${fieldErrors.lastName ? "is-invalid" : ""}`}
                                 name="lastName"
                                 value={form.lastName}
                                 onChange={onChange}
@@ -245,6 +343,9 @@ export default function RegisterShop() {
                                 }
                                 required
                             />
+                            {fieldErrors.lastName ? (
+                                <div className="invalid-feedback d-block">{fieldErrors.lastName}</div>
+                            ) : null}
                         </div>
 
                         <div className="col-12">
@@ -254,14 +355,24 @@ export default function RegisterShop() {
 
                         <div className="col-12">
                             <label className="form-label">Email</label>
-                            <input className="form-control" type="email" name="email" value={form.email} onChange={onChange} required />
+                            <input
+                                className={`form-control ${fieldErrors.email ? "is-invalid" : ""}`}
+                                type="email"
+                                name="email"
+                                value={form.email}
+                                onChange={onChange}
+                                required
+                            />
+                            {fieldErrors.email ? (
+                                <div className="invalid-feedback d-block">{fieldErrors.email}</div>
+                            ) : null}
                         </div>
 
                         <div className="col-12">
                             <label className="form-label">Password</label>
                             <div className="input-group">
                                 <input
-                                    className="form-control"
+                                    className={`form-control ${fieldErrors.password ? "is-invalid" : ""}`}
                                     type={showPassword ? "text" : "password"}
                                     name="password"
                                     value={form.password}
@@ -279,6 +390,9 @@ export default function RegisterShop() {
 
                                 </button>
                             </div>
+                            {fieldErrors.password ? (
+                                <div className="invalid-feedback d-block">{fieldErrors.password}</div>
+                            ) : null}
                             <div className="form-text" style={{ color: "rgba(255,255,255,0.68)" }}>
                                 Minimo 8 caratteri.
                             </div>
@@ -288,7 +402,7 @@ export default function RegisterShop() {
                             <label className="form-label">Conferma password</label>
                             <div className="input-group">
                                 <input
-                                    className="form-control"
+                                    className={`form-control ${fieldErrors.confirmPassword ? "is-invalid" : ""}`}
                                     type={showConfirmPassword ? "text" : "password"}
                                     name="confirmPassword"
                                     value={form.confirmPassword}
@@ -306,11 +420,13 @@ export default function RegisterShop() {
                                 </button>
                             </div>
 
-                            {form.confirmPassword && form.password !== form.confirmPassword && (
+                            {fieldErrors.confirmPassword ? (
+                                <div className="invalid-feedback d-block">{fieldErrors.confirmPassword}</div>
+                            ) : form.confirmPassword && form.password !== form.confirmPassword ? (
                                 <div className="text-danger" style={{ fontSize: 12, marginTop: 4 }}>
                                     Le password non coincidono
                                 </div>
-                            )}
+                            ) : null}
                         </div>
 
                         {customerType === "piva" && (
@@ -318,23 +434,29 @@ export default function RegisterShop() {
                                 <div className="col-12">
                                     <label className="form-label">Ragione sociale / Denominazione</label>
                                     <input
-                                        className="form-control"
+                                        className={`form-control ${fieldErrors.companyName ? "is-invalid" : ""}`}
                                         name="companyName"
                                         value={form.companyName}
                                         onChange={onChange}
                                         required
                                     />
+                                    {fieldErrors.companyName ? (
+                                        <div className="invalid-feedback d-block">{fieldErrors.companyName}</div>
+                                    ) : null}
                                 </div>
 
                                 <div className="col-12 col-md-6">
                                     <label className="form-label">Partita IVA</label>
                                     <input
-                                        className="form-control"
+                                        className={`form-control ${fieldErrors.vatNumber ? "is-invalid" : ""}`}
                                         name="vatNumber"
                                         value={form.vatNumber}
                                         onChange={onChange}
                                         required
                                     />
+                                    {fieldErrors.vatNumber ? (
+                                        <div className="invalid-feedback d-block">{fieldErrors.vatNumber}</div>
+                                    ) : null}
                                 </div>
 
                                 <div className="col-12 col-md-6">
@@ -357,19 +479,60 @@ export default function RegisterShop() {
                                     </label>
 
                                     <input
-                                        className="form-control"
+                                        className={`form-control ${fieldErrors.taxCode ? "is-invalid" : ""}`}
                                         name="taxCode"
                                         value={form.taxCode}
                                         onChange={onChange}
                                         required={!form.taxCodeSameAsVat}
                                         disabled={!!form.taxCodeSameAsVat}
                                     />
+                                    {fieldErrors.taxCode ? (
+                                        <div className="invalid-feedback d-block">{fieldErrors.taxCode}</div>
+                                    ) : null}
+                                </div>
+
+                                <div className="col-12 col-md-6">
+                                    <label className="form-label">Codice destinatario SDI</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.sdiPec ? "is-invalid" : ""}`}
+                                        name="sdiCode"
+                                        value={form.sdiCode}
+                                        onChange={onChange}
+                                        placeholder="Es. ABCD123"
+                                        maxLength={7}
+                                        aria-invalid={fieldErrors.sdiPec ? "true" : "false"}
+                                    />
+                                </div>
+
+                                <div className="col-12 col-md-6">
+                                    <label className="form-label">PEC</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.sdiPec ? "is-invalid" : ""}`}
+                                        type="email"
+                                        name="pec"
+                                        value={form.pec}
+                                        onChange={onChange}
+                                        placeholder="esempio@pec.it"
+                                        aria-invalid={fieldErrors.sdiPec ? "true" : "false"}
+                                    />
+                                </div>
+
+                                <div className="col-12">
+                                    {fieldErrors.sdiPec ? (
+                                        <div className="invalid-feedback d-block">
+                                            {fieldErrors.sdiPec}
+                                        </div>
+                                    ) : (
+                                        <div className="form-text" style={{ color: "rgba(255,255,255,0.68)" }}>
+                                            Inserisci almeno uno tra Codice SDI e PEC per la fatturazione elettronica.
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="col-12">
                                     <div className="form-check mt-2">
                                         <input
-                                            className="form-check-input"
+                                            className={`form-check-input ${fieldErrors.confirmBusinessData ? "is-invalid" : ""}`}
                                             type="checkbox"
                                             id="confirmBusinessData"
                                             name="confirmBusinessData"
@@ -380,6 +543,12 @@ export default function RegisterShop() {
                                         <label className="form-check-label" htmlFor="confirmBusinessData">
                                             Ho controllato e confermo la veridicità dei dati inseriti
                                         </label>
+
+                                        {fieldErrors.confirmBusinessData ? (
+                                            <div className="invalid-feedback d-block">
+                                                {fieldErrors.confirmBusinessData}
+                                            </div>
+                                        ) : null}
                                     </div>
                                 </div>
                             </>

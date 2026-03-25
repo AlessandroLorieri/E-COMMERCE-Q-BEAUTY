@@ -217,6 +217,36 @@ export default function AdminOrders() {
         }
     }
 
+    async function sendBankReminder(o) {
+        if (!o || !o._id) return;
+
+        const orderLabel = o.publicId || o._id;
+
+        const ok = window.confirm(
+            `Stai per inviare un sollecito di pagamento per l'ordine ${orderLabel}.\n\n` +
+            `Il cliente verrà avvisato che, se non riceviamo la ricevuta del bonifico entro 24 ore, l'ordine verrà annullato.\n\n` +
+            `Vuoi continuare?`
+        );
+
+        if (!ok) return;
+
+        setErrMsg("");
+        setSavingId(o._id);
+
+        try {
+            await apiFetch(`/api/orders/admin/${encodeURIComponent(o._id)}/bank-reminder`, {
+                method: "POST",
+                body: JSON.stringify({ confirm: true }),
+            });
+
+            await loadOrders();
+        } catch (e) {
+            setErrMsg(e.message || "Errore invio sollecito bonifico");
+        } finally {
+            setSavingId(null);
+        }
+    }
+
     return (
         <div className="admin-orders" >
             <div className="d-flex align-items-center justify-content-between mb-3">
@@ -362,9 +392,26 @@ export default function AdminOrders() {
                         u?.vatNumber ||
                         "";
 
+                    const billSdiCodeRaw =
+                        bill?.sdiCode ||
+                        bill?.codiceDestinatario ||
+                        bill?.recipientCode ||
+                        o?.sdiCode ||
+                        u?.sdiCode ||
+                        "";
+
+                    const billPecRaw =
+                        bill?.pec ||
+                        bill?.pecAddress ||
+                        o?.pec ||
+                        u?.pec ||
+                        "";
+
                     const billCompanyName = billCompanyNameRaw || "-";
                     const billTaxCode = billTaxCodeRaw || "-";
                     const billVatNumber = billVatNumberRaw || "-";
+                    const billSdiCode = billSdiCodeRaw || "-";
+                    const billPec = billPecRaw || "-";
 
                     const billStreetNumberValue = bill?.streetNumber || ship?.streetNumber || "";
                     const billStreetNumber = billStreetNumberValue ? `, ${billStreetNumberValue}` : "";
@@ -382,11 +429,33 @@ export default function AdminOrders() {
                     const items = Array.isArray(o?.items) ? o.items : [];
 
                     const paymentMethodLabel =
-                        o?.paymentProvider === "bank_transfer"
-                            ? "Bonifico"
-                            : o?.stripeCheckoutSessionId
-                                ? "Stripe"
-                                : "Non disponibile";
+                        String(o?.paymentMethodLabel || "").trim() ||
+                        (
+                            o?.paymentProvider === "bank_transfer"
+                                ? "Bonifico"
+                                : o?.stripeCheckoutSessionId
+                                    ? "Stripe"
+                                    : "Non disponibile"
+                        );
+
+                    const paymentMethodDetail =
+                        paymentMethodLabel === "Carta"
+                            ? [
+                                o?.paymentCardBrand ? String(o.paymentCardBrand).toUpperCase() : "",
+                                o?.paymentCardLast4 ? `**** ${o.paymentCardLast4}` : "",
+                            ]
+                                .filter(Boolean)
+                                .join(" • ")
+                            : "";
+
+                    const isBankTransferPayment =
+                        String(o?.paymentMethodType || "").trim().toLowerCase() === "bank_transfer" ||
+                        String(o?.paymentProvider || "").trim().toLowerCase() === "bank_transfer" ||
+                        String(o?.paymentMethodLabel || "").trim().toLowerCase() === "bonifico";
+
+                    const canSendBankReminder =
+                        o.status === "pending_payment" &&
+                        isBankTransferPayment;
 
                     const canShip = o.status === "processing" || o.status === "paid";
 
@@ -504,6 +573,8 @@ export default function AdminOrders() {
                                                     <>
                                                         <div><span className="text-muted">Ragione sociale:</span> <b>{billCompanyName}</b></div>
                                                         <div><span className="text-muted">Partita IVA:</span> <b>{billVatNumber}</b></div>
+                                                        <div><span className="text-muted">Codice SDI:</span> <b>{billSdiCode}</b></div>
+                                                        <div><span className="text-muted">PEC:</span> <b>{billPec}</b></div>
                                                     </>
                                                 ) : null}
 
@@ -522,6 +593,15 @@ export default function AdminOrders() {
                                         <div className="fw-semibold mb-2">Pagamento</div>
                                         <div style={{ fontSize: 14 }}>
                                             <div><span className="text-muted">Metodo:</span> <b>{paymentMethodLabel}</b></div>
+                                            {paymentMethodDetail ? (
+                                                <div><span className="text-muted">Dettaglio:</span> <b>{paymentMethodDetail}</b></div>
+                                            ) : null}
+                                            {o?.paymentReminderSentAt ? (
+                                                <div>
+                                                    <span className="text-muted">Ultimo sollecito bonifico:</span>{" "}
+                                                    <b>{formatDate(o.paymentReminderSentAt)}</b>
+                                                </div>
+                                            ) : null}
                                         </div>
                                     </div>
 
@@ -659,6 +739,18 @@ export default function AdminOrders() {
                                         </div>
                                     </div>
 
+                                    {canSendBankReminder ? (
+                                        <div className="mb-3">
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-warning"
+                                                disabled={savingId === o._id}
+                                                onClick={() => sendBankReminder(o)}
+                                            >
+                                                {savingId === o._id ? "..." : "Invia sollecito bonifico"}
+                                            </button>
+                                        </div>
+                                    ) : null}
 
                                     <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
 

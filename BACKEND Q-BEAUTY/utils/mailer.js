@@ -213,7 +213,7 @@ Q•BEAUTY
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 52px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -310,12 +310,18 @@ Q•BEAUTY
               </td>
             </tr>
 
-            <tr>
-              <td
-              bgcolor="${colors.cardBg}"
-              style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
-              >&nbsp;</td>
-            </tr>
+      <tr>
+  <td
+    bgcolor="${colors.cardBg}"
+    style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; padding:0; overflow:hidden;"
+  >
+    <div style="height:18px; line-height:18px; font-size:0;">&nbsp;</div>
+  </td>
+</tr>
+
+<tr>
+  <td style="height:16px; line-height:16px; font-size:0;">&nbsp;</td>
+</tr>
           </table>
         </td>
       </tr>
@@ -410,7 +416,7 @@ Grazie per aver scelto Q•BEAUTY.
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 52px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -541,11 +547,17 @@ Grazie per aver scelto Q•BEAUTY.
             </tr>
 
             <tr>
-              <td
-                bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
-                >&nbsp;</td>
-              </tr>
+    <td
+    bgcolor="${colors.cardBg}"
+    style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; padding:0; overflow:hidden;"
+    >
+    <div style="height:18px; line-height:18px; font-size:0;">&nbsp;</div>
+    </td>
+    </tr>
+
+    <tr>
+    <td style="height:16px; line-height:16px; font-size:0;">&nbsp;</td>
+    </tr>
           </table>
         </td>
       </tr>
@@ -799,7 +811,7 @@ Q•BEAUTY
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 52px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -893,11 +905,17 @@ Q•BEAUTY
             </tr>
 
             <tr>
-            <td
-              bgcolor="${colors.cardBg}"
-              style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
-            >&nbsp;</td>
-            </tr>
+        <td
+        bgcolor="${colors.cardBg}"
+        style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; padding:0; overflow:hidden;"
+        >
+        <div style="height:18px; line-height:18px; font-size:0;">&nbsp;</div>
+        </td>
+        </tr>
+
+        <tr>
+        <td style="height:16px; line-height:16px; font-size:0;">&nbsp;</td>
+        </tr>
           </table>
         </td>
       </tr>
@@ -909,6 +927,276 @@ Q•BEAUTY
   return sendMail({ to, subject, html, text });
 }
 
+// EMAIL SOLLECITO BONIFICO ⏳
+async function sendBankTransferReminderEmail({ to, name, order, deadlineHours = 24 }) {
+  if (!to) throw new Error("Recipient mancante (to)");
+
+  const publicId = String(order?.publicId || "").trim();
+  const orderIdFallback = String(order?._id || "").trim();
+  const orderLabel = publicId || orderIdFallback || "ordine";
+
+  const firstNameRaw =
+    String(name || order?.shippingAddress?.name || order?.billingAddress?.name || "").trim();
+
+  const hello = firstNameRaw ? `Ciao ${firstNameRaw},` : "Ciao,";
+
+  const subtotal = formatEURFromCents(order?.subtotalCents);
+  const discountCents = Number(order?.discountCents) || 0;
+  const discountLabel = String(order?.discountLabel || "").trim();
+  const shippingCents = Number(order?.shippingCents) || 0;
+  const shipping = shippingCents === 0 ? "Gratis" : formatEURFromCents(shippingCents);
+  const total = formatEURFromCents(order?.totalCents);
+
+  const items = Array.isArray(order?.items) ? order.items : [];
+  const orderNote = String(order?.note || "").trim();
+
+  const subject = `Q•BEAUTY | Promemoria pagamento bonifico — Ordine ${orderLabel}`.trim();
+  const preheader = `Non abbiamo ancora ricevuto il bonifico del tuo ordine ${orderLabel}. Invia la ricevuta entro ${deadlineHours} ore.`;
+
+  const discountTextLine =
+    discountCents > 0
+      ? `Sconto${discountLabel ? ` (${discountLabel})` : ""}: -${formatEURFromCents(discountCents)}`
+      : "";
+
+  const orderNoteTextBlock = orderNote
+    ? `\nNote ordine:\n${orderNote}\n`
+    : "";
+
+  const text = `${hello}
+
+Ti scriviamo in merito al tuo ordine ${orderLabel}.
+
+Al momento non abbiamo ancora ricevuto il pagamento tramite bonifico bancario.
+
+Se hai già effettuato il bonifico, ti chiediamo di inviare la ricevuta di pagamento entro ${deadlineHours} ore rispondendo a questa email.
+
+In assenza di ricevuta entro ${deadlineHours} ore, l'ordine verrà annullato.
+
+Riepilogo ordine:
+Subtotale: ${subtotal}
+${discountTextLine ? `${discountTextLine}\n` : ""}Spedizione: ${shipping}
+Totale: ${total}${orderNoteTextBlock}
+
+Q•BEAUTY
+`;
+
+  const baseUrl = (process.env.FRONTEND_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
+  const logoUrl = `${baseUrl}/img/qbeautyshop-logo.png`;
+
+  const colors = {
+    pageBg: "#fdfbf8",
+    cardBg: "#fffefd",
+    border: "#f0e9de",
+    divider: "#f3ede4",
+    text: "#1a1a1a",
+    textSoft: "#5a534b",
+    muted: "#857d74",
+    panelBg: "#fdfaf6",
+    panelBorder: "#f0e9de",
+    panelText: "#3d3731",
+    accent: "#DEBE68",
+    buttonText: "#1a1a1a",
+    eyebrow: "#9a8760",
+  };
+
+  const orderNoteHtml = orderNote
+    ? `
+      <div
+        bgcolor="${colors.panelBg}"
+        style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+      >
+        <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+          Note ordine
+        </div>
+        <div style="font-family:Arial,sans-serif; font-size:13px; line-height:1.6; color:${colors.panelText}; white-space:pre-wrap;">
+          ${escapeHtml(orderNote)}
+        </div>
+      </div>
+    `
+    : "";
+
+  const breakdownHtml = `
+      <div
+        bgcolor="${colors.panelBg}"
+        style="margin-top:18px; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+      >
+        <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText}; margin-bottom:10px; font-weight:700;">
+          Riepilogo ordine
+        </div>
+
+        <table role="presentation" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial,sans-serif; font-size:13px; color:${colors.panelText};">
+          <tbody>
+            <tr>
+              <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Subtotale</td>
+              <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(subtotal)}</td>
+            </tr>
+
+            ${discountCents > 0
+      ? `<tr>
+                  <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Sconto${discountLabel ? ` (${escapeHtml(discountLabel)})` : ""}</td>
+                  <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">- ${escapeHtml(
+        formatEURFromCents(discountCents)
+      )}</td>
+                </tr>`
+      : ""
+    }
+
+            <tr>
+              <td style="padding:6px 12px 6px 0; color:${colors.muted}; word-break:break-word;">Spedizione</td>
+              <td style="width:120px; padding:6px 0; text-align:right; font-weight:700; white-space:nowrap; vertical-align:top;">${escapeHtml(shipping)}</td>
+            </tr>
+
+            <tr>
+              <td style="padding:10px 12px 0 0; font-weight:700; border-top:1px solid ${colors.border}; word-break:break-word;">Totale</td>
+              <td style="width:120px; padding:10px 0 0; text-align:right; font-weight:800; border-top:1px solid ${colors.border}; white-space:nowrap; vertical-align:top;">${escapeHtml(
+      total
+    )}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  const html = `
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>${escapeHtml(subject)}</title>
+  </head>
+  <body style="margin:0; padding:0; width:100% !important; background:${colors.pageBg}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+      ${escapeHtml(preheader)}
+    </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="${colors.pageBg}"
+      style="border-collapse:collapse; background:${colors.pageBg};"
+    >
+      <tr>
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 52px; background:${colors.pageBg};">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="border-collapse:collapse; max-width:560px;"
+          >
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border:1px solid ${colors.border}; border-bottom:none; border-radius:22px 22px 0 0; padding:26px 28px 16px; text-align:center;"
+              >
+                <img
+                  src="${logoUrl}"
+                  alt="Q-BEAUTY"
+                  width="190"
+                  style="display:block; width:100%; max-width:190px; height:auto; margin:0 auto; border:0; outline:none; text-decoration:none;"
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 26px;"
+              >
+                <div style="height:1px; background:${colors.divider};"></div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; padding:0 28px 24px; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border};"
+              >
+                <div style="font-family:Arial,sans-serif; color:${colors.text}; line-height:1.62;">
+                  <div style="margin:0 0 10px; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:${colors.eyebrow};">
+                    Promemoria pagamento
+                  </div>
+
+                  <h1 style="margin:0 0 14px; font-size:24px; line-height:1.25; letter-spacing:0.2px; color:${colors.text}; font-weight:700;">
+                    Bonifico non ancora ricevuto
+                  </h1>
+
+                  <p style="margin:0 0 14px; font-size:15px; color:${colors.textSoft};">
+                    ${escapeHtml(hello)}
+                  </p>
+
+                  <p style="margin:0 0 16px; font-size:15px; color:${colors.textSoft};">
+                    ti scriviamo in merito al tuo ordine <strong>${escapeHtml(orderLabel)}</strong>.
+                  </p>
+
+                  <p style="margin:0 0 16px; font-size:15px; color:${colors.textSoft};">
+                    Al momento non abbiamo ancora ricevuto il pagamento tramite bonifico bancario.
+                  </p>
+
+                  <div
+                    bgcolor="${colors.panelBg}"
+                    style="margin:18px 0 0; padding:16px 18px; background:${colors.panelBg}; border:1px solid ${colors.panelBorder}; border-radius:16px;"
+                  >
+                    <div style="font-family:Arial,sans-serif; font-size:13px; color:${colors.muted}; margin-bottom:6px;">
+                      Azione richiesta
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:15px; line-height:1.6; color:${colors.text}; font-weight:700;">
+                      Invia la ricevuta di pagamento entro ${escapeHtml(String(deadlineHours))} ore rispondendo a questa email.
+                    </div>
+                    <div style="font-family:Arial,sans-serif; font-size:12px; color:${colors.muted}; margin-top:8px;">
+                      In assenza di ricevuta entro ${escapeHtml(String(deadlineHours))} ore, l'ordine verrà annullato.
+                    </div>
+                  </div>
+
+                  ${breakdownHtml}
+                  ${orderNoteHtml}
+
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                bgcolor="${colors.cardBg}"
+                style="background:${colors.cardBg}; border-left:1px solid ${colors.border}; border-right:1px solid ${colors.border}; padding:0 28px 20px;"
+              >
+                <div style="height:1px; background:${colors.divider}; margin:0 0 14px;"></div>
+                <div style="font-family:Arial, sans-serif; font-size:12px; color:${colors.muted}; line-height:1.5;">
+                  <div style="margin:0 0 6px;">Q•BEAUTY</div>
+                  <div style="margin:0;">Questa è una comunicazione automatica legata al tuo ordine.</div>
+                </div>
+              </td>
+            </tr>
+
+          <tr>
+      <td
+    bgcolor="${colors.cardBg}"
+    style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; padding:0; overflow:hidden;"
+    >
+    <div style="height:18px; line-height:18px; font-size:0;">&nbsp;</div>
+    </td>
+    </tr>
+
+    <tr>
+    <td style="height:16px; line-height:16px; font-size:0;">&nbsp;</td>
+    </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+  `;
+
+  return sendMail({ to, subject, html, text });
+}
 
 // MAIL BONIFICO ✔️
 async function sendBankTransferInstructionsEmail({
@@ -1081,7 +1369,7 @@ Q•BEAUTY
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 52px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -1208,12 +1496,18 @@ Q•BEAUTY
               </td>
             </tr>
 
-            <tr>
-              <td
-                bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
-              >&nbsp;</td>
-            </tr>
+          <tr>
+    <td
+    bgcolor="${colors.cardBg}"
+    style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; padding:0; overflow:hidden;"
+    >
+    <div style="height:18px; line-height:18px; font-size:0;">&nbsp;</div>
+    </td>
+    </tr>
+
+    <tr>
+    <td style="height:16px; line-height:16px; font-size:0;">&nbsp;</td>
+    </tr>
           </table>
         </td>
       </tr>
@@ -1312,7 +1606,7 @@ Q•BEAUTY
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 52px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -1415,11 +1709,17 @@ Q•BEAUTY
             </tr>
 
             <tr>
-              <td
-                bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
-              >&nbsp;</td>
-            </tr>
+    <td
+    bgcolor="${colors.cardBg}"
+    style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; padding:0; overflow:hidden;"
+    >
+    <div style="height:18px; line-height:18px; font-size:0;">&nbsp;</div>
+    </td>
+    </tr>
+
+    <tr>
+    <td style="height:16px; line-height:16px; font-size:0;">&nbsp;</td>
+    </tr>
           </table>
         </td>
       </tr>
@@ -1557,13 +1857,57 @@ async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
     user?.vatNumber
   );
 
+  const billSdiCode = coalesceStr(
+    bill?.sdiCode,
+    bill?.codiceDestinatario,
+    bill?.recipientCode,
+    order?.sdiCode,
+    user?.sdiCode
+  );
+
+  const billPec = coalesceStr(
+    bill?.pec,
+    bill?.pecAddress,
+    order?.pec,
+    user?.pec
+  );
+
   const normPay = (v) => String(v || "").trim().toLowerCase();
-  const providerRaw = normPay(paymentMethod || order?.paymentProvider);
+
+  const paymentMethodRaw = coalesceStr(
+    paymentMethod,
+    order?.paymentMethodLabel,
+    order?.paymentMethodType,
+    order?.paymentProvider
+  );
+
+  const providerRaw = normPay(paymentMethodRaw);
 
   let paymentProviderLabel = "—";
-  if (providerRaw.includes("stripe")) paymentProviderLabel = "Stripe";
-  else if (providerRaw.includes("bank") || providerRaw.includes("bonifico")) paymentProviderLabel = "Bonifico";
-  else if (order?.stripeCheckoutSessionId || order?.stripePaymentIntentId) paymentProviderLabel = "Stripe";
+
+  if (providerRaw.includes("bonifico") || providerRaw.includes("bank")) {
+    paymentProviderLabel = "Bonifico";
+  } else if (providerRaw.includes("paypal")) {
+    paymentProviderLabel = "PayPal";
+  } else if (providerRaw.includes("klarna")) {
+    paymentProviderLabel = "Klarna";
+  } else if (providerRaw.includes("card") || providerRaw.includes("carta")) {
+    paymentProviderLabel = "Carta";
+  } else if (providerRaw.includes("stripe")) {
+    paymentProviderLabel = "Stripe";
+  } else if (order?.stripeCheckoutSessionId || order?.stripePaymentIntentId) {
+    paymentProviderLabel = "Stripe";
+  }
+
+  const paymentMethodDetail =
+    paymentProviderLabel === "Carta"
+      ? [
+        order?.paymentCardBrand ? String(order.paymentCardBrand).toUpperCase() : "",
+        order?.paymentCardLast4 ? `**** ${order.paymentCardLast4}` : "",
+      ]
+        .filter(Boolean)
+        .join(" • ")
+      : "";
 
   const statusRaw = String(order?.status || "").trim();
   const paidStatuses = new Set(["paid", "processing", "shipped", "completed"]);
@@ -1589,7 +1933,7 @@ async function sendAdminNewOrderEmail({ order, user, paymentMethod }) {
 Ordine: ${orderLabel}
 Totale: ${total}
 Pagamento: ${paymentStateLabel}
-Metodo: ${paymentProviderLabel}
+Metodo: ${paymentProviderLabel}${paymentMethodDetail ? ` (${paymentMethodDetail})` : ""}
 
 Cliente:
 - Nome: ${userName || "-"}
@@ -1613,6 +1957,8 @@ Fatturazione:
 - Città: ${billCity || "-"} (CAP: ${billCap || "-"})
 - CF: ${billTaxCode || "-"}
 - P.IVA: ${billVatNumber || "-"}
+- SDI: ${billSdiCode || "-"}
+- PEC: ${billPec || "-"}
 
 Articoli:
 ${items.length ? buildItemsText(items) : "- (nessun articolo in payload)"}
@@ -1755,7 +2101,7 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 52px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -1818,6 +2164,12 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
                         <td style="padding:6px 0; color:${colors.muted};">Metodo</td>
                         <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(paymentProviderLabel)}</td>
                       </tr>
+                      ${paymentMethodDetail
+      ? `<tr>
+                      <td style="padding:6px 0; color:${colors.muted};">Dettaglio</td>
+                      <td style="padding:6px 0; text-align:right; font-weight:700;">${escapeHtml(paymentMethodDetail)}</td>
+                      </tr>`
+      : ""}
                     </table>
                   </div>
 
@@ -1883,6 +2235,8 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
                       <div><strong>Città:</strong> ${escapeHtml(billCity || "-")} <span style="color:${colors.muted};">(CAP: ${escapeHtml(billCap || "-")})</span></div>
                       <div><strong>CF:</strong> ${escapeHtml(billTaxCode || "-")}</div>
                       <div><strong>P.IVA:</strong> ${escapeHtml(billVatNumber || "-")}</div>
+                      <div><strong>SDI:</strong> ${escapeHtml(billSdiCode || "-")}</div>
+                      <div><strong>PEC:</strong> ${escapeHtml(billPec || "-")}</div>
                     </div>
                   </div>
 
@@ -1906,11 +2260,17 @@ ${discountCents > 0 ? `- Sconto${discountLabel ? ` (${discountLabel})` : ""}: -$
             </tr>
 
           <tr>
-              <td
-                bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
-              >&nbsp;</td>
-            </tr>
+    <td
+    bgcolor="${colors.cardBg}"
+    style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; padding:0; overflow:hidden;"
+    >
+    <div style="height:18px; line-height:18px; font-size:0;">&nbsp;</div>
+    </td>
+    </tr>
+
+    <tr>
+    <td style="height:16px; line-height:16px; font-size:0;">&nbsp;</td>
+    </tr>
           </table>
         </td>
       </tr>
@@ -2006,7 +2366,7 @@ Q•BEAUTY
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 52px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -2111,11 +2471,17 @@ Q•BEAUTY
             </tr>
 
           <tr>
-              <td
-                bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
-              >&nbsp;</td>
-            </tr>
+        <td
+        bgcolor="${colors.cardBg}"
+        style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; padding:0; overflow:hidden;"
+        >
+        <div style="height:18px; line-height:18px; font-size:0;">&nbsp;</div>
+        </td>
+        </tr>
+
+        <tr>
+        <td style="height:16px; line-height:16px; font-size:0;">&nbsp;</td>
+        </tr>
           </table>
         </td>
       </tr>
@@ -2225,7 +2591,7 @@ ${text}
       style="border-collapse:collapse; background:${colors.pageBg};"
     >
       <tr>
-        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 36px; background:${colors.pageBg};">
+        <td align="center" bgcolor="${colors.pageBg}" style="padding:28px 12px 52px; background:${colors.pageBg};">
           <table
             role="presentation"
             width="100%"
@@ -2334,11 +2700,17 @@ ${text}
             </tr>
 
           <tr>
-              <td
-                bgcolor="${colors.cardBg}"
-                style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; height:14px; line-height:14px; font-size:0;"
-              >&nbsp;</td>
-            </tr>
+          <td
+          bgcolor="${colors.cardBg}"
+          style="background:${colors.cardBg}; border-radius:0 0 22px 22px; border:1px solid ${colors.border}; border-top:none; padding:0; overflow:hidden;"
+          >
+          <div style="height:18px; line-height:18px; font-size:0;">&nbsp;</div>
+          </td>
+          </tr>
+
+          <tr>
+          <td style="height:16px; line-height:16px; font-size:0;">&nbsp;</td>
+          </tr>
           </table>
         </td>
       </tr>
@@ -2361,6 +2733,7 @@ module.exports = {
   sendAdminNewOrderEmail,
   sendReviewRewardEmail,
   sendAdminNewReviewEmail,
+  sendBankTransferReminderEmail,
 };
 
 
