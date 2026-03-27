@@ -5,6 +5,8 @@ import Seo from './components/Seo';
 import './App.css';
 import './Home.css';
 
+import PopupSpedizioni from "./components/PopupSpedizioni";
+
 const heroImage = '/HomeHero-logo1.png';
 
 const founderImage = '/img/founder3.jpg';
@@ -63,6 +65,11 @@ function HomePage() {
       />
 
       <div className="home">
+
+        {/* POPUP TEMPORANEO AVVISO SPEDIZIONI*/}
+        <PopupSpedizioni />
+
+
         <header className="homepage-hero" role="banner">
           <div className="homepage-hero__container">
             <img

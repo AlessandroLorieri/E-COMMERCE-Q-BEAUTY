@@ -1,0 +1,120 @@
+.popup-spedizioni__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(4px);
+}
+
+.popup-spedizioni {
+    position: relative;
+    width: min(96vw, 980px);
+    background: linear-gradient(180deg, rgba(18, 18, 18, 0.98), rgba(8, 8, 8, 0.98));
+    border: 1px solid rgba(222, 190, 104, 0.35);
+    border-radius: 22px;
+    padding: 30px 24px 24px;
+    color: var(--qb-text, #f3e9c6);
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(222, 190, 104, 0.08) inset;
+    text-align: center;
+}
+
+.popup-spedizioni__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(222, 190, 104, 0.28);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--qb-text, #f3e9c6);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.popup-spedizioni__close:hover {
+    background: rgba(222, 190, 104, 0.1);
+    border-color: rgba(222, 190, 104, 0.5);
+    transform: scale(1.03);
+}
+
+.popup-spedizioni__eyebrow {
+    margin-bottom: 12px;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(222, 190, 104, 0.82);
+}
+
+.popup-spedizioni__titleWrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 3px;
+    width: 100%;
+}
+
+.popup-spedizioni__title {
+    margin: 0;
+    flex: 0 1 auto;
+    white-space: nowrap;
+    line-height: 1.08;
+    letter-spacing: 0;
+    text-align: center;
+    color: var(--qb-text, #f3e9c6);
+    font-weight: 700;
+    font-size: clamp(0.62rem, 1.9vw, 1.8rem);
+}
+
+.diamond_small {
+    display: inline-block;
+    width: 0.95em;
+    height: 1em;
+    margin: 0;
+    background-color: #f3e9c6ad;
+    transform: none;
+    flex: 0 0 auto;
+    clip-path: polygon(
+        50% 0%,
+        90% 50%,
+        50% 100%,
+        10% 50%
+    );
+}
+
+.popup-spedizioni__titleWrap .diamond_small {
+    align-self: center;
+}
+
+@media (max-width: 640px) {
+    .popup-spedizioni {
+        width: min(98vw, 980px);
+        padding: 22px 10px 16px;
+        border-radius: 18px;
+    }
+
+    .popup-spedizioni__titleWrap {
+        gap: 2px;
+    }
+
+    .popup-spedizioni__title {
+        font-size: clamp(0.56rem, 2.5vw, 1rem);
+        line-height: 1.02;
+        white-space: nowrap;
+    }
+
+    .popup-spedizioni .diamond_small {
+        width: 0.68em;
+        height: 0.72em;
+        margin: 0;
+    }
+}
