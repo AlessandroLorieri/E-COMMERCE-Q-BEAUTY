@@ -1578,33 +1578,94 @@ async function adminGetSoldProducts({ year, month } = {}) {
         };
     }
 
-    const rows = await Order.aggregate([
-        { $match: match },
-        { $unwind: "$items" },
-        {
-            $addFields: {
-                __productKey: {
-                    $ifNull: ["$items.productSlug", "$items.productId"],
-                },
-            },
-        },
-        {
-            $group: {
-                _id: "$__productKey",
-                name: { $first: "$items.name" },
-                qtySold: { $sum: { $ifNull: ["$items.qty", 0] } },
-            },
-        },
-        { $sort: { qtySold: -1, name: 1 } },
-    ]);
+    const componentProducts = await Product.find({
+        productId: { $in: SET_COMPONENT_IDS },
+    })
+        .select("productId name")
+        .lean();
 
-    const products = rows.map((row) => ({
-        productKey: String(row?._id || "").trim() || "-",
-        name: String(row?.name || "").trim() || "Prodotto",
-        qtySold: Math.max(0, Number(row?.qtySold || 0)),
-    }));
+    const componentNameMap = new Map(
+        componentProducts.map((p) => [
+            String(p?.productId || "").trim(),
+            String(p?.name || p?.productId || "").trim() || String(p?.productId || "").trim(),
+        ])
+    );
 
-    const totalPiecesSold = products.reduce((sum, p) => sum + (Number(p.qtySold) || 0), 0);
+    const orders = await Order.find(match)
+        .select("items status createdAt publicId")
+        .lean();
+
+    const map = new Map();
+
+    function addQty(productKeyRaw, nameRaw, qtyRaw) {
+        const productKey = String(productKeyRaw || "").trim();
+        const qty = Math.max(0, Math.trunc(Number(qtyRaw) || 0));
+        const name = String(nameRaw || productKey || "Prodotto").trim() || "Prodotto";
+
+        if (!productKey || !qty) return;
+
+        const current = map.get(productKey) || {
+            productKey,
+            name,
+            qtySold: 0,
+        };
+
+        current.qtySold += qty;
+        if (!current.name && name) current.name = name;
+
+        map.set(productKey, current);
+    }
+
+    for (const order of orders) {
+        const items = Array.isArray(order?.items) ? order.items : [];
+
+        for (const item of items) {
+            const qty = Math.max(
+                0,
+                Math.trunc(Number(item?.qty ?? item?.quantity ?? 0) || 0)
+            );
+
+            if (!qty) continue;
+
+            const lineKey = String(
+                item?.productSlug ||
+                item?.productId ||
+                item?.id ||
+                item?.name ||
+                ""
+            ).trim();
+
+            if (!lineKey) continue;
+
+            if (normProductId(lineKey) === SET_ID_NORM) {
+                for (const componentId of SET_COMPONENT_IDS) {
+                    addQty(
+                        componentId,
+                        componentNameMap.get(componentId) || componentId,
+                        qty
+                    );
+                }
+                continue;
+            }
+
+            addQty(
+                lineKey,
+                String(item?.name || lineKey || "Prodotto").trim(),
+                qty
+            );
+        }
+    }
+
+    const products = Array.from(map.values()).sort((a, b) => {
+        const qtyDiff = Number(b.qtySold || 0) - Number(a.qtySold || 0);
+        if (qtyDiff !== 0) return qtyDiff;
+        return String(a.name || "").localeCompare(String(b.name || ""), "it");
+    });
+
+    const totalPiecesSold = products.reduce(
+        (sum, p) => sum + (Number(p.qtySold) || 0),
+        0
+    );
 
     return {
         totalPiecesSold,

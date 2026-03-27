@@ -17,6 +17,8 @@ const MONTH_OPTIONS = [
     { value: "12", label: "Dicembre" },
 ];
 
+const SET_PRODUCT_KEY = "SET EXPERIENCE";
+
 export default function AdminSoldProducts() {
     const navigate = useNavigate();
     const { authFetch } = useAuth();
@@ -29,7 +31,6 @@ export default function AdminSoldProducts() {
     const [monthFilter, setMonthFilter] = useState("");
 
     const [totalPiecesSold, setTotalPiecesSold] = useState(0);
-    const [totalDistinctProducts, setTotalDistinctProducts] = useState(0);
     const [products, setProducts] = useState([]);
 
     const qs = useMemo(() => {
@@ -91,13 +92,19 @@ export default function AdminSoldProducts() {
 
             const data = await apiFetch(path, { method: "GET" });
 
+            const rawProducts = Array.isArray(data?.products) ? data.products : [];
+
+            const filteredProducts = rawProducts.filter((p) => {
+                const key = String(p?.productKey || "").trim().toUpperCase();
+                const name = String(p?.name || "").trim().toUpperCase();
+                return key !== SET_PRODUCT_KEY && name !== SET_PRODUCT_KEY;
+            });
+
             setTotalPiecesSold(Number(data?.totalPiecesSold || 0));
-            setTotalDistinctProducts(Number(data?.totalDistinctProducts || 0));
-            setProducts(Array.isArray(data?.products) ? data.products : []);
+            setProducts(filteredProducts);
         } catch (e) {
             setErrMsg(e.message || "Errore caricamento pezzi venduti");
             setTotalPiecesSold(0);
-            setTotalDistinctProducts(0);
             setProducts([]);
         } finally {
             setLoading(false);
@@ -159,7 +166,7 @@ export default function AdminSoldProducts() {
             </div>
 
             <div className="row g-3 mb-3">
-                <div className="col-12 col-md-6">
+                <div className="col-12">
                     <div className="list-group">
                         <div className="list-group-item">
                             <div className="text-muted" style={{ fontSize: 13 }}>
@@ -167,19 +174,6 @@ export default function AdminSoldProducts() {
                             </div>
                             <div className="fw-semibold" style={{ fontSize: 28 }}>
                                 {totalPiecesSold}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-12 col-md-6">
-                    <div className="list-group">
-                        <div className="list-group-item">
-                            <div className="text-muted" style={{ fontSize: 13 }}>
-                                Prodotti distinti venduti
-                            </div>
-                            <div className="fw-semibold" style={{ fontSize: 28 }}>
-                                {totalDistinctProducts}
                             </div>
                         </div>
                     </div>
