@@ -33,7 +33,6 @@ function normalizePec(v) {
 function isValidSdiCode(v) {
     const s = normalizeSdiCode(v);
     if (!s) return false;
-    if (s === "0000000") return false;
     return /^[A-Z0-9]{7}$/.test(s);
 }
 
@@ -169,17 +168,28 @@ UserSchema.pre("validate", function () {
     const sdi = normalizeSdiCode(this.sdiCode);
     const pec = normalizePec(this.pec);
 
-    if (!sdi && !pec) {
+    const hasSdi = !!sdi;
+    const hasPec = !!pec;
+    const pecValid = hasPec ? isValidPec(pec) : false;
+
+    if (!hasSdi && !hasPec) {
         this.invalidate("sdiCode", "Inserisci almeno uno tra Codice SDI e PEC");
         this.invalidate("pec", "Inserisci almeno uno tra Codice SDI e PEC");
         return;
     }
 
-    if (sdi && !isValidSdiCode(sdi)) {
+    if (hasSdi && !isValidSdiCode(sdi)) {
         this.invalidate("sdiCode", "Codice SDI non valido");
     }
 
-    if (pec && !isValidPec(pec)) {
+    if (sdi === "0000000" && !pecValid) {
+        this.invalidate("sdiCode", "Se inserisci 0000000 devi indicare anche una PEC valida");
+        if (!hasPec) {
+            this.invalidate("pec", "Con Codice SDI 0000000 la PEC è obbligatoria");
+        }
+    }
+
+    if (hasPec && !pecValid) {
         this.invalidate("pec", "PEC non valida");
     }
 });

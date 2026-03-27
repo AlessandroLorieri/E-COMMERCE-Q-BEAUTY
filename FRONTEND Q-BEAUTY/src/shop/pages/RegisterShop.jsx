@@ -45,6 +45,8 @@ export default function RegisterShop() {
 
             if (name === "sdiCode" || name === "pec") {
                 delete next.sdiPec;
+                delete next.sdiCode;
+                delete next.pec;
             }
 
             if (name === "password" || name === "confirmPassword") {
@@ -106,6 +108,31 @@ export default function RegisterShop() {
             .filter(Boolean)
             .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
             .join(" ");
+    }
+
+    function normalizeSdiCode(value) {
+        return String(value || "")
+            .trim()
+            .replace(/\s+/g, "")
+            .toUpperCase();
+    }
+
+    function normalizePec(value) {
+        return String(value || "")
+            .trim()
+            .toLowerCase();
+    }
+
+    function isValidSdiCode(value) {
+        const s = normalizeSdiCode(value);
+        if (!s) return false;
+        return /^[A-Z0-9]{7}$/.test(s);
+    }
+
+    function isValidPec(value) {
+        const s = normalizePec(value);
+        if (!s) return false;
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
     }
 
     function formatRegisterError(err) {
@@ -202,11 +229,30 @@ export default function RegisterShop() {
                 nextErrors.taxCode = "Inserisci il codice fiscale.";
             }
 
-            const sdiCode = String(form.sdiCode || "").trim().toUpperCase();
-            const pec = String(form.pec || "").trim().toLowerCase();
+            const sdiCode = normalizeSdiCode(form.sdiCode);
+            const pec = normalizePec(form.pec);
 
-            if (!sdiCode && !pec) {
+            const hasSdi = !!sdiCode;
+            const hasPec = !!pec;
+            const pecValid = hasPec ? isValidPec(pec) : false;
+
+            if (!hasSdi && !hasPec) {
                 nextErrors.sdiPec = "Inserisci almeno uno tra Codice SDI e PEC.";
+            }
+
+            if (hasSdi && !isValidSdiCode(sdiCode)) {
+                nextErrors.sdiCode = "Codice SDI non valido.";
+            }
+
+            if (sdiCode === "0000000" && !pecValid) {
+                nextErrors.sdiPec = "Se inserisci 0000000 devi indicare anche una PEC valida.";
+                if (!hasPec) {
+                    nextErrors.pec = "Con Codice SDI 0000000 la PEC è obbligatoria.";
+                } else {
+                    nextErrors.pec = "PEC non valida.";
+                }
+            } else if (hasPec && !pecValid) {
+                nextErrors.pec = "PEC non valida.";
             }
 
             if (!form.confirmBusinessData) {
@@ -519,37 +565,43 @@ export default function RegisterShop() {
                                 <div className="col-12 col-md-6">
                                     <label className="form-label">Codice destinatario SDI</label>
                                     <input
-                                        className={`form-control ${fieldErrors.sdiPec ? "is-invalid" : ""}`}
+                                        className={`form-control ${fieldErrors.sdiCode || fieldErrors.sdiPec ? "is-invalid" : ""}`}
                                         name="sdiCode"
                                         value={form.sdiCode}
                                         onChange={onChange}
                                         placeholder="Es. ABCD123"
                                         maxLength={7}
-                                        aria-invalid={fieldErrors.sdiPec ? "true" : "false"}
+                                        aria-invalid={fieldErrors.sdiCode || fieldErrors.sdiPec ? "true" : "false"}
+                                        spellCheck={false}
+                                        autoCorrect="off"
+                                        autoCapitalize="off"
                                     />
                                 </div>
 
                                 <div className="col-12 col-md-6">
                                     <label className="form-label">PEC</label>
                                     <input
-                                        className={`form-control ${fieldErrors.sdiPec ? "is-invalid" : ""}`}
+                                        className={`form-control ${fieldErrors.pec || fieldErrors.sdiPec ? "is-invalid" : ""}`}
                                         type="email"
                                         name="pec"
                                         value={form.pec}
                                         onChange={onChange}
                                         placeholder="esempio@pec.it"
-                                        aria-invalid={fieldErrors.sdiPec ? "true" : "false"}
+                                        aria-invalid={fieldErrors.pec || fieldErrors.sdiPec ? "true" : "false"}
+                                        spellCheck={false}
+                                        autoCorrect="off"
+                                        autoCapitalize="off"
                                     />
                                 </div>
 
                                 <div className="col-12">
-                                    {fieldErrors.sdiPec ? (
+                                    {fieldErrors.sdiCode || fieldErrors.pec || fieldErrors.sdiPec ? (
                                         <div className="invalid-feedback d-block">
-                                            {fieldErrors.sdiPec}
+                                            {fieldErrors.sdiCode || fieldErrors.pec || fieldErrors.sdiPec}
                                         </div>
                                     ) : (
                                         <div className="form-text" style={{ color: "rgba(255,255,255,0.68)" }}>
-                                            Inserisci almeno uno tra Codice SDI e PEC per la fatturazione elettronica.
+                                            Inserisci almeno uno tra Codice SDI e PEC per la fatturazione elettronica. Se usi 0000000, la PEC è obbligatoria.
                                         </div>
                                     )}
                                 </div>
