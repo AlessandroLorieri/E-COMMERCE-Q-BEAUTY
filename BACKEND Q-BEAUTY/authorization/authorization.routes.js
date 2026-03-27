@@ -1,6 +1,6 @@
 const express = require("express");
 const controller = require("./authorization.controller");
-const { authRequired } = require("../middleware/auth.middleware");
+const { authRequired, adminOnly } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
@@ -157,6 +157,7 @@ router.post("/register", validateRegister, controller.register);
 // login
 router.post("/login", validateLogin, controller.login);
 
+router.get("/admin/users", authRequired, adminOnly, controller.adminUsers);
 router.get("/me", authRequired, controller.me);
 // (protetta) - aggiorna profilo + fatturazione
 router.patch("/me", authRequired, controller.updateMe);

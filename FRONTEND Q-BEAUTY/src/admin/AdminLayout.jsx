@@ -8,21 +8,35 @@ export default function AdminLayout() {
                 <div className="admin__brand">Q-Beauty Admin</div>
 
                 <nav className="admin__nav">
+
                     <NavLink to="/admin" end className="admin__link">
                         Dashboard
                     </NavLink>
+
                     <NavLink to="/admin/products" className="admin__link">
                         Prodotti
                     </NavLink>
+
+                    <NavLink to="/admin/sold-products" className="admin__link">
+                        Pezzi venduti
+                    </NavLink>
+
+                    <NavLink to="/admin/users" className="admin__link">
+                        Utenti
+                    </NavLink>
+
                     <NavLink to="/admin/orders" className="admin__link">
                         Ordini
                     </NavLink>
+
                     <NavLink to="/admin/shipping" className="admin__link">
                         Spedizione
                     </NavLink>
+
                     <NavLink to="/admin/coupons" className="admin__link">
                         Coupons
                     </NavLink>
+
                     <NavLink to="/admin/reviews" className="admin__link">
                         Recensioni
                     </NavLink>

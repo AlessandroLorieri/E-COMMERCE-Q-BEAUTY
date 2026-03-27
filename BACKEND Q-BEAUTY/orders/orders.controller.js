@@ -9,6 +9,7 @@ const {
     adminGetDashboardStats,
     adminCancelOrderAndRestock,
     adminGetDashboardYears,
+    adminGetSoldProducts,
     adminSendBankReminder: adminSendBankReminderService,
 } = require("./orders.services");
 
@@ -239,6 +240,29 @@ async function adminStatsYears(req, res) {
     }
 }
 
+async function adminSoldProducts(req, res) {
+    try {
+        const year = parseOptionalInt(req.query?.year, 2000, 3000);
+        const month = parseOptionalInt(req.query?.month, 1, 12);
+
+        if (month && !year) {
+            return res.status(400).json({
+                message: "Validation error",
+                errors: { year: "Per filtrare per mese devi selezionare anche l'anno" },
+            });
+        }
+
+        const result = await adminGetSoldProducts({ year, month });
+        return res.json(result);
+    } catch (err) {
+        const status = err.status || 500;
+        return res.status(status).json({
+            message: err.message || "Server error",
+            errors: err.errors || undefined,
+        });
+    }
+}
+
 async function adminSetStatus(req, res) {
     try {
         const { id } = req.params;
@@ -400,4 +424,5 @@ module.exports = {
     adminStats,
     adminCancel,
     adminStatsYears,
+    adminSoldProducts,
 };

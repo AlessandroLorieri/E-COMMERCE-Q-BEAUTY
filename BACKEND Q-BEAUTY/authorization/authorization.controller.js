@@ -6,6 +6,7 @@ const {
     updateMeUser,
     requestPasswordReset,
     resetPasswordWithToken,
+    adminListUsers,
 } = require("./authorization.services");
 
 const { sendWelcomeEmail, sendPasswordResetEmail } = require("../utils/mailer");
@@ -27,6 +28,16 @@ function mapMongooseError(err) {
     }
 
     return null;
+}
+
+function parsePagination(query) {
+    const pageRaw = Number(query?.page || 1);
+    const limitRaw = Number(query?.limit || 20);
+
+    const page = Number.isFinite(pageRaw) ? Math.max(1, Math.trunc(pageRaw)) : 1;
+    const limit = Number.isFinite(limitRaw) ? Math.min(100, Math.max(1, Math.trunc(limitRaw))) : 20;
+
+    return { page, limit };
 }
 
 async function register(req, res) {
@@ -193,6 +204,22 @@ async function resetPassword(req, res) {
     }
 }
 
+async function adminUsers(req, res) {
+    try {
+        const { page, limit } = parsePagination(req.query);
+        const q = req.query?.q ? String(req.query.q).trim() : undefined;
+
+        const result = await adminListUsers({ page, limit, q });
+        return res.json(result);
+    } catch (err) {
+        const status = err.status || 500;
+        return res.status(status).json({
+            message: err.message || "Server error",
+            errors: err.errors || undefined,
+        });
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -200,5 +227,6 @@ module.exports = {
     changePassword,
     updateMe,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    adminUsers,
 };

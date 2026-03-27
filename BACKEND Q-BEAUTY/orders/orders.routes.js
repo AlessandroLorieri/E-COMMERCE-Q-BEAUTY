@@ -226,6 +226,7 @@ router.patch("/:id/pay-demo", authRequired, validateObjectIdParam("id"), control
 router.get("/admin", authRequired, adminOnly, adminReadLimiter, controller.adminList);
 router.get("/admin/stats", authRequired, adminOnly, adminReadLimiter, controller.adminStats);
 router.get("/admin/stats/years", authRequired, adminOnly, adminReadLimiter, controller.adminStatsYears);
+router.get("/admin/sold-products", authRequired, adminOnly, adminReadLimiter, controller.adminSoldProducts);
 
 router.get(
     "/admin/:id",

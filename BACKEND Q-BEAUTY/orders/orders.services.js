@@ -1563,6 +1563,56 @@ async function adminGetDashboardYears() {
     return { years };
 }
 
+async function adminGetSoldProducts({ year, month } = {}) {
+    const soldStatuses = ["paid", "processing", "shipped", "completed"];
+
+    const match = {
+        status: { $in: soldStatuses },
+    };
+
+    const createdAtRange = buildCreatedAtRange({ year, month });
+    if (createdAtRange) {
+        match.createdAt = {
+            $gte: createdAtRange.start,
+            $lt: createdAtRange.end,
+        };
+    }
+
+    const rows = await Order.aggregate([
+        { $match: match },
+        { $unwind: "$items" },
+        {
+            $addFields: {
+                __productKey: {
+                    $ifNull: ["$items.productSlug", "$items.productId"],
+                },
+            },
+        },
+        {
+            $group: {
+                _id: "$__productKey",
+                name: { $first: "$items.name" },
+                qtySold: { $sum: { $ifNull: ["$items.qty", 0] } },
+            },
+        },
+        { $sort: { qtySold: -1, name: 1 } },
+    ]);
+
+    const products = rows.map((row) => ({
+        productKey: String(row?._id || "").trim() || "-",
+        name: String(row?.name || "").trim() || "Prodotto",
+        qtySold: Math.max(0, Number(row?.qtySold || 0)),
+    }));
+
+    const totalPiecesSold = products.reduce((sum, p) => sum + (Number(p.qtySold) || 0), 0);
+
+    return {
+        totalPiecesSold,
+        totalDistinctProducts: products.length,
+        products,
+    };
+}
+
 async function adminCancelOrderAndRestock(id) {
     const order = await Order.findById(id);
     if (!order) {
@@ -1603,10 +1653,11 @@ module.exports = {
     adminListOrders,
     adminGetOrder,
     adminSetOrderStatus,
-    adminSendBankReminder,
     adminGetDashboardStats,
     adminCancelOrderAndRestock,
     adminGetDashboardYears,
+    adminGetSoldProducts,
+    adminSendBankReminder,
 };
 
 

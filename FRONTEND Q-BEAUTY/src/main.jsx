@@ -25,6 +25,8 @@ import AdminLayout from "./admin/AdminLayout";
 import AdminHome from "./admin/pages/AdminHome";
 import AdminProducts from "./admin/pages/AdminProducts";
 import AdminOrders from "./admin/pages/AdminOrders";
+import AdminUsers from "./admin/pages/AdminUsers";
+import AdminSoldProducts from "./admin/pages/AdminSoldProducts";
 
 import ForgotPasswordShop from "./shop/pages/ForgotPasswordShop";
 import ResetPasswordShop from "./shop/pages/ResetPasswordShop";
@@ -141,6 +143,8 @@ root.render(
             <Route index element={<AdminHome />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="orders" element={<AdminOrders />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="sold-products" element={<AdminSoldProducts />} />
             <Route path="shipping" element={<AdminShipping />} />
             <Route path="coupons" element={<AdminCoupons />} />
             <Route path="reviews" element={<AdminReviews />} />

@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("./authorization.schema");
 const Address = require("../addresses/addresses.schema");
+const Order = require("../orders/orders.schema");
 
 
 function getSaltRounds() {
@@ -41,6 +42,10 @@ function normalizePec(v) {
     return String(v || "")
         .trim()
         .toLowerCase();
+}
+
+function escapeRegExp(str) {
+    return String(str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function makeResetToken() {
@@ -398,6 +403,74 @@ async function resetPasswordWithToken(token, newPassword) {
     return { ok: true };
 }
 
+async function adminListUsers({ page = 1, limit = 20, q } = {}) {
+    const safePage = Math.max(1, Number(page) || 1);
+    const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
+    const skip = (safePage - 1) * safeLimit;
+
+    const filter = {};
+
+    const query = String(q || "").trim();
+    if (query) {
+        const rx = new RegExp(escapeRegExp(query), "i");
+        filter.$or = [
+            { email: rx },
+            { firstName: rx },
+            { lastName: rx },
+            { companyName: rx },
+            { vatNumber: rx },
+            { taxCode: rx },
+            { sdiCode: rx },
+            { pec: rx },
+        ];
+    }
+
+    const total = await User.countDocuments(filter);
+
+    const users = await User.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(safeLimit)
+        .select(
+            "email role customerType firstName lastName phone companyName vatNumber taxCode sdiCode pec billingAddressRef createdAt updatedAt"
+        )
+        .lean();
+
+    const userIds = users.map((u) => u?._id).filter(Boolean);
+
+    let ordersByUser = new Map();
+
+    if (userIds.length) {
+        const orders = await Order.find({ user: { $in: userIds } })
+            .sort({ createdAt: -1 })
+            .select("user publicId")
+            .lean();
+
+        ordersByUser = orders.reduce((map, order) => {
+            const key = String(order?.user || "");
+            if (!key) return map;
+
+            const current = map.get(key) || [];
+            if (order?.publicId) current.push(String(order.publicId));
+            map.set(key, current);
+            return map;
+        }, new Map());
+    }
+
+    const resultUsers = users.map((user) => ({
+        ...user,
+        orders: ordersByUser.get(String(user._id)) || [],
+    }));
+
+    return {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        pages: Math.max(1, Math.ceil(total / safeLimit)),
+        users: resultUsers,
+    };
+}
+
 module.exports = {
     registerUser,
     loginUser,
@@ -405,5 +478,6 @@ module.exports = {
     changePasswordUser,
     updateMeUser,
     requestPasswordReset,
-    resetPasswordWithToken
+    resetPasswordWithToken,
+    adminListUsers,
 };
