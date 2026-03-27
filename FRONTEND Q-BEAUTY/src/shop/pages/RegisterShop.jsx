@@ -112,6 +112,27 @@ export default function RegisterShop() {
         const raw = String(err?.message || "").trim();
         const low = raw.toLowerCase();
 
+        const payloadErrors = err?.payload?.errors;
+        if (payloadErrors && typeof payloadErrors === "object") {
+            const firstFieldError = [
+                payloadErrors.email,
+                payloadErrors.firstName,
+                payloadErrors.lastName,
+                payloadErrors.companyName,
+                payloadErrors.vatNumber,
+                payloadErrors.taxCode,
+                payloadErrors.sdiCode,
+                payloadErrors.pec,
+                payloadErrors.confirmBusinessData,
+                payloadErrors.customerType,
+                payloadErrors.billing,
+            ].find((v) => typeof v === "string" && v.trim());
+
+            if (firstFieldError) {
+                return firstFieldError;
+            }
+        }
+
         if (
             low.includes("email already") ||
             low.includes("already in use") ||
@@ -134,7 +155,11 @@ export default function RegisterShop() {
             return "Problema di connessione. Riprova tra poco.";
         }
 
-        return "Registrazione non riuscita. Riprova.";
+        if (low === "validation error") {
+            return "Controlla i dati inseriti e riprova.";
+        }
+
+        return raw || "Registrazione non riuscita. Riprova.";
     }
 
     function validateForm() {

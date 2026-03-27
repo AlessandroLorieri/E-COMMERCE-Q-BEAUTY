@@ -103,8 +103,14 @@ export function AuthProvider({ children }) {
             body: JSON.stringify(payload),
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "Register failed");
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            const err = new Error(data?.message || "Register failed");
+            err.payload = data;
+            err.status = res.status;
+            throw err;
+        }
 
         saveToken(data.token);
         setUser(data.user);
