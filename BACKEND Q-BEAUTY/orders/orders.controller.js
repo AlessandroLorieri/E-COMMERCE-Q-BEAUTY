@@ -221,8 +221,16 @@ async function adminStats(req, res) {
         const yearRaw = req.query?.year != null ? String(req.query.year).trim() : null;
 
         const year = yearRaw && /^[0-9]{4}$/.test(yearRaw) ? Number(yearRaw) : null;
+        const month = parseOptionalInt(req.query?.month, 1, 12);
 
-        const result = await adminGetDashboardStats({ range: rangeRaw, year });
+        if (month && !year) {
+            return res.status(400).json({
+                message: "Validation error",
+                errors: { year: "Per filtrare per mese devi selezionare anche l'anno" },
+            });
+        }
+
+        const result = await adminGetDashboardStats({ range: rangeRaw, year, month });
         return res.json(result);
     } catch (err) {
         const status = err.status || 500;

@@ -208,8 +208,11 @@ async function adminUsers(req, res) {
     try {
         const { page, limit } = parsePagination(req.query);
         const q = req.query?.q ? String(req.query.q).trim() : undefined;
+        const customerType = req.query?.customerType
+            ? String(req.query.customerType).trim().toLowerCase()
+            : undefined;
 
-        const result = await adminListUsers({ page, limit, q });
+        const result = await adminListUsers({ page, limit, q, customerType });
         return res.json(result);
     } catch (err) {
         const status = err.status || 500;

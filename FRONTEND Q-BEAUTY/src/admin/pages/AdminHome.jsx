@@ -7,6 +7,21 @@ function formatEURFromCents(cents) {
     return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value);
 }
 
+const MONTH_OPTIONS = [
+    { value: "1", label: "Gennaio" },
+    { value: "2", label: "Febbraio" },
+    { value: "3", label: "Marzo" },
+    { value: "4", label: "Aprile" },
+    { value: "5", label: "Maggio" },
+    { value: "6", label: "Giugno" },
+    { value: "7", label: "Luglio" },
+    { value: "8", label: "Agosto" },
+    { value: "9", label: "Settembre" },
+    { value: "10", label: "Ottobre" },
+    { value: "11", label: "Novembre" },
+    { value: "12", label: "Dicembre" },
+];
+
 export default function AdminHome() {
     const apiBase = import.meta.env.VITE_API_URL;
     const navigate = useNavigate();
@@ -19,6 +34,7 @@ export default function AdminHome() {
 
     const [years, setYears] = useState([]);
     const [year, setYear] = useState(String(new Date().getFullYear()));
+    const [month, setMonth] = useState(String(new Date().getMonth() + 1));
 
 
     const [stats, setStats] = useState({
@@ -40,7 +56,14 @@ export default function AdminHome() {
             try {
                 const sp = new URLSearchParams();
                 sp.set("range", range);
-                if (range === "year" && year) sp.set("year", year);
+
+                if ((range === "year" || range === "month") && year) {
+                    sp.set("year", year);
+                }
+
+                if (range === "month" && month) {
+                    sp.set("month", month);
+                }
 
                 const res = await fetch(`${apiBase}/api/orders/admin/stats?${sp.toString()}`, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -90,7 +113,7 @@ export default function AdminHome() {
         return () => {
             alive = false;
         };
-    }, [apiBase, token, logout, navigate, range, year]);
+    }, [apiBase, token, logout, navigate, range, year, month]);
 
     useEffect(() => {
         let alive = true;
@@ -109,7 +132,9 @@ export default function AdminHome() {
                 if (!alive) return;
                 setYears(ys);
 
-                if (ys.length) setYear(ys[ys.length - 1]);
+                if (ys.length && !ys.includes(String(year))) {
+                    setYear(ys[ys.length - 1]);
+                }
             } catch {
             }
         }
@@ -117,7 +142,7 @@ export default function AdminHome() {
         if (token) loadYears();
 
         return () => { alive = false; };
-    }, [apiBase, token]);
+    }, [apiBase, token, year]);
 
     return (
         <div className="px-3" style={{ maxWidth: 720, margin: "0 auto", overflowX: "hidden" }}>
@@ -145,7 +170,7 @@ export default function AdminHome() {
                             <option value="year">Anno</option>
                         </select>
 
-                        {range === "year" ? (
+                        {(range === "year" || range === "month") ? (
                             <select
                                 className="form-select form-select-sm"
                                 style={{ width: 140 }}
@@ -155,6 +180,22 @@ export default function AdminHome() {
                             >
                                 {(years.length ? years : [String(new Date().getFullYear())]).map((y) => (
                                     <option key={y} value={y}>{y}</option>
+                                ))}
+                            </select>
+                        ) : null}
+
+                        {range === "month" ? (
+                            <select
+                                className="form-select form-select-sm"
+                                style={{ width: 160 }}
+                                value={month}
+                                onChange={(e) => setMonth(e.target.value)}
+                                disabled={loading}
+                            >
+                                {MONTH_OPTIONS.map((m) => (
+                                    <option key={m.value} value={m.value}>
+                                        {m.label}
+                                    </option>
                                 ))}
                             </select>
                         ) : null}

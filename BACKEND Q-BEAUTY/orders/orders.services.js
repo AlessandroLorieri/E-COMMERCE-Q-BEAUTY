@@ -1402,7 +1402,7 @@ async function adminGetOrder(idOrPublicId) {
     return order;
 }
 
-async function adminGetDashboardStats({ range = "week", year = null } = {}) {
+async function adminGetDashboardStats({ range = "week", year = null, month = null } = {}) {
     const TZ = "Europe/Rome";
 
     const inProgressStatuses = ["paid", "processing"];
@@ -1413,18 +1413,39 @@ async function adminGetDashboardStats({ range = "week", year = null } = {}) {
     const r = RANGES.has(String(range)) ? String(range) : "week";
 
     const yearNum = Number(year);
+    const monthNum = Number(month);
+
     const hasYear = Number.isInteger(yearNum) && yearNum >= 2000 && yearNum <= 3000;
+    const hasMonth = Number.isInteger(monthNum) && monthNum >= 1 && monthNum <= 12;
+
+    const monthNames = [
+        "Gennaio",
+        "Febbraio",
+        "Marzo",
+        "Aprile",
+        "Maggio",
+        "Giugno",
+        "Luglio",
+        "Agosto",
+        "Settembre",
+        "Ottobre",
+        "Novembre",
+        "Dicembre",
+    ];
 
     const daysBack =
         r === "day" ? 0 :
             r === "week" ? 6 :
-                r === "month" ? 29 :
-                    0;
+                0;
 
     const rangeLabel =
         r === "year"
             ? (hasYear ? `Anno ${yearNum}` : "Anno corrente")
-            : (r === "day" ? "Oggi" : r === "week" ? "Ultimi 7 giorni" : "Ultimi 30 giorni");
+            : r === "month"
+                ? (hasYear && hasMonth ? `${monthNames[monthNum - 1]} ${yearNum}` : "Mese corrente")
+                : r === "day"
+                    ? "Oggi"
+                    : "Ultimi 7 giorni";
 
     const [result] = await Order.aggregate([
         {
@@ -1435,13 +1456,18 @@ async function adminGetDashboardStats({ range = "week", year = null } = {}) {
                             ? { $dateFromParts: { year: yearNum, month: 1, day: 1, timezone: TZ } }
                             : { $dateTrunc: { date: "$$NOW", unit: "year", timezone: TZ } }
                         )
-                        : {
-                            $dateSubtract: {
-                                startDate: { $dateTrunc: { date: "$$NOW", unit: "day", timezone: TZ } },
-                                unit: "day",
-                                amount: daysBack,
+                        : r === "month"
+                            ? (hasYear && hasMonth
+                                ? { $dateFromParts: { year: yearNum, month: monthNum, day: 1, timezone: TZ } }
+                                : { $dateTrunc: { date: "$$NOW", unit: "month", timezone: TZ } }
+                            )
+                            : {
+                                $dateSubtract: {
+                                    startDate: { $dateTrunc: { date: "$$NOW", unit: "day", timezone: TZ } },
+                                    unit: "day",
+                                    amount: daysBack,
+                                },
                             },
-                        },
 
                 __rangeEnd:
                     r === "year"
@@ -1455,7 +1481,24 @@ async function adminGetDashboardStats({ range = "week", year = null } = {}) {
                                 },
                             }
                         )
-                        : "$$NOW",
+                        : r === "month"
+                            ? (hasYear && hasMonth
+                                ? {
+                                    $dateAdd: {
+                                        startDate: { $dateFromParts: { year: yearNum, month: monthNum, day: 1, timezone: TZ } },
+                                        unit: "month",
+                                        amount: 1,
+                                    },
+                                }
+                                : {
+                                    $dateAdd: {
+                                        startDate: { $dateTrunc: { date: "$$NOW", unit: "month", timezone: TZ } },
+                                        unit: "month",
+                                        amount: 1,
+                                    },
+                                }
+                            )
+                            : "$$NOW",
             },
         },
         {

@@ -403,12 +403,17 @@ async function resetPasswordWithToken(token, newPassword) {
     return { ok: true };
 }
 
-async function adminListUsers({ page = 1, limit = 20, q } = {}) {
+async function adminListUsers({ page = 1, limit = 20, q, customerType } = {}) {
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
     const skip = (safePage - 1) * safeLimit;
 
     const filter = {};
+
+    const normalizedCustomerType = String(customerType || "").trim().toLowerCase();
+    if (normalizedCustomerType && ["private", "piva"].includes(normalizedCustomerType)) {
+        filter.customerType = normalizedCustomerType;
+    }
 
     const query = String(q || "").trim();
     if (query) {

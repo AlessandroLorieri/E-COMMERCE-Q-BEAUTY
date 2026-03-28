@@ -16,6 +16,22 @@ function formatDate(iso) {
     }
 }
 
+function customerTypeMeta(customerTypeRaw) {
+    const customerType = String(customerTypeRaw || "").trim().toLowerCase();
+
+    if (customerType === "piva") {
+        return {
+            label: "Partita IVA",
+            badgeClass: "badge text-bg-warning",
+        };
+    }
+
+    return {
+        label: "Privato",
+        badgeClass: "badge text-bg-secondary",
+    };
+}
+
 export default function AdminUsers() {
     const navigate = useNavigate();
     const { authFetch } = useAuth();
@@ -30,6 +46,7 @@ export default function AdminUsers() {
     const [total, setTotal] = useState(0);
 
     const [q, setQ] = useState("");
+    const [customerTypeFilter, setCustomerTypeFilter] = useState("");
     const [openId, setOpenId] = useState(null);
 
     const qs = useMemo(() => {
@@ -37,8 +54,9 @@ export default function AdminUsers() {
         sp.set("page", String(page));
         sp.set("limit", String(limit));
         if (q.trim()) sp.set("q", q.trim());
+        if (customerTypeFilter) sp.set("customerType", customerTypeFilter);
         return sp.toString();
-    }, [page, limit, q]);
+    }, [page, limit, q, customerTypeFilter]);
 
     async function apiFetch(path, options = {}) {
         let res;
@@ -117,6 +135,20 @@ export default function AdminUsers() {
                     }}
                 />
 
+                <select
+                    className="form-select"
+                    style={{ maxWidth: 180 }}
+                    value={customerTypeFilter}
+                    onChange={(e) => {
+                        setPage(1);
+                        setCustomerTypeFilter(e.target.value);
+                    }}
+                >
+                    <option value="">Tutti</option>
+                    <option value="private">Privato</option>
+                    <option value="piva">Partita IVA</option>
+                </select>
+
                 <div className="ms-auto d-flex gap-2 align-items-center">
                     <button
                         className="btn btn-outline-secondary"
@@ -145,8 +177,7 @@ export default function AdminUsers() {
                     const isOpen = openId === u._id;
 
                     const fullName = [u?.firstName, u?.lastName].filter(Boolean).join(" ").trim() || "-";
-                    const customerType =
-                        String(u?.customerType || "").trim() === "piva" ? "Partita IVA" : "Privato";
+                    const customerType = customerTypeMeta(u?.customerType);
 
                     const companyName = u?.companyName || "-";
                     const vatNumber = u?.vatNumber || "-";
@@ -176,7 +207,7 @@ export default function AdminUsers() {
                                             <span className="text-muted">
                                                 {u?.email || "-"}
                                             </span>
-                                            <span className="badge text-bg-secondary">{customerType}</span>
+                                            <span className={customerType.badgeClass}>{customerType.label}</span>
                                         </div>
                                     </div>
 
@@ -199,7 +230,10 @@ export default function AdminUsers() {
                                                 <div><span className="text-muted">Cognome:</span> <b>{u?.lastName || "-"}</b></div>
                                                 <div><span className="text-muted">Email:</span> <b>{u?.email || "-"}</b></div>
                                                 <div><span className="text-muted">Telefono:</span> <b>{phone}</b></div>
-                                                <div><span className="text-muted">Tipo cliente:</span> <b>{customerType}</b></div>
+                                                <div>
+                                                    <span className="text-muted">Tipo cliente:</span>{" "}
+                                                    <span className={customerType.badgeClass}>{customerType.label}</span>
+                                                </div>
                                                 <div><span className="text-muted">Ruolo:</span> <b>{u?.role || "user"}</b></div>
                                                 <div><span className="text-muted">Registrato il:</span> <b>{formatDate(u?.createdAt)}</b></div>
                                             </div>
