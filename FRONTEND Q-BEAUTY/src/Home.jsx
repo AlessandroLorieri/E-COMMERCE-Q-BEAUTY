@@ -67,7 +67,7 @@ function HomePage() {
       <div className="home">
 
         {/* POPUP TEMPORANEO AVVISO SPEDIZIONI*/}
-        <PopupSpedizioni />
+        
 
 
         <header className="homepage-hero" role="banner">
