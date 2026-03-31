@@ -75,6 +75,9 @@ router.get("/me", authRequired, c.me);
 // crea indirizzo (body whitelist + validazione minima)
 router.post("/", authRequired, validateCreateAddressBody, c.create);
 
+// aggiorna indirizzo
+router.patch("/:id", authRequired, validateObjectIdParam("id"), validateCreateAddressBody, c.update);
+
 // set default (id valido)
 router.patch("/:id/default", authRequired, validateObjectIdParam("id"), c.setDefault);
 

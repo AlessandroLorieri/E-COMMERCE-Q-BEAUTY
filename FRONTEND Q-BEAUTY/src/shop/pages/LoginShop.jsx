@@ -19,152 +19,27 @@ export default function LoginShop() {
     const apiBase = import.meta.env.VITE_API_URL;
     const authToken = token || localStorage.getItem("token");
 
+    const [localUser, setLocalUser] = useState(null);
+    const currentUser = localUser || user;
+
     const [profile, setProfile] = useState({
         firstName: "",
         lastName: "",
         phone: "",
         companyName: "",
         vatNumber: "",
+        taxCode: "",
         billingAddressId: "",
+        billingAddress: "",
+        billingStreetNumber: "",
+        billingCity: "",
+        billingCap: "",
     });
 
     const [profileError, setProfileError] = useState("");
     const [profileOk, setProfileOk] = useState("");
     const [profileSaving, setProfileSaving] = useState(false);
     const [editingProfile, setEditingProfile] = useState(false);
-
-    useEffect(() => {
-        if (!user) return;
-
-        setProfile({
-            firstName: user.firstName || "",
-            lastName: user.lastName || "",
-            phone: user.phone || "",
-            companyName: user.companyName || "",
-            vatNumber: user.vatNumber || "",
-            billingAddressId: user.billingAddressRef ? String(user.billingAddressRef) : "",
-        });
-    }, [user]);
-
-    function onProfileChange(e) {
-        const { name, value } = e.target;
-        setProfile((p) => ({ ...p, [name]: value }));
-        setProfileError("");
-        setProfileOk("");
-    }
-
-    function normalizeHumanText(value) {
-        return String(value || "")
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, " ")
-            .replace(/(^|[\s'-])([a-zà-öø-ÿ])/g, (_, sep, ch) => `${sep}${ch.toUpperCase()}`);
-    }
-
-    function startEditProfile() {
-        if (!user) return;
-        setProfile({
-            firstName: user.firstName || "",
-            lastName: user.lastName || "",
-            phone: user.phone || "",
-            companyName: user.companyName || "",
-            vatNumber: user.vatNumber || "",
-            billingAddressId: user.billingAddressRef ? String(user.billingAddressRef) : "",
-        });
-        setProfileError("");
-        setProfileOk("");
-        setEditingProfile(true);
-    }
-
-    function cancelEditProfile() {
-        if (!user) return;
-        setProfile({
-            firstName: user.firstName || "",
-            lastName: user.lastName || "",
-            phone: user.phone || "",
-            companyName: user.companyName || "",
-            vatNumber: user.vatNumber || "",
-            billingAddressId: user.billingAddressRef ? String(user.billingAddressRef) : "",
-        });
-        setProfileError("");
-        setProfileOk("");
-        setEditingProfile(false);
-    }
-
-    async function saveProfile(e) {
-        e.preventDefault();
-        setProfileError("");
-        setProfileOk("");
-        setEditingProfile(false);
-
-        if (!authToken) {
-            setProfileError("Non sei autenticato.");
-            return;
-        }
-
-        setProfileSaving(true);
-        try {
-            const res = await fetch(`${apiBase}/api/auth/me`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${authToken}`,
-                },
-                body: JSON.stringify({
-                    firstName: normalizeHumanText(profile.firstName),
-                    lastName: normalizeHumanText(profile.lastName),
-                    phone: profile.phone,
-                    companyName: profile.companyName,
-                    vatNumber: profile.vatNumber,
-                    billingAddressId: profile.billingAddressId || null,
-                }),
-            });
-
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                const msg =
-                    data?.errors?.firstName ||
-                    data?.errors?.lastName ||
-                    data?.errors?.phone ||
-                    data?.errors?.companyName ||
-                    data?.errors?.vatNumber ||
-                    data?.errors?.billingAddressId ||
-                    data?.message ||
-                    "Errore salvataggio";
-                throw new Error(msg);
-            }
-
-            const u = data?.user;
-            if (u) {
-                setProfile({
-                    firstName: u.firstName || "",
-                    lastName: u.lastName || "",
-                    phone: u.phone || "",
-                    companyName: u.companyName || "",
-                    vatNumber: u.vatNumber || "",
-                    billingAddressId: u.billingAddressRef ? String(u.billingAddressRef) : "",
-                });
-            }
-
-            setProfileOk("Dati salvati ✅");
-        } catch (err) {
-            setProfileError(err.message || "Errore salvataggio");
-        } finally {
-            setProfileSaving(false);
-        }
-    }
-
-    const [currentPassword, setCurrentPassword] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmNewPassword, setConfirmNewPassword] = useState("");
-
-    const [showCurrent, setShowCurrent] = useState(false);
-    const [showNew, setShowNew] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
-
-    const [pwError, setPwError] = useState("");
-    const [pwOk, setPwOk] = useState("");
-    const [pwSubmitting, setPwSubmitting] = useState(false);
 
     const [addresses, setAddresses] = useState([]);
     const [addrLoading, setAddrLoading] = useState(false);
@@ -184,6 +59,221 @@ export default function LoginShop() {
     const [newAddrError, setNewAddrError] = useState("");
     const [newAddrSubmitting, setNewAddrSubmitting] = useState(false);
     const [newAddrMakeDefault, setNewAddrMakeDefault] = useState(false);
+
+    const shippingAddresses = addresses.filter((a) => {
+        const label = String(a?.label || "").trim().toLowerCase();
+        return label !== "sede legale";
+    });
+
+    useEffect(() => {
+        setLocalUser(user || null);
+    }, [user]);
+
+    useEffect(() => {
+        if (!currentUser || editingProfile) return;
+        setProfile(buildProfileState(currentUser, addresses));
+    }, [currentUser, addresses, editingProfile]);
+
+    function onProfileChange(e) {
+        const { name, value } = e.target;
+        setProfile((p) => ({ ...p, [name]: value }));
+        setProfileError("");
+        setProfileOk("");
+    }
+
+    function normalizeHumanText(value) {
+        return String(value || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .replace(/(^|[\s'-])([a-zà-öø-ÿ])/g, (_, sep, ch) => `${sep}${ch.toUpperCase()}`);
+    }
+
+    function buildProfileState(sourceUser, list = []) {
+        const billingAddressId = sourceUser?.billingAddressRef ? String(sourceUser.billingAddressRef) : "";
+        const billingAddress = billingAddressId
+            ? list.find((x) => String(x._id) === billingAddressId) || null
+            : null;
+
+        return {
+            firstName: sourceUser?.firstName || "",
+            lastName: sourceUser?.lastName || "",
+            phone: sourceUser?.phone || "",
+            companyName: sourceUser?.companyName || "",
+            vatNumber: sourceUser?.vatNumber || "",
+            taxCode: sourceUser?.taxCode || "",
+            billingAddressId,
+            billingAddress: billingAddress?.address || "",
+            billingStreetNumber: billingAddress?.streetNumber || "",
+            billingCity: billingAddress?.city || "",
+            billingCap: billingAddress?.cap || "",
+        };
+    }
+
+    function startEditProfile() {
+        if (!currentUser) return;
+        setProfile(buildProfileState(currentUser, addresses));
+        setProfileError("");
+        setProfileOk("");
+        setEditingProfile(true);
+    }
+
+    function cancelEditProfile() {
+        if (!currentUser) return;
+        setProfile(buildProfileState(currentUser, addresses));
+        setProfileError("");
+        setProfileOk("");
+        setEditingProfile(false);
+    }
+
+    async function saveProfile(e) {
+        e.preventDefault();
+        setProfileError("");
+        setProfileOk("");
+
+        if (!authToken) {
+            setProfileError("Non sei autenticato.");
+            return;
+        }
+
+        const normalizedFirstName = normalizeHumanText(profile.firstName);
+        const normalizedLastName = normalizeHumanText(profile.lastName);
+        const normalizedPhone = String(profile.phone || "").trim();
+        const normalizedCompanyName = String(profile.companyName || "").trim();
+        const normalizedVatNumber = String(profile.vatNumber || "").trim();
+        const normalizedTaxCode = String(profile.taxCode || "").trim().toUpperCase();
+        const normalizedBillingAddress = String(profile.billingAddress || "").trim();
+        const normalizedBillingStreetNumber = String(profile.billingStreetNumber || "").trim();
+        const normalizedBillingCity = normalizeHumanText(profile.billingCity);
+        const normalizedBillingCap = String(profile.billingCap || "").trim();
+
+        if (!normalizedFirstName) {
+            setProfileError("Nome richiesto");
+            return;
+        }
+
+        if (!normalizedLastName) {
+            setProfileError("Cognome richiesto");
+            return;
+        }
+
+        if (currentUser?.customerType === "piva") {
+            if (!normalizedCompanyName) {
+                setProfileError("Ragione sociale richiesta");
+                return;
+            }
+
+            if (!normalizedVatNumber) {
+                setProfileError("Partita IVA richiesta");
+                return;
+            }
+
+            if (!normalizedTaxCode) {
+                setProfileError("Codice fiscale richiesto");
+                return;
+            }
+
+            if (!normalizedBillingAddress) {
+                setProfileError("Indirizzo sede legale richiesto");
+                return;
+            }
+
+            if (!normalizedBillingStreetNumber) {
+                setProfileError("N° civico sede legale richiesto");
+                return;
+            }
+
+            if (!normalizedBillingCity) {
+                setProfileError("Città sede legale richiesta");
+                return;
+            }
+
+            if (!/^\d{5}$/.test(normalizedBillingCap)) {
+                setProfileError("CAP sede legale non valido (5 cifre)");
+                return;
+            }
+        }
+
+        setProfileSaving(true);
+
+        try {
+            let finalBillingAddressId = profile.billingAddressId ? String(profile.billingAddressId).trim() : "";
+
+            const res = await fetch(`${apiBase}/api/auth/me`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${authToken}`,
+                },
+                body: JSON.stringify({
+                    firstName: normalizedFirstName,
+                    lastName: normalizedLastName,
+                    phone: normalizedPhone,
+                    companyName: normalizedCompanyName,
+                    vatNumber: normalizedVatNumber,
+                    taxCode: currentUser?.customerType === "piva" ? normalizedTaxCode : undefined,
+                    billingAddressId:
+                        currentUser?.customerType === "piva"
+                            ? undefined
+                            : (profile.billingAddressId || null),
+                    billingAddress:
+                        currentUser?.customerType === "piva"
+                            ? {
+                                address: normalizedBillingAddress,
+                                streetNumber: normalizedBillingStreetNumber,
+                                city: normalizedBillingCity,
+                                cap: normalizedBillingCap,
+                            }
+                            : undefined,
+                }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                const msg =
+                    data?.errors?.firstName ||
+                    data?.errors?.lastName ||
+                    data?.errors?.phone ||
+                    data?.errors?.companyName ||
+                    data?.errors?.vatNumber ||
+                    data?.errors?.taxCode ||
+                    data?.errors?.billingAddressId ||
+                    data?.errors?.billingAddress ||
+                    data?.message ||
+                    "Errore salvataggio";
+                throw new Error(msg);
+            }
+
+            const refreshedAddresses = await fetchMyAddresses().catch(() => addresses);
+            const safeAddresses = Array.isArray(refreshedAddresses) ? refreshedAddresses : addresses;
+
+            setAddresses(safeAddresses);
+
+            const nextUser = data?.user ? { ...currentUser, ...data.user } : currentUser;
+            setLocalUser(nextUser);
+            setProfile(buildProfileState(nextUser, safeAddresses));
+
+            setProfileOk("Dati salvati ✅");
+            setEditingProfile(false);
+        } catch (err) {
+            setProfileError(err.message || "Errore salvataggio");
+        } finally {
+            setProfileSaving(false);
+        }
+    }
+
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmNewPassword, setConfirmNewPassword] = useState("");
+
+    const [showCurrent, setShowCurrent] = useState(false);
+    const [showNew, setShowNew] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+
+    const [pwError, setPwError] = useState("");
+    const [pwOk, setPwOk] = useState("");
+    const [pwSubmitting, setPwSubmitting] = useState(false);
 
     function onNewAddrChange(e) {
         const { name, value } = e.target;
@@ -435,23 +525,29 @@ export default function LoginShop() {
                             </div>
                         ) : null}
 
+                        {currentUser?.customerType === "piva" && !profile.billingAddressId ? (
+                            <div className="alert alert-warning py-2" role="alert">
+                                Per completare gli ordini come Partita IVA devi inserire la sede legale di fatturazione.
+                            </div>
+                        ) : null}
+
                         {!editingProfile ? (
                             <>
                                 <div style={{ fontSize: 14 }}>
                                     <div>
                                         <span className="text-muted">Nome:</span>{" "}
-                                        <strong>{user.firstName} {user.lastName}</strong>
+                                        <strong>{currentUser?.firstName} {currentUser?.lastName}</strong>
                                     </div>
                                     <div className="mt-1">
                                         <span className="text-muted">Telefono:</span>{" "}
-                                        <strong>{user.phone || "—"}</strong>
+                                        <strong>{currentUser?.phone || "—"}</strong>
                                     </div>
                                     <div className="mt-1">
-                                        <span className="text-muted">Email:</span> <strong>{user.email}</strong>
+                                        <span className="text-muted">Email:</span> <strong>{currentUser?.email}</strong>
                                     </div>
                                     <div className="mt-1">
                                         <span className="text-muted">Tipo:</span>{" "}
-                                        <strong>{user.customerType === "piva" ? "P.IVA" : "Privato"}</strong>
+                                        <strong>{currentUser?.customerType === "piva" ? "P.IVA" : "Privato"}</strong>
                                     </div>
                                 </div>
 
@@ -459,21 +555,25 @@ export default function LoginShop() {
 
                                 <div className="fw-semibold mb-2">Fatturazione</div>
                                 <div style={{ fontSize: 14 }}>
-                                    {user.customerType === "piva" ? (
+                                    {currentUser?.customerType === "piva" ? (
                                         <>
                                             <div>
                                                 <span className="text-muted">Ragione sociale:</span>{" "}
-                                                <strong>{user.companyName || "—"}</strong>
+                                                <strong>{currentUser?.companyName || "—"}</strong>
                                             </div>
                                             <div className="mt-1">
                                                 <span className="text-muted">P.IVA:</span>{" "}
-                                                <strong>{user.vatNumber || "—"}</strong>
+                                                <strong>{currentUser?.vatNumber || "—"}</strong>
+                                            </div>
+                                            <div className="mt-1">
+                                                <span className="text-muted">Codice fiscale:</span>{" "}
+                                                <strong>{currentUser?.taxCode || "—"}</strong>
                                             </div>
                                         </>
                                     ) : (
                                         <div>
                                             <span className="text-muted">Intestatario:</span>{" "}
-                                            <strong>{user.firstName} {user.lastName}</strong>
+                                            <strong>{currentUser?.firstName} {currentUser?.lastName}</strong>
                                         </div>
                                     )}
 
@@ -481,10 +581,10 @@ export default function LoginShop() {
                                         <span className="text-muted">Indirizzo fatturazione:</span>{" "}
                                         <strong>
                                             {(() => {
-                                                const id = user.billingAddressRef ? String(user.billingAddressRef) : "";
-                                                const a = addresses.find(x => String(x._id) === id);
-                                                if (!id) return "—";
-                                                if (!a) return "Selezionato (non caricato)";
+                                                const id = profile.billingAddressId ? String(profile.billingAddressId) : "";
+                                                const a = addresses.find((x) => String(x._id) === id);
+                                                if (!id) return currentUser?.customerType === "piva" ? "Non impostato" : "—";
+                                                if (!a) return "Salvato ma non caricato";
                                                 const civic = a.streetNumber ? `, ${a.streetNumber}` : "";
                                                 return `${a.address}${civic}, ${a.city} (${a.cap})`;
                                             })()}
@@ -492,7 +592,9 @@ export default function LoginShop() {
                                     </div>
 
                                     <div className="text-muted mt-2" style={{ fontSize: 13 }}>
-                                        Spedizione e fatturazione possono essere diverse.
+                                        {currentUser?.customerType === "piva"
+                                            ? "Per la Partita IVA la fatturazione usa sempre questa sede legale, separata dagli indirizzi di spedizione."
+                                            : "Spedizione e fatturazione possono essere diverse."}
                                     </div>
                                 </div>
                             </>
@@ -538,12 +640,12 @@ export default function LoginShop() {
 
                                     <div className="col-12">
                                         <label className="form-label">Email</label>
-                                        <input className="form-control" value={user.email} disabled />
+                                        <input className="form-control" value={currentUser?.email || ""} disabled />
                                     </div>
 
                                     <div className="col-12">
                                         <label className="form-label">Tipo</label>
-                                        <input className="form-control" value={user.customerType === "piva" ? "P.IVA" : "Privato"} disabled />
+                                        <input className="form-control" value={currentUser?.customerType === "piva" ? "P.IVA" : "Privato"} disabled />
                                     </div>
                                 </div>
 
@@ -551,44 +653,123 @@ export default function LoginShop() {
 
                                 <div className="fw-semibold mb-2">Fatturazione</div>
 
-                                {user.customerType === "piva" ? (
-                                    <div className="row g-2">
-                                        <div className="col-12">
-                                            <label className="form-label">Ragione sociale</label>
-                                            <input className="form-control" name="companyName" value={profile.companyName} onChange={onProfileChange} />
+                                {currentUser?.customerType === "piva" ? (
+                                    <>
+                                        <div className="row g-2">
+                                            <div className="col-12">
+                                                <label className="form-label">Ragione sociale</label>
+                                                <input
+                                                    className="form-control"
+                                                    name="companyName"
+                                                    value={profile.companyName}
+                                                    onChange={onProfileChange}
+                                                />
+                                            </div>
+
+                                            <div className="col-12">
+                                                <label className="form-label">Partita IVA</label>
+                                                <input
+                                                    className="form-control"
+                                                    name="vatNumber"
+                                                    value={profile.vatNumber}
+                                                    onChange={onProfileChange}
+                                                />
+                                            </div>
+
+                                            <div className="col-12">
+                                                <label className="form-label">Codice fiscale</label>
+                                                <input
+                                                    className="form-control"
+                                                    name="taxCode"
+                                                    value={profile.taxCode}
+                                                    onChange={(e) =>
+                                                        setProfile((prev) => ({
+                                                            ...prev,
+                                                            taxCode: String(e.target.value || "").toUpperCase(),
+                                                        }))
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="col-12">
+                                                <label className="form-label">Indirizzo sede legale</label>
+                                                <input
+                                                    className="form-control"
+                                                    name="billingAddress"
+                                                    value={profile.billingAddress}
+                                                    onChange={onProfileChange}
+                                                />
+                                            </div>
+
+                                            <div className="col-12 col-md-4">
+                                                <label className="form-label">N° civico</label>
+                                                <input
+                                                    className="form-control"
+                                                    name="billingStreetNumber"
+                                                    value={profile.billingStreetNumber}
+                                                    onChange={onProfileChange}
+                                                />
+                                            </div>
+
+                                            <div className="col-12 col-md-5">
+                                                <label className="form-label">Città</label>
+                                                <input
+                                                    className="form-control"
+                                                    name="billingCity"
+                                                    value={profile.billingCity}
+                                                    onChange={onProfileChange}
+                                                    onBlur={(e) =>
+                                                        setProfile((prev) => ({
+                                                            ...prev,
+                                                            billingCity: normalizeHumanText(e.target.value),
+                                                        }))
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="col-12 col-md-3">
+                                                <label className="form-label">CAP</label>
+                                                <input
+                                                    className="form-control"
+                                                    name="billingCap"
+                                                    value={profile.billingCap}
+                                                    onChange={onProfileChange}
+                                                />
+                                            </div>
                                         </div>
 
-                                        <div className="col-12">
-                                            <label className="form-label">Partita IVA</label>
-                                            <input className="form-control" name="vatNumber" value={profile.vatNumber} onChange={onProfileChange} />
+                                        <div className="form-text mt-2">
+                                            Questa sede legale è separata dagli indirizzi di spedizione e verrà usata per la fatturazione della Partita IVA.
                                         </div>
-                                    </div>
+                                    </>
                                 ) : (
-                                    <div className="text-muted" style={{ fontSize: 13 }}>
-                                        Intestatario fattura: <strong>{profile.firstName} {profile.lastName}</strong>
-                                    </div>
-                                )}
+                                    <>
+                                        <div className="text-muted" style={{ fontSize: 13 }}>
+                                            Intestatario fattura: <strong>{profile.firstName} {profile.lastName}</strong>
+                                        </div>
 
-                                <div className="mt-3">
-                                    <label className="form-label">Indirizzo di fatturazione</label>
-                                    <select
-                                        className="form-select"
-                                        name="billingAddressId"
-                                        value={profile.billingAddressId}
-                                        onChange={onProfileChange}
-                                        disabled={addrLoading}
-                                    >
-                                        <option value="">Nessuno (lo scegli al checkout)</option>
-                                        {addresses.map((a) => {
-                                            const civic = a.streetNumber ? `, ${a.streetNumber}` : "";
-                                            return (
-                                                <option key={a._id} value={a._id}>
-                                                    {a.address}{civic}, {a.city} ({a.cap})
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                </div>
+                                        <div className="mt-3">
+                                            <label className="form-label">Indirizzo di fatturazione</label>
+                                            <select
+                                                className="form-select"
+                                                name="billingAddressId"
+                                                value={profile.billingAddressId}
+                                                onChange={onProfileChange}
+                                                disabled={addrLoading}
+                                            >
+                                                <option value="">Nessuno (lo scegli al checkout)</option>
+                                                {addresses.map((a) => {
+                                                    const civic = a.streetNumber ? `, ${a.streetNumber}` : "";
+                                                    return (
+                                                        <option key={a._id} value={a._id}>
+                                                            {a.address}{civic}, {a.city} ({a.cap})
+                                                        </option>
+                                                    );
+                                                })}
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
 
                                 <div className="d-flex gap-2 mt-3">
                                     <button className="btn btn-primary" type="submit" disabled={profileSaving}>
@@ -608,6 +789,12 @@ export default function LoginShop() {
 
                         <div className="fw-semibold mb-2">Indirizzi di spedizione</div>
 
+                        {currentUser?.customerType === "piva" ? (
+                            <div className="text-muted mb-2" style={{ fontSize: 13 }}>
+                                Gli indirizzi qui sotto servono solo per la spedizione. La sede legale di fatturazione si gestisce sopra.
+                            </div>
+                        ) : null}
+
                         {addrError ? (
                             <div className="alert alert-danger py-2" role="alert">
                                 {addrError}
@@ -618,13 +805,13 @@ export default function LoginShop() {
                             <div className="text-muted" style={{ fontSize: 13 }}>
                                 Carico indirizzi...
                             </div>
-                        ) : addresses.length === 0 ? (
+                        ) : shippingAddresses.length === 0 ? (
                             <div className="text-muted" style={{ fontSize: 13 }}>
                                 Nessun indirizzo salvato.
                             </div>
                         ) : (
                             <div className="list-group">
-                                {addresses.map((a) => {
+                                {shippingAddresses.map((a) => {
                                     const civic = a.streetNumber ? `, ${a.streetNumber}` : "";
                                     return (
                                         <div key={a._id} className="list-group-item">

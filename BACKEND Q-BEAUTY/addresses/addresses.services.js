@@ -62,6 +62,46 @@ async function createAddress(userId, payload) {
     return created;
 }
 
+async function updateAddress(userId, addressId, payload) {
+    const existing = await Address.findOne({ _id: addressId, user: userId });
+    if (!existing) {
+        const err = new Error("Address not found");
+        err.status = 404;
+        throw err;
+    }
+
+    ensureItalyOnly(payload?.country);
+
+    const normalized = normalizeShippingAddress({
+        name: payload?.name ?? existing.name,
+        surname: payload?.surname ?? existing.surname,
+        email: payload?.email ?? existing.email,
+        phone: payload?.phone ?? existing.phone,
+        taxCode: payload?.taxCode ?? existing.taxCode,
+        address: payload?.address ?? existing.address,
+        streetNumber: payload?.streetNumber ?? existing.streetNumber,
+        city: payload?.city ?? existing.city,
+        cap: payload?.cap ?? existing.cap,
+    });
+
+    existing.name = normalized.name;
+    existing.surname = normalized.surname;
+    existing.email = normalized.email;
+    existing.phone = normalized.phone;
+    existing.taxCode = normalized.taxCode;
+    existing.address = normalized.address;
+    existing.streetNumber = normalized.streetNumber;
+    existing.city = normalized.city;
+    existing.cap = normalized.cap;
+
+    if (payload?.label !== undefined) {
+        existing.label = String(payload.label || "").trim();
+    }
+
+    await existing.save();
+    return existing.toObject();
+}
+
 async function setDefaultAddress(userId, addressId) {
     // prima settiamo QUESTO come default (se non esiste o non è dell’utente → 404)
     const r = await Address.updateOne(
@@ -84,4 +124,4 @@ async function setDefaultAddress(userId, addressId) {
     return Address.findOne({ _id: addressId, user: userId }).lean();
 }
 
-module.exports = { listMyAddresses, createAddress, setDefaultAddress };
+module.exports = { listMyAddresses, createAddress, updateAddress, setDefaultAddress };

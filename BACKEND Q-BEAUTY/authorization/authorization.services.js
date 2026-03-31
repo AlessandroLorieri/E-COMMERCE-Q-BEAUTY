@@ -1,9 +1,11 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 const User = require("./authorization.schema");
 const Address = require("../addresses/addresses.schema");
 const Order = require("../orders/orders.schema");
+const { normalizeShippingAddress } = require("../utils/normalizers/address.normalizer");
 
 
 function getSaltRounds() {
@@ -69,6 +71,10 @@ async function registerUser(payload) {
         taxCode,
         sdiCode,
         pec,
+        address,
+        streetNumber,
+        city,
+        cap,
         confirmBusinessData,
     } = payload || {};
 
@@ -100,6 +106,11 @@ async function registerUser(payload) {
     const normalizedSdiCode = normalizeSdiCode(sdiCode);
     const normalizedPec = normalizePec(pec);
 
+    const normalizedAddress = address ? String(address).trim() : "";
+    const normalizedStreetNumber = streetNumber ? String(streetNumber).trim() : "";
+    const normalizedCity = city ? String(city).trim() : "";
+    const normalizedCap = cap ? String(cap).trim() : "";
+
     const confirmedBusinessData =
         confirmBusinessData === true ||
         confirmBusinessData === "true" ||
@@ -115,6 +126,12 @@ async function registerUser(payload) {
 
         if (!normalizedSdiCode && !normalizedPec) {
             const err = new Error("At least one of sdiCode or pec is required for piva");
+            err.status = 400;
+            throw err;
+        }
+
+        if (!normalizedAddress || !normalizedStreetNumber || !normalizedCity || !normalizedCap) {
+            const err = new Error("Legal billing address is required for piva");
             err.status = 400;
             throw err;
         }
@@ -136,23 +153,57 @@ async function registerUser(payload) {
     const saltRounds = getSaltRounds();
     const passwordHash = await bcrypt.hash(String(password), saltRounds);
 
-    const user = await User.create({
-        email: normalizedEmail,
-        passwordHash,
-        customerType,
-        firstName: normalizedFirstName,
-        lastName: normalizedLastName,
-        phone: normalizedPhone,
-        companyName: customerType === "piva" ? normalizedCompanyName : undefined,
-        vatNumber: customerType === "piva" ? normalizedVatNumber : undefined,
-        taxCode: customerType === "piva" ? normalizedTaxCode : undefined,
-        sdiCode: customerType === "piva" ? (normalizedSdiCode || undefined) : undefined,
-        pec: customerType === "piva" ? (normalizedPec || undefined) : undefined,
-    });
+    let user = null;
+    let billingAddress = null;
 
-    const token = signToken(user);
+    try {
+        user = await User.create({
+            email: normalizedEmail,
+            passwordHash,
+            customerType,
+            firstName: normalizedFirstName,
+            lastName: normalizedLastName,
+            phone: normalizedPhone,
+            companyName: customerType === "piva" ? normalizedCompanyName : undefined,
+            vatNumber: customerType === "piva" ? normalizedVatNumber : undefined,
+            taxCode: customerType === "piva" ? normalizedTaxCode : undefined,
+            sdiCode: customerType === "piva" ? (normalizedSdiCode || undefined) : undefined,
+            pec: customerType === "piva" ? (normalizedPec || undefined) : undefined,
+        });
 
-    return { user: user.toSafeObject(), token };
+        if (customerType === "piva") {
+            billingAddress = await Address.create({
+                user: user._id,
+                label: "Sede legale",
+                name: normalizedFirstName,
+                surname: normalizedLastName,
+                phone: normalizedPhone || "",
+                email: normalizedEmail,
+                taxCode: normalizedTaxCode || "",
+                address: normalizedAddress,
+                streetNumber: normalizedStreetNumber,
+                city: normalizedCity,
+                cap: normalizedCap,
+            });
+
+            user.billingAddressRef = billingAddress._id;
+            await user.save();
+        }
+
+        const token = signToken(user);
+
+        return { user: user.toSafeObject(), token };
+    } catch (err) {
+        if (billingAddress?._id) {
+            await Address.deleteOne({ _id: billingAddress._id }).catch(() => { });
+        }
+
+        if (user?._id) {
+            await User.deleteOne({ _id: user._id }).catch(() => { });
+        }
+
+        throw err;
+    }
 }
 
 async function loginUser(email, password) {
@@ -261,10 +312,17 @@ async function updateMeUser(userId, payload) {
         phone,
         companyName,
         vatNumber,
+        taxCode,
         billingAddressId,
+        billingAddress: billingAddressInput,
     } = payload || {};
 
     const errors = {};
+
+    const hasBillingAddressInput =
+        !!billingAddressInput &&
+        typeof billingAddressInput === "object" &&
+        !Array.isArray(billingAddressInput);
 
     if (firstName !== undefined) {
         const v = String(firstName).trim();
@@ -289,17 +347,37 @@ async function updateMeUser(userId, payload) {
             if (!v) errors.companyName = "Ragione sociale richiesta";
             else user.companyName = v;
         }
+
         if (vatNumber !== undefined) {
             const v = String(vatNumber).trim();
             if (!v) errors.vatNumber = "Partita IVA richiesta";
             else user.vatNumber = v;
         }
 
+        if (taxCode !== undefined) {
+            const v = normalizeTaxCode(taxCode);
+            if (!v) errors.taxCode = "Codice fiscale richiesto";
+            else user.taxCode = v;
+        }
+
+        if (hasBillingAddressInput) {
+            const addressValue = String(billingAddressInput?.address || "").trim();
+            const streetNumberValue = String(billingAddressInput?.streetNumber || "").trim();
+            const cityValue = String(billingAddressInput?.city || "").trim();
+            const capValue = String(billingAddressInput?.cap || "").trim();
+
+            if (!addressValue) errors.billingAddress = "Indirizzo sede legale richiesto";
+            if (!streetNumberValue) errors.billingStreetNumber = "N° civico sede legale richiesto";
+            if (!cityValue) errors.billingCity = "Città sede legale richiesta";
+            if (!/^\d{5}$/.test(capValue)) errors.billingCap = "CAP sede legale non valido (5 cifre)";
+        }
+
         if (!user.companyName) errors.companyName = errors.companyName || "Ragione sociale richiesta";
         if (!user.vatNumber) errors.vatNumber = errors.vatNumber || "Partita IVA richiesta";
+        if (!user.taxCode) errors.taxCode = errors.taxCode || "Codice fiscale richiesto";
     }
 
-    if (billingAddressId !== undefined) {
+    if (billingAddressId !== undefined && user.customerType !== "piva") {
         const raw = billingAddressId ? String(billingAddressId).trim() : "";
         if (!raw) {
             user.billingAddressRef = null;
@@ -315,6 +393,70 @@ async function updateMeUser(userId, payload) {
         err.status = 400;
         err.errors = errors;
         throw err;
+    }
+
+    if (user.customerType === "piva" && hasBillingAddressInput) {
+        let currentBillingAddress = null;
+
+        if (user.billingAddressRef && mongoose.Types.ObjectId.isValid(String(user.billingAddressRef))) {
+            currentBillingAddress = await Address.findOne({
+                _id: user.billingAddressRef,
+                user: userId,
+            });
+        }
+
+        const normalizedBilling = normalizeShippingAddress({
+            name: user.firstName,
+            surname: user.lastName,
+            email: user.email,
+            phone: user.phone,
+            taxCode: user.taxCode,
+            address: billingAddressInput?.address,
+            streetNumber: billingAddressInput?.streetNumber,
+            city: billingAddressInput?.city,
+            cap: billingAddressInput?.cap,
+        });
+
+        normalizedBilling.phone = normalizedBilling.phone || user.phone || "";
+        normalizedBilling.streetNumber =
+            normalizedBilling.streetNumber || String(billingAddressInput?.streetNumber || "").trim();
+
+        if (user.taxCode) {
+            normalizedBilling.taxCode = user.taxCode;
+        }
+
+        if (currentBillingAddress) {
+            currentBillingAddress.label = "Sede legale";
+            currentBillingAddress.name = normalizedBilling.name || "";
+            currentBillingAddress.surname = normalizedBilling.surname || "";
+            currentBillingAddress.phone = normalizedBilling.phone || "";
+            currentBillingAddress.email = normalizedBilling.email || "";
+            currentBillingAddress.taxCode = normalizedBilling.taxCode || "";
+            currentBillingAddress.address = normalizedBilling.address || "";
+            currentBillingAddress.streetNumber = normalizedBilling.streetNumber || "";
+            currentBillingAddress.city = normalizedBilling.city || "";
+            currentBillingAddress.cap = normalizedBilling.cap || "";
+
+            await currentBillingAddress.save();
+            user.billingAddressRef = currentBillingAddress._id;
+        } else {
+            const createdBillingAddress = await Address.create({
+                user: userId,
+                label: "Sede legale",
+                isDefault: false,
+                name: normalizedBilling.name || "",
+                surname: normalizedBilling.surname || "",
+                phone: normalizedBilling.phone || "",
+                email: normalizedBilling.email || "",
+                taxCode: normalizedBilling.taxCode || "",
+                address: normalizedBilling.address || "",
+                streetNumber: normalizedBilling.streetNumber || "",
+                city: normalizedBilling.city || "",
+                cap: normalizedBilling.cap || "",
+            });
+
+            user.billingAddressRef = createdBillingAddress._id;
+        }
     }
 
     await user.save();
@@ -445,6 +587,27 @@ async function adminListUsers({ page = 1, limit = 20, q, customerType } = {}) {
 
     let ordersByUser = new Map();
 
+    const billingAddressIds = users
+        .map((u) => u?.billingAddressRef)
+        .filter(Boolean)
+        .map((id) => String(id));
+
+    let billingAddressesById = new Map();
+
+    if (billingAddressIds.length) {
+        const billingAddresses = await Address.find({
+            _id: { $in: billingAddressIds },
+        })
+            .select("label name surname phone email taxCode address streetNumber city cap")
+            .lean();
+
+        billingAddressesById = billingAddresses.reduce((map, addr) => {
+            const key = String(addr?._id || "");
+            if (key) map.set(key, addr);
+            return map;
+        }, new Map());
+    }
+
     if (userIds.length) {
         const orders = await Order.find({ user: { $in: userIds } })
             .sort({ createdAt: -1 })
@@ -464,6 +627,9 @@ async function adminListUsers({ page = 1, limit = 20, q, customerType } = {}) {
 
     const resultUsers = users.map((user) => ({
         ...user,
+        billingAddress: user?.billingAddressRef
+            ? billingAddressesById.get(String(user.billingAddressRef)) || null
+            : null,
         orders: ordersByUser.get(String(user._id)) || [],
     }));
 

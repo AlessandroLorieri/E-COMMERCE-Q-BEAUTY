@@ -25,6 +25,10 @@ export default function RegisterShop() {
         taxCode: "",
         sdiCode: "",
         pec: "",
+        address: "",
+        streetNumber: "",
+        city: "",
+        cap: "",
         taxCodeSameAsVat: false,
         confirmBusinessData: false,
     });
@@ -102,6 +106,15 @@ export default function RegisterShop() {
     }
 
     function normalizeDisplayName(value) {
+        return String(value || "")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .join(" ");
+    }
+
+    function normalizeCity(value) {
         return String(value || "")
             .trim()
             .split(/\s+/)
@@ -229,6 +242,22 @@ export default function RegisterShop() {
                 nextErrors.taxCode = "Inserisci il codice fiscale.";
             }
 
+            if (!String(form.address || "").trim()) {
+                nextErrors.address = "Inserisci l'indirizzo della sede legale.";
+            }
+
+            if (!String(form.streetNumber || "").trim()) {
+                nextErrors.streetNumber = "Inserisci il numero civico della sede legale.";
+            }
+
+            if (!String(form.city || "").trim()) {
+                nextErrors.city = "Inserisci la città della sede legale.";
+            }
+
+            if (!/^\d{5}$/.test(String(form.cap || "").trim())) {
+                nextErrors.cap = "Inserisci un CAP valido (5 cifre).";
+            }
+
             const sdiCode = normalizeSdiCode(form.sdiCode);
             const pec = normalizePec(form.pec);
 
@@ -294,6 +323,10 @@ export default function RegisterShop() {
                 payload.taxCode = form.taxCodeSameAsVat ? form.vatNumber : form.taxCode;
                 payload.sdiCode = String(form.sdiCode || "").trim().toUpperCase();
                 payload.pec = String(form.pec || "").trim().toLowerCase();
+                payload.address = String(form.address || "").trim();
+                payload.streetNumber = String(form.streetNumber || "").trim();
+                payload.city = normalizeCity(form.city);
+                payload.cap = String(form.cap || "").trim();
                 payload.confirmBusinessData = form.confirmBusinessData;
             }
 
@@ -604,6 +637,77 @@ export default function RegisterShop() {
                                             Inserisci almeno uno tra Codice SDI e PEC per la fatturazione elettronica. Se usi 0000000, la PEC è obbligatoria.
                                         </div>
                                     )}
+                                </div>
+
+                                <div className="col-12 mt-2">
+                                    <div className="fw-semibold mb-2">Sede legale / indirizzo di fatturazione</div>
+                                    <div className="form-text mb-2" style={{ color: "rgba(255,255,255,0.68)" }}>
+                                        Questo indirizzo verrà salvato come sede legale per la fatturazione della Partita IVA.
+                                    </div>
+                                </div>
+
+                                <div className="col-12">
+                                    <label className="form-label">Indirizzo sede legale</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.address ? "is-invalid" : ""}`}
+                                        name="address"
+                                        value={form.address}
+                                        onChange={onChange}
+                                        required
+                                    />
+                                    {fieldErrors.address ? (
+                                        <div className="invalid-feedback d-block">{fieldErrors.address}</div>
+                                    ) : null}
+                                </div>
+
+                                <div className="col-12 col-md-4">
+                                    <label className="form-label">N° civico</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.streetNumber ? "is-invalid" : ""}`}
+                                        name="streetNumber"
+                                        value={form.streetNumber}
+                                        onChange={onChange}
+                                        required
+                                    />
+                                    {fieldErrors.streetNumber ? (
+                                        <div className="invalid-feedback d-block">{fieldErrors.streetNumber}</div>
+                                    ) : null}
+                                </div>
+
+                                <div className="col-12 col-md-5">
+                                    <label className="form-label">Città</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.city ? "is-invalid" : ""}`}
+                                        name="city"
+                                        value={form.city}
+                                        onChange={onChange}
+                                        onBlur={(e) =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                city: normalizeCity(e.target.value),
+                                            }))
+                                        }
+                                        required
+                                    />
+                                    {fieldErrors.city ? (
+                                        <div className="invalid-feedback d-block">{fieldErrors.city}</div>
+                                    ) : null}
+                                </div>
+
+                                <div className="col-12 col-md-3">
+                                    <label className="form-label">CAP</label>
+                                    <input
+                                        className={`form-control ${fieldErrors.cap ? "is-invalid" : ""}`}
+                                        name="cap"
+                                        value={form.cap}
+                                        onChange={onChange}
+                                        inputMode="numeric"
+                                        maxLength={5}
+                                        required
+                                    />
+                                    {fieldErrors.cap ? (
+                                        <div className="invalid-feedback d-block">{fieldErrors.cap}</div>
+                                    ) : null}
                                 </div>
 
                                 <div className="col-12">

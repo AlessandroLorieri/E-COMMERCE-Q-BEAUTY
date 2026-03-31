@@ -187,6 +187,17 @@ export default function AdminUsers() {
                     const phone = u?.phone || "-";
                     const orders = Array.isArray(u?.orders) ? u.orders.filter(Boolean) : [];
 
+                    const billingAddress = u?.billingAddress || null;
+                    const billingCivic = billingAddress?.streetNumber ? `, ${billingAddress.streetNumber}` : "";
+                    const hasBillingAddress =
+                        !!String(billingAddress?.address || "").trim() &&
+                        !!String(billingAddress?.city || "").trim() &&
+                        !!String(billingAddress?.cap || "").trim();
+
+                    const billingAddressText = hasBillingAddress
+                        ? `${billingAddress.address}${billingCivic}, ${billingAddress.city} (${billingAddress.cap})`
+                        : (u?.customerType === "piva" ? "Sede legale non impostata" : "-");
+
                     return (
                         <div
                             key={u._id}
@@ -208,6 +219,9 @@ export default function AdminUsers() {
                                                 {u?.email || "-"}
                                             </span>
                                             <span className={customerType.badgeClass}>{customerType.label}</span>
+                                            {u?.customerType === "piva" && !hasBillingAddress ? (
+                                                <span className="badge text-bg-danger">Sede legale mancante</span>
+                                            ) : null}
                                         </div>
                                     </div>
 
@@ -241,12 +255,34 @@ export default function AdminUsers() {
 
                                         <div className="col-12 col-lg-6">
                                             <div className="fw-semibold mb-2">Fatturazione</div>
+
+                                            {u?.customerType === "piva" && !hasBillingAddress ? (
+                                                <div className="alert alert-warning py-2 mb-3" role="alert" style={{ fontSize: 14 }}>
+                                                    Sede legale di fatturazione non impostata.
+                                                </div>
+                                            ) : null}
+
                                             <div style={{ fontSize: 14 }}>
-                                                <div><span className="text-muted">Ragione sociale:</span> <b>{companyName}</b></div>
-                                                <div><span className="text-muted">Partita IVA:</span> <b>{vatNumber}</b></div>
-                                                <div><span className="text-muted">Codice fiscale:</span> <b>{taxCode}</b></div>
-                                                <div><span className="text-muted">Codice SDI:</span> <b>{sdiCode}</b></div>
-                                                <div><span className="text-muted">PEC:</span> <b>{pec}</b></div>
+                                                {u?.customerType === "piva" ? (
+                                                    <>
+                                                        <div><span className="text-muted">Ragione sociale:</span> <b>{companyName}</b></div>
+                                                        <div><span className="text-muted">Partita IVA:</span> <b>{vatNumber}</b></div>
+                                                        <div><span className="text-muted">Codice fiscale:</span> <b>{taxCode}</b></div>
+                                                        <div><span className="text-muted">Codice SDI:</span> <b>{sdiCode}</b></div>
+                                                        <div><span className="text-muted">PEC:</span> <b>{pec}</b></div>
+                                                        <div className="mt-2">
+                                                            <span className="text-muted">Sede legale:</span> <b>{billingAddressText}</b>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div><span className="text-muted">Intestatario:</span> <b>{fullName}</b></div>
+                                                        <div><span className="text-muted">Codice fiscale:</span> <b>{taxCode}</b></div>
+                                                        <div className="mt-2">
+                                                            <span className="text-muted">Indirizzo fatturazione:</span> <b>{billingAddressText}</b>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

@@ -830,6 +830,85 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             city: billingBase.city || "",
             cap: billingBase.cap || "",
         };
+    } else if (user?.customerType === "piva") {
+        const pivaBillingError = () => {
+            const err = new Error(
+                "Per i clienti con Partita IVA è obbligatoria una sede legale di fatturazione salvata e completa. Aggiorna i dati del tuo account prima di completare l'ordine."
+            );
+            err.status = 400;
+            err.errors = {
+                billingAddress: "Sede legale di fatturazione mancante o incompleta",
+            };
+            return err;
+        };
+
+        if (!user?.billingAddressRef || !mongoose.Types.ObjectId.isValid(String(user.billingAddressRef))) {
+            throw pivaBillingError();
+        }
+
+        const billingAddr = await Address.findOne({
+            _id: user.billingAddressRef,
+            user: userId,
+        }).lean();
+
+        if (!billingAddr?._id) {
+            throw pivaBillingError();
+        }
+
+        const hasCompleteBillingAddress =
+            !!String(billingAddr?.address || "").trim() &&
+            !!String(billingAddr?.streetNumber || "").trim() &&
+            !!String(billingAddr?.city || "").trim() &&
+            !!String(billingAddr?.cap || "").trim();
+
+        if (!hasCompleteBillingAddress) {
+            throw pivaBillingError();
+        }
+
+        const billingTaxCode =
+            normalizeTaxCode(
+                user?.taxCode ||
+                billingAddr?.taxCode ||
+                billingAddr?.codiceFiscale ||
+                billingAddr?.fiscalCode
+            ) || "";
+
+        const billingBase = normalizeShippingAddress({
+            name: pickFirst(billingAddr?.name, user?.firstName),
+            surname: pickFirst(billingAddr?.surname, user?.lastName),
+            email: pickFirst(billingAddr?.email, user?.email),
+            phone: pickFirst(billingAddr?.phone, user?.phone),
+            taxCode: billingTaxCode,
+            address: billingAddr?.address,
+            streetNumber: billingAddr?.streetNumber,
+            city: billingAddr?.city,
+            cap: billingAddr?.cap,
+        });
+
+        billingBase.phone = billingBase.phone || billingAddr?.phone || user?.phone || "";
+        billingBase.streetNumber = billingBase.streetNumber || billingAddr?.streetNumber || "";
+
+        if (billingTaxCode) {
+            billingBase.taxCode = billingTaxCode;
+        }
+
+        billingAddressRef = billingAddr._id;
+
+        billingAddress = {
+            companyName: String(user?.companyName || "").trim(),
+            vatNumber: normalizeVatNumber(user?.vatNumber),
+            sdiCode: String(user?.sdiCode || "").trim().toUpperCase(),
+            pec: String(user?.pec || "").trim().toLowerCase(),
+            name: billingBase.name || "",
+            surname: billingBase.surname || "",
+            phone: billingBase.phone || "",
+            email: billingBase.email || "",
+            taxCode: billingBase.taxCode || "",
+            address: billingBase.address || "",
+            streetNumber: billingBase.streetNumber || "",
+            city: billingBase.city || "",
+            cap: billingBase.cap || "",
+        };
     } else {
         let billingAddr = null;
 
@@ -875,10 +954,8 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         }
 
         billingAddress = {
-            companyName: user?.customerType === "piva" ? String(user?.companyName || "").trim() : "",
-            vatNumber: user?.customerType === "piva" ? normalizeVatNumber(user?.vatNumber) : "",
-            sdiCode: user?.customerType === "piva" ? String(user?.sdiCode || "").trim().toUpperCase() : "",
-            pec: user?.customerType === "piva" ? String(user?.pec || "").trim().toLowerCase() : "",
+            companyName: "",
+            vatNumber: "",
             name: billingBase.name || "",
             surname: billingBase.surname || "",
             phone: billingBase.phone || "",
