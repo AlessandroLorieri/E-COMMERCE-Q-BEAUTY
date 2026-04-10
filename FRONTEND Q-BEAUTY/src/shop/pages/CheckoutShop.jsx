@@ -17,6 +17,7 @@ export default function CheckoutShop() {
         quote,
         clearCart,
         createOrder,
+        updateAddress,
         quoteLoading,
         quoteError,
         fetchMyAddresses,
@@ -477,7 +478,6 @@ export default function CheckoutShop() {
             const next = { ...e };
             delete next.name;
             delete next.surname;
-            delete next.phone;
             delete next.address;
             delete next.streetNumber;
             delete next.city;
@@ -529,6 +529,17 @@ export default function CheckoutShop() {
             let created;
 
             if (addressMode === "saved" && selectedAddressId) {
+                await updateAddress(selectedAddressId, {
+                    name: normalizeHumanText(form.name),
+                    surname: normalizeHumanText(form.surname),
+                    phone: form.phone.trim(),
+                    address: form.address.trim(),
+                    streetNumber: form.streetNumber.trim(),
+                    city: normalizeHumanText(form.city),
+                    cap: form.cap.trim(),
+                    email: user?.email || "",
+                });
+
                 created = await createOrder({
                     shippingAddressId: selectedAddressId,
                     taxCode,
@@ -585,7 +596,6 @@ export default function CheckoutShop() {
             const next = { ...e };
             delete next.name;
             delete next.surname;
-            delete next.phone;
             delete next.address;
             delete next.streetNumber;
             delete next.city;
@@ -638,6 +648,17 @@ export default function CheckoutShop() {
             let created;
 
             if (addressMode === "saved" && selectedAddressId) {
+                await updateAddress(selectedAddressId, {
+                    name: normalizeHumanText(form.name),
+                    surname: normalizeHumanText(form.surname),
+                    phone: form.phone.trim(),
+                    address: form.address.trim(),
+                    streetNumber: form.streetNumber.trim(),
+                    city: normalizeHumanText(form.city),
+                    cap: form.cap.trim(),
+                    email: user?.email || "",
+                });
+
                 created = await createOrder({
                     shippingAddressId: selectedAddressId,
                     taxCode,
@@ -886,8 +907,8 @@ export default function CheckoutShop() {
 
                             {addressMode === "saved" && selectedAddressId ? (
                                 <div className="checkout-locked-note mb-3" role="status">
-                                    Stai usando un indirizzo salvato. Questi campi non sono modificabili.
-                                    Per cambiarli seleziona <strong>“Inserisci un nuovo indirizzo”</strong>.
+                                    Stai usando un indirizzo salvato. Puoi modificare solo il <strong>telefono</strong>.
+                                    Per cambiare gli altri dati seleziona <strong>“Inserisci un nuovo indirizzo”</strong>.
                                 </div>
                             ) : null}
 
@@ -946,7 +967,7 @@ export default function CheckoutShop() {
                                         name="phone"
                                         value={form.phone}
                                         onChange={onChange}
-                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                        disabled={busy}
                                     />
                                     {fieldErrors.phone && <div className="invalid-feedback">{fieldErrors.phone}</div>}
                                 </div>

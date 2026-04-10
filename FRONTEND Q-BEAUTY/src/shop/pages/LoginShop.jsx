@@ -14,7 +14,7 @@ export default function LoginShop() {
     const resetOk = params.get("reset") === "1";
 
     const { user, login, logout, token } = useAuth();
-    const { fetchMyAddresses, createAddress, setDefaultAddress } = useShop();
+    const { fetchMyAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress } = useShop();
 
     const apiBase = import.meta.env.VITE_API_URL;
     const authToken = token || localStorage.getItem("token");
@@ -59,6 +59,19 @@ export default function LoginShop() {
     const [newAddrError, setNewAddrError] = useState("");
     const [newAddrSubmitting, setNewAddrSubmitting] = useState(false);
     const [newAddrMakeDefault, setNewAddrMakeDefault] = useState(false);
+
+    const [editingAddressId, setEditingAddressId] = useState("");
+    const [editAddr, setEditAddr] = useState({
+        name: "",
+        surname: "",
+        phone: "",
+        address: "",
+        streetNumber: "",
+        city: "",
+        cap: "",
+    });
+    const [editAddrError, setEditAddrError] = useState("");
+    const [editAddrSubmitting, setEditAddrSubmitting] = useState(false);
 
     const shippingAddresses = addresses.filter((a) => {
         const label = String(a?.label || "").trim().toLowerCase();
@@ -197,8 +210,6 @@ export default function LoginShop() {
         setProfileSaving(true);
 
         try {
-            let finalBillingAddressId = profile.billingAddressId ? String(profile.billingAddressId).trim() : "";
-
             const res = await fetch(`${apiBase}/api/auth/me`, {
                 method: "PATCH",
                 headers: {
@@ -279,6 +290,113 @@ export default function LoginShop() {
         const { name, value } = e.target;
         setNewAddr((prev) => ({ ...prev, [name]: value }));
         setNewAddrError("");
+    }
+
+    function onEditAddrChange(e) {
+        const { name, value } = e.target;
+        setEditAddr((prev) => ({ ...prev, [name]: value }));
+        setEditAddrError("");
+        setAddrError("");
+    }
+
+    function startEditAddress(addr) {
+        const id = String(addr?._id || "").trim();
+        if (!id) return;
+
+        setEditingAddressId(id);
+        setEditAddr({
+            name: String(addr?.name || ""),
+            surname: String(addr?.surname || ""),
+            phone: String(addr?.phone || ""),
+            address: String(addr?.address || ""),
+            streetNumber: String(addr?.streetNumber || ""),
+            city: String(addr?.city || ""),
+            cap: String(addr?.cap || ""),
+        });
+        setEditAddrError("");
+        setAddrError("");
+        setShowNewAddress(false);
+    }
+
+    function cancelEditAddress() {
+        setEditingAddressId("");
+        setEditAddr({
+            name: "",
+            surname: "",
+            phone: "",
+            address: "",
+            streetNumber: "",
+            city: "",
+            cap: "",
+        });
+        setEditAddrError("");
+    }
+
+    async function submitEditAddress(e) {
+        e.preventDefault();
+        setEditAddrError("");
+        setAddrError("");
+
+        if (!editingAddressId) {
+            setEditAddrError("Indirizzo non valido");
+            return;
+        }
+
+        if (!editAddr.name.trim()) return setEditAddrError("Nome richiesto");
+        if (!editAddr.surname.trim()) return setEditAddrError("Cognome richiesto");
+        if (!editAddr.phone.trim()) return setEditAddrError("Telefono richiesto");
+        if (!editAddr.address.trim()) return setEditAddrError("Indirizzo richiesto");
+        if (!editAddr.streetNumber.trim()) return setEditAddrError("N° civico richiesto");
+        if (!editAddr.city.trim()) return setEditAddrError("Città richiesta");
+        if (!/^\d{5}$/.test(editAddr.cap.trim())) return setEditAddrError("CAP non valido (5 cifre)");
+
+        setEditAddrSubmitting(true);
+
+        try {
+            await updateAddress(editingAddressId, {
+                name: normalizeHumanText(editAddr.name),
+                surname: normalizeHumanText(editAddr.surname),
+                phone: editAddr.phone.trim(),
+                address: editAddr.address.trim(),
+                streetNumber: editAddr.streetNumber.trim(),
+                city: normalizeHumanText(editAddr.city),
+                cap: editAddr.cap.trim(),
+                email: user?.email || "",
+            });
+
+            const list = await fetchMyAddresses();
+            setAddresses(list || []);
+            cancelEditAddress();
+        } catch (err) {
+            setEditAddrError(err.message || "Errore modifica indirizzo");
+        } finally {
+            setEditAddrSubmitting(false);
+        }
+    }
+
+    async function handleDeleteAddress(id) {
+        const addressId = String(id || "").trim();
+        if (!addressId) return;
+
+        const confirmed = window.confirm("Vuoi eliminare questo indirizzo di spedizione?");
+        if (!confirmed) return;
+
+        setAddrBusyId(addressId);
+        setAddrError("");
+
+        try {
+            await deleteAddress(addressId);
+            const list = await fetchMyAddresses();
+            setAddresses(list || []);
+
+            if (editingAddressId === addressId) {
+                cancelEditAddress();
+            }
+        } catch (err) {
+            setAddrError(err.message || "Errore eliminazione indirizzo");
+        } finally {
+            setAddrBusyId(null);
+        }
     }
 
 
@@ -835,16 +953,155 @@ export default function LoginShop() {
                                                     </div>
                                                 </div>
 
-                                                {!a.isDefault ? (
+                                                <div className="d-flex flex-column align-items-stretch gap-2">
                                                     <button
+                                                        type="button"
                                                         className="btn btn-sm shop-edit-btn"
-                                                        onClick={() => makeDefaultAddress(a._id)}
-                                                        disabled={addrBusyId === a._id}
+                                                        onClick={() =>
+                                                            editingAddressId === String(a._id)
+                                                                ? cancelEditAddress()
+                                                                : startEditAddress(a)
+                                                        }
+                                                        disabled={addrBusyId === a._id || editAddrSubmitting}
                                                     >
-                                                        {addrBusyId === a._id ? "..." : "Imposta come predefinito"}
+                                                        {editingAddressId === String(a._id) ? "Chiudi modifica" : "Modifica"}
                                                     </button>
-                                                ) : null}
+
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-outline-danger btn-sm"
+                                                        onClick={() => handleDeleteAddress(a._id)}
+                                                        disabled={addrBusyId === a._id || editAddrSubmitting}
+                                                    >
+                                                        {addrBusyId === a._id ? "..." : "Elimina"}
+                                                    </button>
+
+                                                    {!a.isDefault ? (
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm shop-edit-btn"
+                                                            onClick={() => makeDefaultAddress(a._id)}
+                                                            disabled={addrBusyId === a._id || editAddrSubmitting}
+                                                        >
+                                                            {addrBusyId === a._id ? "..." : "Imposta come predefinito"}
+                                                        </button>
+                                                    ) : null}
+                                                </div>
                                             </div>
+                                            {editingAddressId === String(a._id) ? (
+                                                <form className="mt-3 pt-3 border-top" onSubmit={submitEditAddress}>
+                                                    {editAddrError ? (
+                                                        <div className="alert alert-danger py-2" role="alert">
+                                                            {editAddrError}
+                                                        </div>
+                                                    ) : null}
+
+                                                    <div className="row g-2">
+                                                        <div className="col-12 col-md-6">
+                                                            <label className="form-label">Nome</label>
+                                                            <input
+                                                                className="form-control"
+                                                                name="name"
+                                                                value={editAddr.name}
+                                                                onChange={onEditAddrChange}
+                                                                onBlur={(e) =>
+                                                                    setEditAddr((prev) => ({
+                                                                        ...prev,
+                                                                        name: normalizeHumanText(e.target.value),
+                                                                    }))
+                                                                }
+                                                            />
+                                                        </div>
+
+                                                        <div className="col-12 col-md-6">
+                                                            <label className="form-label">Cognome</label>
+                                                            <input
+                                                                className="form-control"
+                                                                name="surname"
+                                                                value={editAddr.surname}
+                                                                onChange={onEditAddrChange}
+                                                                onBlur={(e) =>
+                                                                    setEditAddr((prev) => ({
+                                                                        ...prev,
+                                                                        surname: normalizeHumanText(e.target.value),
+                                                                    }))
+                                                                }
+                                                            />
+                                                        </div>
+
+                                                        <div className="col-12">
+                                                            <label className="form-label">Telefono</label>
+                                                            <input
+                                                                className="form-control"
+                                                                name="phone"
+                                                                value={editAddr.phone}
+                                                                onChange={onEditAddrChange}
+                                                            />
+                                                        </div>
+
+                                                        <div className="col-12">
+                                                            <label className="form-label">Indirizzo</label>
+                                                            <input
+                                                                className="form-control"
+                                                                name="address"
+                                                                value={editAddr.address}
+                                                                onChange={onEditAddrChange}
+                                                            />
+                                                        </div>
+
+                                                        <div className="col-12 col-md-4">
+                                                            <label className="form-label">N° civico</label>
+                                                            <input
+                                                                className="form-control"
+                                                                name="streetNumber"
+                                                                value={editAddr.streetNumber}
+                                                                onChange={onEditAddrChange}
+                                                            />
+                                                        </div>
+
+                                                        <div className="col-12 col-md-5">
+                                                            <label className="form-label">Città</label>
+                                                            <input
+                                                                className="form-control"
+                                                                name="city"
+                                                                value={editAddr.city}
+                                                                onChange={onEditAddrChange}
+                                                                onBlur={(e) =>
+                                                                    setEditAddr((prev) => ({
+                                                                        ...prev,
+                                                                        city: normalizeHumanText(e.target.value),
+                                                                    }))
+                                                                }
+                                                            />
+                                                        </div>
+
+                                                        <div className="col-12 col-md-3">
+                                                            <label className="form-label">CAP</label>
+                                                            <input
+                                                                className="form-control"
+                                                                name="cap"
+                                                                value={editAddr.cap}
+                                                                onChange={onEditAddrChange}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="d-flex gap-2 mt-3">
+                                                        <button className="btn btn-primary btn-sm" type="submit" disabled={editAddrSubmitting}>
+                                                            {editAddrSubmitting ? "Salvo..." : "Salva modifiche"}
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-outline-secondary btn-sm"
+                                                            onClick={cancelEditAddress}
+                                                            disabled={editAddrSubmitting}
+                                                        >
+                                                            Annulla
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            ) : null}
                                         </div>
                                     );
                                 })}

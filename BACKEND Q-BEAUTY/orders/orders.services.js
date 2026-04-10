@@ -783,6 +783,31 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         throw err;
     }
 
+    const shippingName = String(normalizedAddress?.name || "").trim();
+    const shippingSurname = String(normalizedAddress?.surname || "").trim();
+    const shippingPhone = String(normalizedAddress?.phone || "").trim();
+    const shippingStreet = String(normalizedAddress?.address || "").trim();
+    const shippingStreetNumber = String(normalizedAddress?.streetNumber || "").trim();
+    const shippingCity = String(normalizedAddress?.city || "").trim();
+    const shippingCap = String(normalizedAddress?.cap || "").trim();
+
+    const shippingErrors = {};
+
+    if (!shippingName) shippingErrors.name = "Nome richiesto";
+    if (!shippingSurname) shippingErrors.surname = "Cognome richiesto";
+    if (!shippingPhone) shippingErrors.phone = "Telefono di spedizione richiesto";
+    if (!shippingStreet) shippingErrors.address = "Indirizzo richiesto";
+    if (!shippingStreetNumber) shippingErrors.streetNumber = "N° civico richiesto";
+    if (!shippingCity) shippingErrors.city = "Città richiesta";
+    if (!/^\d{5}$/.test(shippingCap)) shippingErrors.cap = "CAP non valido (5 cifre)";
+
+    if (Object.keys(shippingErrors).length) {
+        const err = new Error("Validation error");
+        err.status = 400;
+        err.errors = { shippingAddress: shippingErrors };
+        throw err;
+    }
+
     let billingAddressRef = null;
     let billingAddress = null;
 

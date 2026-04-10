@@ -824,6 +824,26 @@ export function ShopProvider({ children }) {
         return data.address;
     }
 
+    async function updateAddress(addressId, payload) {
+        if (!apiBase) throw new Error("VITE_API_URL mancante");
+        if (!token) throw new Error("Non autenticato");
+
+        const res = await authFetch(`/api/addresses/${addressId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            const err = new Error(data?.message || "Modifica indirizzo fallita");
+            err.details = data;
+            throw err;
+        }
+
+        return data.address || null;
+    }
+
     async function setDefaultAddress(addressId) {
         if (!apiBase) throw new Error("VITE_API_URL mancante");
         if (!token) throw new Error("Non autenticato");
@@ -836,6 +856,24 @@ export function ShopProvider({ children }) {
             throw err;
         }
         return data.addresses || data.address || null;
+    }
+
+    async function deleteAddress(addressId) {
+        if (!apiBase) throw new Error("VITE_API_URL mancante");
+        if (!token) throw new Error("Non autenticato");
+
+        const res = await authFetch(`/api/addresses/${addressId}`, {
+            method: "DELETE",
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            const err = new Error(data?.message || "Eliminazione indirizzo fallita");
+            err.details = data;
+            throw err;
+        }
+
+        return data.address || data.addresses || null;
     }
 
     const value = useMemo(
@@ -867,6 +905,8 @@ export function ShopProvider({ children }) {
             fetchMyOrders,
             fetchMyAddresses,
             createAddress,
+            updateAddress,
+            deleteAddress,
             setDefaultAddress,
 
             user,

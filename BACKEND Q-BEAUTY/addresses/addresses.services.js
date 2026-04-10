@@ -24,6 +24,33 @@ function ensureItalyOnly(countryRaw) {
     return country;
 }
 
+function validateRequiredShippingAddressFields(address) {
+    const name = String(address?.name || "").trim();
+    const surname = String(address?.surname || "").trim();
+    const phone = String(address?.phone || "").trim();
+    const street = String(address?.address || "").trim();
+    const streetNumber = String(address?.streetNumber || "").trim();
+    const city = String(address?.city || "").trim();
+    const cap = String(address?.cap || "").trim();
+
+    const errors = {};
+
+    if (!name) errors.name = "Nome richiesto";
+    if (!surname) errors.surname = "Cognome richiesto";
+    if (!phone) errors.phone = "Telefono richiesto";
+    if (!street) errors.address = "Indirizzo richiesto";
+    if (!streetNumber) errors.streetNumber = "N° civico richiesto";
+    if (!city) errors.city = "Città richiesta";
+    if (!/^\d{5}$/.test(cap)) errors.cap = "CAP non valido (5 cifre)";
+
+    if (Object.keys(errors).length) {
+        const err = new Error("Validation error");
+        err.status = 400;
+        err.errors = errors;
+        throw err;
+    }
+}
+
 async function listMyAddresses(userId) {
     return Address.find({ user: userId }).sort({ isDefault: -1, createdAt: -1 }).lean();
 }
@@ -31,6 +58,7 @@ async function listMyAddresses(userId) {
 async function createAddress(userId, payload) {
     const a = normalizeShippingAddress(payload || {});
     ensureItalyOnly(payload?.country);
+    validateRequiredShippingAddressFields(a);
 
     const existingCount = await Address.countDocuments({ user: userId });
 
@@ -83,6 +111,8 @@ async function updateAddress(userId, addressId, payload) {
         city: payload?.city ?? existing.city,
         cap: payload?.cap ?? existing.cap,
     });
+
+    validateRequiredShippingAddressFields(normalized);
 
     existing.name = normalized.name;
     existing.surname = normalized.surname;
