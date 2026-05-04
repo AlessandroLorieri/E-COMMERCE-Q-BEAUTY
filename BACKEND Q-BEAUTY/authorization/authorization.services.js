@@ -313,6 +313,8 @@ async function updateMeUser(userId, payload) {
         companyName,
         vatNumber,
         taxCode,
+        sdiCode,
+        pec,
         billingAddressId,
         billingAddress: billingAddressInput,
     } = payload || {};
@@ -360,6 +362,16 @@ async function updateMeUser(userId, payload) {
             else user.taxCode = v;
         }
 
+        if (sdiCode !== undefined) {
+            const v = normalizeSdiCode(sdiCode);
+            user.sdiCode = v || null;
+        }
+
+        if (pec !== undefined) {
+            const v = normalizePec(pec);
+            user.pec = v || null;
+        }
+
         if (hasBillingAddressInput) {
             const addressValue = String(billingAddressInput?.address || "").trim();
             const streetNumberValue = String(billingAddressInput?.streetNumber || "").trim();
@@ -375,6 +387,11 @@ async function updateMeUser(userId, payload) {
         if (!user.companyName) errors.companyName = errors.companyName || "Ragione sociale richiesta";
         if (!user.vatNumber) errors.vatNumber = errors.vatNumber || "Partita IVA richiesta";
         if (!user.taxCode) errors.taxCode = errors.taxCode || "Codice fiscale richiesto";
+
+        if (!user.sdiCode && !user.pec) {
+            errors.sdiCode = errors.sdiCode || "Inserisci almeno uno tra Codice SDI e PEC";
+            errors.pec = errors.pec || "Inserisci almeno uno tra Codice SDI e PEC";
+        }
     }
 
     if (billingAddressId !== undefined && user.customerType !== "piva") {

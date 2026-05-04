@@ -29,6 +29,8 @@ export default function LoginShop() {
         companyName: "",
         vatNumber: "",
         taxCode: "",
+        sdiCode: "",
+        pec: "",
         billingAddressId: "",
         billingAddress: "",
         billingStreetNumber: "",
@@ -115,6 +117,8 @@ export default function LoginShop() {
             companyName: sourceUser?.companyName || "",
             vatNumber: sourceUser?.vatNumber || "",
             taxCode: sourceUser?.taxCode || "",
+            sdiCode: sourceUser?.sdiCode || "",
+            pec: sourceUser?.pec || "",
             billingAddressId,
             billingAddress: billingAddress?.address || "",
             billingStreetNumber: billingAddress?.streetNumber || "",
@@ -155,6 +159,8 @@ export default function LoginShop() {
         const normalizedCompanyName = String(profile.companyName || "").trim();
         const normalizedVatNumber = String(profile.vatNumber || "").trim();
         const normalizedTaxCode = String(profile.taxCode || "").trim().toUpperCase();
+        const normalizedSdiCode = String(profile.sdiCode || "").trim().toUpperCase();
+        const normalizedPec = String(profile.pec || "").trim().toLowerCase();
         const normalizedBillingAddress = String(profile.billingAddress || "").trim();
         const normalizedBillingStreetNumber = String(profile.billingStreetNumber || "").trim();
         const normalizedBillingCity = normalizeHumanText(profile.billingCity);
@@ -173,6 +179,11 @@ export default function LoginShop() {
         if (currentUser?.customerType === "piva") {
             if (!normalizedCompanyName) {
                 setProfileError("Ragione sociale richiesta");
+                return;
+            }
+
+            if (!normalizedSdiCode && !normalizedPec) {
+                setProfileError("Inserisci almeno Codice SDI o PEC");
                 return;
             }
 
@@ -223,6 +234,8 @@ export default function LoginShop() {
                     companyName: normalizedCompanyName,
                     vatNumber: normalizedVatNumber,
                     taxCode: currentUser?.customerType === "piva" ? normalizedTaxCode : undefined,
+                    sdiCode: currentUser?.customerType === "piva" ? normalizedSdiCode : undefined,
+                    pec: currentUser?.customerType === "piva" ? normalizedPec : undefined,
                     billingAddressId:
                         currentUser?.customerType === "piva"
                             ? undefined
@@ -687,6 +700,15 @@ export default function LoginShop() {
                                                 <span className="text-muted">Codice fiscale:</span>{" "}
                                                 <strong>{currentUser?.taxCode || "—"}</strong>
                                             </div>
+                                            <div className="mt-1">
+                                                <span className="text-muted">Codice SDI:</span>{" "}
+                                                <strong>{currentUser?.sdiCode || "—"}</strong>
+                                            </div>
+
+                                            <div className="mt-1">
+                                                <span className="text-muted">PEC:</span>{" "}
+                                                <strong>{currentUser?.pec || "—"}</strong>
+                                            </div>
                                         </>
                                     ) : (
                                         <div>
@@ -804,6 +826,36 @@ export default function LoginShop() {
                                                         setProfile((prev) => ({
                                                             ...prev,
                                                             taxCode: String(e.target.value || "").toUpperCase(),
+                                                        }))
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="col-12">
+                                                <label className="form-label">Codice SDI</label>
+                                                <input
+                                                    className="form-control"
+                                                    name="sdiCode"
+                                                    value={profile.sdiCode}
+                                                    onChange={(e) =>
+                                                        setProfile((prev) => ({
+                                                            ...prev,
+                                                            sdiCode: String(e.target.value || "").toUpperCase(),
+                                                        }))
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="col-12">
+                                                <label className="form-label">PEC</label>
+                                                <input
+                                                    className="form-control"
+                                                    name="pec"
+                                                    value={profile.pec}
+                                                    onChange={(e) =>
+                                                        setProfile((prev) => ({
+                                                            ...prev,
+                                                            pec: String(e.target.value || "").toLowerCase(),
                                                         }))
                                                     }
                                                 />
