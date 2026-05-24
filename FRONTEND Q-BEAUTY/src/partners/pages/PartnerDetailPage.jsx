@@ -8,6 +8,136 @@ function renderServices(services = []) {
     return services.join(" • ");
 }
 
+const GOOGLE_MAPS_SCRIPT_ID = "google-maps-partner-detail-script";
+
+function loadGoogleMaps(apiKey) {
+    return new Promise((resolve, reject) => {
+        if (window.google?.maps) {
+            resolve(window.google.maps);
+            return;
+        }
+
+        const existing = document.getElementById(GOOGLE_MAPS_SCRIPT_ID);
+        if (existing) {
+            existing.addEventListener("load", () => resolve(window.google.maps));
+            existing.addEventListener("error", reject);
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.id = GOOGLE_MAPS_SCRIPT_ID;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => resolve(window.google.maps);
+        script.onerror = reject;
+
+        document.head.appendChild(script);
+    });
+}
+
+function buildPartnerAddress(partner) {
+    return [
+        partner?.address,
+        partner?.cap,
+        partner?.city,
+        partner?.province,
+        partner?.region,
+    ]
+        .filter(Boolean)
+        .join(", ");
+}
+
+function PartnerGoogleMap({ partner }) {
+    const mapRef = useRef(null);
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+    const lat = Number(String(partner?.lat ?? "").replace(",", "."));
+    const lng = Number(String(partner?.lng ?? "").replace(",", "."));
+    const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+
+    const address = buildPartnerAddress(partner);
+    const mapsUrl = address
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+        : "";
+
+    useEffect(() => {
+        if (!apiKey || !hasCoords || !mapRef.current) return;
+
+        let cancelled = false;
+
+        async function initMap() {
+            try {
+                await loadGoogleMaps(apiKey);
+
+                if (cancelled || !mapRef.current) return;
+
+                const center = { lat, lng };
+
+                const map = new window.google.maps.Map(mapRef.current, {
+                    center,
+                    zoom: 15,
+                    streetViewControl: false,
+                    mapTypeControl: false,
+                    fullscreenControl: true,
+                });
+
+                new window.google.maps.Marker({
+                    position: center,
+                    map,
+                    title: partner?.name || "Partner Q•BEAUTY",
+                });
+            } catch (err) {
+                console.error("Errore caricamento Google Maps partner:", err);
+            }
+        }
+
+        initMap();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [apiKey, hasCoords, lat, lng, partner?.name]);
+
+    if (!apiKey) {
+        return (
+            <div className="partner-detail-map-fallback">
+                Mappa non disponibile.
+            </div>
+        );
+    }
+
+    if (!hasCoords) {
+        return (
+            <div className="partner-detail-map-fallback">
+                <div>Mappa non ancora disponibile.</div>
+
+                {address ? (
+                    <a href={mapsUrl} target="_blank" rel="noreferrer">
+                        Apri indirizzo su Google Maps
+                    </a>
+                ) : null}
+            </div>
+        );
+    }
+
+    return (
+        <>
+            <div ref={mapRef} className="partner-detail-google-map" />
+
+            {address ? (
+                <div className="partner-detail-map-address">
+                    <div>{address}</div>
+
+                    <a href={mapsUrl} target="_blank" rel="noreferrer">
+                        Apri su Google Maps
+                    </a>
+                </div>
+            ) : null}
+        </>
+    );
+}
+
 export default function PartnerDetailPage() {
     const { slug } = useParams();
     const timerRef = useRef(null);
@@ -366,18 +496,8 @@ export default function PartnerDetailPage() {
                                             Dove trovarlo
                                         </h2>
 
-                                        <div className="partner-detail-map">
-                                            <div className="partner-detail-map__label">
-                                                MAPPA PARTNER
-                                            </div>
-
-                                            <div className="partner-detail-map__marker" />
-                                        </div>
-
-                                        <p className="mb-0 partner-detail-secondary-box__text">
-                                            Qui possiamo inserire la Google Map reale del singolo partner,
-                                            con puntino posizione e collegamento rapido alle indicazioni.
-                                        </p>
+                                        <PartnerGoogleMap partner={partner} />
+                                        
                                     </div>
                                 </div>
                             </section>

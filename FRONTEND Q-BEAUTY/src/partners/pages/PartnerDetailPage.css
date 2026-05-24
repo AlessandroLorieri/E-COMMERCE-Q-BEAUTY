@@ -176,40 +176,7 @@
     margin-bottom: 0;
 }
 
-.partner-detail-map {
-    min-height: 240px;
-    border-radius: 18px;
-    background: linear-gradient(180deg, #151514 0%, #0d0d0d 100%);
-    border: 1px solid rgba(222, 190, 104, 0.12);
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 14px;
-}
 
-.partner-detail-map__label {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    color: rgba(255, 248, 222, 0.26);
-    font-weight: 600;
-    letter-spacing: 0.04em;
-}
-
-.partner-detail-map__marker {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #debe68;
-    border: 2px solid #fff8de;
-    box-shadow: 0 0 0 8px rgba(222, 190, 104, 0.12);
-}
 
 @media (max-width: 991.98px) {
     .partner-detail-hero__image {
@@ -217,7 +184,66 @@
     }
 }
 
+.partner-detail-google-map {
+    width: 100%;
+    min-height: 240px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(222, 190, 104, 0.18);
+    background: linear-gradient(180deg, #151514 0%, #0d0d0d 100%);
+    box-shadow:
+        0 18px 42px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 248, 222, 0.03);
+    margin-bottom: 14px;
+}
 
+.partner-detail-map-address {
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255, 248, 222, 0.78);
+}
+
+.partner-detail-map-address a {
+    display: inline-block;
+    margin-top: 6px;
+    color: #debe68;
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(222, 190, 104, 0.25);
+}
+
+.partner-detail-map-address a:hover {
+    color: #fff8de;
+    border-bottom-color: rgba(222, 190, 104, 0.55);
+}
+
+.partner-detail-map-fallback {
+    min-height: 180px;
+    border-radius: 18px;
+    border: 1px dashed rgba(222, 190, 104, 0.32);
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 22px;
+    color: rgba(255, 248, 222, 0.78);
+    background: rgba(255, 248, 222, 0.035);
+    margin-bottom: 14px;
+}
+
+.partner-detail-map-fallback a {
+    display: inline-block;
+    margin-top: 8px;
+    color: #debe68;
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(222, 190, 104, 0.25);
+}
+
+.partner-detail-map-fallback a:hover {
+    color: #fff8de;
+    border-bottom-color: rgba(222, 190, 104, 0.55);
+}
 
 .partner-detail-hero__image {
     position: relative;
