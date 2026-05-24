@@ -42,35 +42,108 @@
     min-width: 0;
 }
 
-@media (max-width: 768px) {
+/* Tablet / desktop piccolo */
+@media (max-width: 1200px) {
     .admin {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+        grid-template-columns: 210px minmax(0, 1fr);
     }
 
     .admin__sidebar {
-        border-right: none;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        padding: 12px;
     }
 
     .admin__content {
         padding: 16px;
-        min-width: 0;
     }
 }
 
-
-
-@media (max-width: 1200px) {
+/* Mobile: sidebar sopra, menu orizzontale */
+@media (max-width: 768px) {
     .admin {
-        grid-template-columns: 200px minmax(0, 1fr);
+        display: block;
+        min-height: 100vh;
     }
 
     .admin__sidebar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        width: 100%;
         padding: 10px;
+        border-right: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        background: #fff;
+    }
+
+    .admin__brand {
+        margin-bottom: 8px;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .admin__nav {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin__nav::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .admin__link {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        padding: 8px 11px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
+
+    .admin__divider {
+        display: none;
     }
 
     .admin__content {
-        padding: 14px;
+        width: 100%;
+        padding: 14px 10px;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    .admin__content .container {
+        max-width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .admin h1 {
+        font-size: 24px;
+    }
+}
+
+/* Telefoni stretti */
+@media (max-width: 420px) {
+    .admin__sidebar {
+        padding: 8px;
+    }
+
+    .admin__brand {
+        font-size: 13px;
+    }
+
+    .admin__link {
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .admin__content {
+        padding: 12px 8px;
+    }
+
+    .admin .card {
+        border-radius: 14px;
     }
 }

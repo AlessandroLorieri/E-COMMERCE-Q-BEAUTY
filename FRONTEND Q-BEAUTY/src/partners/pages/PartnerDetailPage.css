@@ -1,0 +1,280 @@
+.partner-detail-page {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top, rgba(222, 190, 104, 0.04), transparent 28%),
+        linear-gradient(180deg, #111110 0%, #090909 100%);
+}
+
+.partner-detail-page__container {
+    max-width: 1180px;
+}
+
+.partner-detail-page__back {
+    border: 1px solid rgba(222, 190, 104, 0.28);
+    color: #fff8de;
+    background: transparent;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+}
+
+.partner-detail-page__back:hover,
+.partner-detail-page__back:focus,
+.partner-detail-page__back:active {
+    background: rgba(222, 190, 104, 0.1);
+    color: #fff8de;
+    border-color: rgba(222, 190, 104, 0.45);
+}
+
+.partner-detail-hero {
+    border: 1px solid rgba(222, 190, 104, 0.14);
+    border-radius: 28px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #171715 0%, #0f0f0e 100%);
+    box-shadow:
+        0 22px 60px rgba(0, 0, 0, 0.24),
+        inset 0 1px 0 rgba(255, 248, 222, 0.03);
+    margin-bottom: 28px;
+}
+
+.partner-detail-hero__image {
+    position: relative;
+    min-height: 420px;
+    height: 100%;
+    overflow: hidden;
+    background: #0f0f0e;
+}
+
+.partner-detail-hero__image-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    will-change: opacity, transform;
+}
+
+.partner-detail-hero__image-layer.is-current {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.partner-detail-hero__image-layer.is-next {
+    opacity: 0;
+    transform: scale(1.015);
+    transition: opacity 0.42s ease, transform 0.42s ease;
+}
+
+.partner-detail-hero__image-layer.is-next.is-visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.partner-detail-hero__content {
+    color: #fff8de;
+}
+
+.partner-detail-hero__title {
+    font-size: clamp(30px, 4vw, 44px);
+    line-height: 1.1;
+    margin-bottom: 12px;
+    color: #fff8de;
+}
+
+.partner-detail-hero__meta {
+    font-size: 15px;
+    color: rgba(255, 248, 222, 0.58);
+    margin-bottom: 24px;
+}
+
+.partner-detail-info-box {
+    border: 1px solid rgba(222, 190, 104, 0.12);
+    border-radius: 18px;
+    padding: 18px;
+    background: rgba(255, 248, 222, 0.02);
+    height: 100%;
+}
+
+.partner-detail-info-box__label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #debe68;
+    opacity: 0.8;
+    margin-bottom: 8px;
+}
+
+.partner-detail-info-box__value {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #fff8de;
+}
+
+.partner-detail-contact-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #debe68;
+    opacity: 0.8;
+    margin-bottom: 10px;
+}
+
+.partner-detail-contact-item {
+    margin-bottom: 10px;
+    font-size: 15px;
+    color: rgba(255, 248, 222, 0.84);
+}
+
+.partner-detail-contact-item strong {
+    color: #debe68;
+    font-weight: 500;
+}
+
+.partner-detail-contact-item a {
+    color: #fff8de;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(222, 190, 104, 0.24);
+}
+
+.partner-detail-contact-item a:hover {
+    color: #debe68;
+    border-bottom-color: rgba(222, 190, 104, 0.48);
+}
+
+.partner-detail-secondary-box {
+    border: 1px solid rgba(222, 190, 104, 0.14);
+    border-radius: 24px;
+    padding: 24px;
+    background: linear-gradient(180deg, #171715 0%, #0f0f0e 100%);
+    box-shadow:
+        0 22px 60px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 248, 222, 0.03);
+    height: 100%;
+    color: #fff8de;
+}
+
+.partner-detail-secondary-box__label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #debe68;
+    opacity: 0.8;
+    margin-bottom: 8px;
+}
+
+.partner-detail-secondary-box__title {
+    font-size: 28px;
+    margin-bottom: 14px;
+    color: #fff8de;
+}
+
+.partner-detail-secondary-box__text {
+    font-size: 15px;
+    line-height: 1.8;
+    color: rgba(255, 248, 222, 0.82);
+    margin-bottom: 0;
+}
+
+.partner-detail-map {
+    min-height: 240px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #151514 0%, #0d0d0d 100%);
+    border: 1px solid rgba(222, 190, 104, 0.12);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+.partner-detail-map__label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: rgba(255, 248, 222, 0.26);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.partner-detail-map__marker {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #debe68;
+    border: 2px solid #fff8de;
+    box-shadow: 0 0 0 8px rgba(222, 190, 104, 0.12);
+}
+
+@media (max-width: 991.98px) {
+    .partner-detail-hero__image {
+        min-height: 280px;
+    }
+}
+
+
+
+.partner-detail-hero__image {
+    position: relative;
+}
+
+.partner-detail-hero__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(222, 190, 104, 0.28);
+    background: rgba(9, 9, 9, 0.55);
+    color: #fff8de;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    line-height: 1;
+    z-index: 2;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.partner-detail-hero__nav:hover {
+    background: rgba(222, 190, 104, 0.14);
+    border-color: rgba(222, 190, 104, 0.48);
+}
+
+.partner-detail-hero__nav--prev {
+    left: 16px;
+}
+
+.partner-detail-hero__nav--next {
+    right: 16px;
+}
+
+.partner-detail-hero__dots {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+}
+
+.partner-detail-hero__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 248, 222, 0.45);
+    background: rgba(255, 248, 222, 0.18);
+    padding: 0;
+}
+
+.partner-detail-hero__dot.is-active {
+    background: #debe68;
+    border-color: #debe68;
+}

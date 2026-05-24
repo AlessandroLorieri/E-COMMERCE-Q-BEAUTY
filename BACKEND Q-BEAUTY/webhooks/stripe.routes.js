@@ -6,6 +6,10 @@ const {
     sendAdminNewOrderEmail,
 } = require("../utils/mailer");
 
+const {
+    activatePartnerAssociationFromOrder,
+} = require("../orders/orders.services");
+
 function shortId(v, keep = 6) {
     const s = String(v || "");
     if (!s) return "-";
@@ -376,6 +380,14 @@ module.exports = function makeStripeWebhookRouter({ stripe }) {
                             orderId: String(orderId),
                         });
                         break;
+                    }
+
+                    if (updPaid?.modifiedCount === 1) {
+                        try {
+                            await activatePartnerAssociationFromOrder(order);
+                        } catch (e) {
+                            console.error("activatePartnerAssociationFromOrder (stripe paid) failed:", e?.message || e);
+                        }
                     }
 
                     await markRewardCouponUsedForOrder(order);

@@ -109,11 +109,13 @@ function validateQuoteBody(req, res, next) {
     if (!items) return res.status(400).json({ message: "Items non validi" });
 
     const couponCode = pickString(req.body?.couponCode, 40);
+    const partnerCouponCode = pickString(req.body?.partnerCouponCode, 40);
 
     // whitelist
     req.body = {
         items,
         ...(couponCode ? { couponCode } : {}),
+        ...(partnerCouponCode ? { partnerCouponCode } : {}),
     };
 
     next();
@@ -124,6 +126,7 @@ function validateCreateBody(req, res, next) {
     if (!items) return res.status(400).json({ message: "Items non validi" });
 
     const couponCode = pickString(req.body?.couponCode, 40);
+    const partnerCouponCode = pickString(req.body?.partnerCouponCode, 40);
 
     const paymentMethodRaw = pickString(req.body?.paymentMethod, 40);
     const paymentMethod = paymentMethodRaw ? paymentMethodRaw.toLowerCase() : undefined;
@@ -145,6 +148,7 @@ function validateCreateBody(req, res, next) {
     req.body = {
         items,
         ...(couponCode ? { couponCode } : {}),
+        ...(partnerCouponCode ? { partnerCouponCode } : {}),
         ...(finalPaymentMethod ? { paymentMethod: finalPaymentMethod } : {}),
         ...(finalShippingAddressId ? { shippingAddressId: finalShippingAddressId } : {}),
         ...(shippingAddress ? { shippingAddress } : {}),

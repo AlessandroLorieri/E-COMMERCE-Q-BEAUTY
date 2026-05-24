@@ -96,6 +96,10 @@ const OrderSchema = new mongoose.Schema(
         couponDiscountCents: { type: Number, required: true, min: 0, default: 0 },
         globalDiscountCents: { type: Number, required: true, min: 0, default: 0 },
 
+        partnerRef: { type: mongoose.Schema.Types.ObjectId, ref: "Partner", default: null, index: true },
+        partnerCouponCodeApplied: { type: String, trim: true, uppercase: true, default: null, index: true },
+        partnerName: { type: String, trim: true, default: "" },
+
         discountLabel: { type: String, default: null },
         shippingCents: { type: Number, required: true, min: 0, default: 0 },
         totalCents: { type: Number, required: true, min: 0, default: 0 },
@@ -116,7 +120,7 @@ const OrderSchema = new mongoose.Schema(
             notifiedAt: { type: Date, default: null },
         },
 
-        discountType: { type: String, enum: ["none", "piva15", "first10", "bulk25"], default: "none" },
+        discountType: { type: String, enum: ["none", "piva15", "first10", "bulk25", "partner30"], default: "none" },
 
         note: { type: String, trim: true, default: "" },
     },

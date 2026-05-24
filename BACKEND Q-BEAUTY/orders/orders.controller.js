@@ -60,17 +60,19 @@ async function quote(req, res) {
             return res.status(400).json({ message: "Validation error", errors });
         }
 
-        const { items, couponCode } = req.body || {};
-        const result = await computeQuote(userId, items, couponCode);
+        const { items, couponCode, partnerCouponCode } = req.body || {};
+
+        const result = await computeQuote(userId, items, couponCode, partnerCouponCode);
 
         return res.json(result);
     } catch (err) {
         const status = err.status || 500;
 
         const couponMsg = err?.errors?.couponCode ? String(err.errors.couponCode) : null;
+        const partnerCouponMsg = err?.errors?.partnerCouponCode ? String(err.errors.partnerCouponCode) : null;
 
         return res.status(status).json({
-            message: couponMsg || err.message || "Server error",
+            message: couponMsg || partnerCouponMsg || err.message || "Server error",
             errors: err.errors || undefined,
         });
     }
@@ -92,6 +94,7 @@ async function create(req, res) {
             shippingAddressId,
             billingAddress,
             couponCode,
+            partnerCouponCode,
             taxCode,
             paymentMethod,
             note,
@@ -106,7 +109,8 @@ async function create(req, res) {
             couponCode,
             taxCode,
             paymentMethod,
-            note
+            note,
+            partnerCouponCode
         );
 
         const normalizedPaymentMethod = String(paymentMethod || "").trim().toLowerCase();
@@ -150,13 +154,19 @@ async function create(req, res) {
             discountType: order.discountType,
 
             couponCodeApplied: quote?.couponCodeApplied || null,
+            partnerDiscountActive: Boolean(quote?.partnerDiscountActive),
+            partnerCouponCodeApplied: quote?.partnerCouponCodeApplied || null,
+            partnerName: quote?.partnerName || null,
             discountBreakdown: quote?.discountBreakdown || { couponDiscountCents: 0, globalDiscountCents: 0 },
         });
 
     } catch (err) {
         const status = err.status || 500;
+        const couponMsg = err?.errors?.couponCode ? String(err.errors.couponCode) : null;
+        const partnerCouponMsg = err?.errors?.partnerCouponCode ? String(err.errors.partnerCouponCode) : null;
+
         return res.status(status).json({
-            message: err.message || "Server error",
+            message: couponMsg || partnerCouponMsg || err.message || "Server error",
             errors: err.errors || undefined,
         });
 

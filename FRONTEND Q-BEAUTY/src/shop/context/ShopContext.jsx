@@ -23,6 +23,10 @@ function getCouponStorageKey(cartKey) {
     return `${cartKey}:coupon`;
 }
 
+function getPartnerCouponStorageKey(cartKey) {
+    return `${cartKey}:partner-coupon`;
+}
+
 function getOrderNoteStorageKey(cartKey) {
     return `${cartKey}:order-note`;
 }
@@ -189,17 +193,26 @@ export function ShopProvider({ children }) {
     ]);
 
     const couponKey = useMemo(() => getCouponStorageKey(cartKey), [cartKey]);
+    const partnerCouponKey = useMemo(() => getPartnerCouponStorageKey(cartKey), [cartKey]);
     const orderNoteKey = useMemo(() => getOrderNoteStorageKey(cartKey), [cartKey]);
 
     const [couponCode, setCouponCode] = useState(() =>
         hydrateCouponFromStorage(getCouponStorageKey(getCartStorageKey(null)), sessionStorage)
     );
+
+    const [partnerCouponCode, setPartnerCouponCode] = useState(() =>
+        hydrateCouponFromStorage(getPartnerCouponStorageKey(getCartStorageKey(null)), sessionStorage)
+    );
+
     const [orderNote, setOrderNote] = useState(() =>
         hydrateOrderNoteFromStorage(getOrderNoteStorageKey(getCartStorageKey(null)), sessionStorage)
     );
 
     const skipPersistCouponRef = useRef(false);
     const prevCouponKeyRef = useRef(couponKey);
+
+    const skipPersistPartnerCouponRef = useRef(false);
+    const prevPartnerCouponKeyRef = useRef(partnerCouponKey);
 
     const skipPersistOrderNoteRef = useRef(false);
     const prevOrderNoteKeyRef = useRef(orderNoteKey);
@@ -226,6 +239,29 @@ export function ShopProvider({ children }) {
         prevCouponKeyRef.current = couponKey;
         skipPersistCouponRef.current = true;
     }, [couponKey, cartStorage]);
+
+    useEffect(() => {
+        const next = hydrateCouponFromStorage(partnerCouponKey, cartStorage);
+
+        setPartnerCouponCode((prev) => {
+            const prevKey = prevPartnerCouponKeyRef.current;
+
+            const prevWasGuest = String(prevKey).includes(":guest");
+            const nextIsUser = !String(partnerCouponKey).includes(":guest");
+
+            if (prevWasGuest && nextIsUser && !next && prev) {
+                try {
+                    cartStorage.setItem(partnerCouponKey, prev);
+                } catch { }
+                return prev;
+            }
+
+            return next || "";
+        });
+
+        prevPartnerCouponKeyRef.current = partnerCouponKey;
+        skipPersistPartnerCouponRef.current = true;
+    }, [partnerCouponKey, cartStorage]);
 
     useEffect(() => {
         const next = hydrateOrderNoteFromStorage(orderNoteKey, cartStorage);
@@ -262,6 +298,19 @@ export function ShopProvider({ children }) {
             else cartStorage.setItem(couponKey, v);
         } catch { }
     }, [couponCode, couponKey, cartStorage]);
+
+    useEffect(() => {
+        if (skipPersistPartnerCouponRef.current) {
+            skipPersistPartnerCouponRef.current = false;
+            return;
+        }
+
+        try {
+            const v = String(partnerCouponCode || "").trim();
+            if (!v) cartStorage.removeItem(partnerCouponKey);
+            else cartStorage.setItem(partnerCouponKey, v);
+        } catch { }
+    }, [partnerCouponCode, partnerCouponKey, cartStorage]);
 
     useEffect(() => {
         if (skipPersistOrderNoteRef.current) {
@@ -595,9 +644,11 @@ export function ShopProvider({ children }) {
     function clearCart() {
         setCartRaw([]);
         setCouponCode("");
+        setPartnerCouponCode("");
         setOrderNote("");
         try {
             cartStorage.removeItem(couponKey);
+            cartStorage.removeItem(partnerCouponKey);
             cartStorage.removeItem(orderNoteKey);
         } catch { }
     }
@@ -624,6 +675,9 @@ export function ShopProvider({ children }) {
         totalCents: totals.amountCents,
         discountType: "none",
         couponCodeApplied: null,
+        partnerDiscountActive: false,
+        partnerCouponCodeApplied: null,
+        partnerName: null,
         couponDiscountCents: 0,
         globalDiscountCents: 0,
         bulkDiscountActive: false,
@@ -660,6 +714,9 @@ export function ShopProvider({ children }) {
                 totalCents: subtotalCents,
                 discountType: "none",
                 couponCodeApplied: null,
+                partnerDiscountActive: false,
+                partnerCouponCodeApplied: null,
+                partnerName: null,
                 couponDiscountCents: 0,
                 globalDiscountCents: 0,
                 bulkDiscountActive: false,
@@ -691,20 +748,27 @@ export function ShopProvider({ children }) {
             try {
                 setQuoteLoading(true);
 
+                const quotePayload = {
+                    items: validItems,
+                    ...(couponCode && String(couponCode).trim()
+                        ? { couponCode: String(couponCode).trim() }
+                        : {}),
+                    ...(partnerCouponCode && String(partnerCouponCode).trim()
+                        ? { partnerCouponCode: String(partnerCouponCode).trim() }
+                        : {}),
+                };
+
                 const res = await authFetch("/api/orders/quote", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        items: validItems,
-                        ...(couponCode && String(couponCode).trim() ? { couponCode: String(couponCode).trim() } : {}),
-                    }),
+                    body: JSON.stringify(quotePayload),
                     signal: controller.signal,
                 });
 
                 const data = await res.json().catch(() => ({}));
 
                 if (!res.ok) {
-                    const msg = data?.errors?.couponCode || data?.message || "Quote failed";
+                    const msg = data?.errors?.couponCode || data?.errors?.partnerCouponCode || data?.message || "Quote failed";
                     setQuoteError(msg);
                     setQuoteErrors(data && typeof data.errors === "object" ? data.errors : {});
                     return;
@@ -730,6 +794,9 @@ export function ShopProvider({ children }) {
                         : Math.max(0, (Number(data.subtotalCents) || 0) - (Number(data.discountCents) || 0)),
                     discountType: data.discountType || "none",
                     couponCodeApplied: data.couponCodeApplied || null,
+                    partnerDiscountActive: !!data.partnerDiscountActive,
+                    partnerCouponCodeApplied: data.partnerCouponCodeApplied || null,
+                    partnerName: data.partnerName || null,
                     couponDiscountCents,
                     globalDiscountCents,
                     bulkDiscountActive: !!data.bulkDiscountActive,
@@ -757,6 +824,7 @@ export function ShopProvider({ children }) {
         user,
         token,
         couponCode,
+        partnerCouponCode,
         productsLoading,
         products.length,
     ]);
@@ -774,7 +842,12 @@ export function ShopProvider({ children }) {
             body: JSON.stringify({
                 items,
                 ...(payload || {}),
-                ...(couponCode && String(couponCode).trim() ? { couponCode: String(couponCode).trim() } : {}),
+                ...(couponCode && String(couponCode).trim()
+                    ? { couponCode: String(couponCode).trim() }
+                    : {}),
+                ...(partnerCouponCode && String(partnerCouponCode).trim()
+                    ? { partnerCouponCode: String(partnerCouponCode).trim() }
+                    : {}),
             }),
         });
 
@@ -898,6 +971,8 @@ export function ShopProvider({ children }) {
 
             couponCode,
             setCouponCode,
+            partnerCouponCode,
+            setPartnerCouponCode,
             orderNote,
             setOrderNote,
 
@@ -923,6 +998,7 @@ export function ShopProvider({ children }) {
             quoteError,
             quoteErrors,
             couponCode,
+            partnerCouponCode,
             orderNote,
             user,
             authLogout,

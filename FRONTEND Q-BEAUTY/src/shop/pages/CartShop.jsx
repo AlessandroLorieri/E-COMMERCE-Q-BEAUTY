@@ -45,6 +45,8 @@ export default function CartShop() {
         quoteErrors,
         couponCode,
         setCouponCode,
+        partnerCouponCode,
+        setPartnerCouponCode,
         orderNote,
         setOrderNote,
         productsLoading,
@@ -67,20 +69,30 @@ export default function CartShop() {
     const bulkDiscountActive = Boolean(quote?.bulkDiscountActive);
     const bulkPiecesCount = Number(quote?.bulkPiecesCount) || 0;
     const couponEnabled = quote?.couponEnabled !== false;
-    const couponDisabledReason =
-        String(
+
+    const partnerCouponMode = bulkDiscountActive;
+    const canSubmitCouponCode = couponEnabled || partnerCouponMode;
+
+    const couponDisabledReason = bulkDiscountActive
+        ? String(
             quote?.couponDisabledReason ||
-            "Con 30 o più pezzi si applica automaticamente lo sconto quantità -25%. I coupon non sono cumulabili."
+            "Con 30 o più pezzi si applica automaticamente lo sconto quantità -25%. I coupon generici non sono cumulabili."
+        ).trim()
+        : String(
+            quote?.couponDisabledReason ||
+            "I coupon non sono disponibili per questo carrello."
         ).trim();
 
     const globalDiscountLabel =
-        quote?.discountType === "bulk25"
-            ? "Sconto quantità -25%"
-            : quote?.discountType === "piva15"
-                ? "Sconto P.IVA -15%"
-                : quote?.discountType === "first10"
-                    ? "Primo acquisto -10%"
-                    : (quote?.discountLabel || "Sconto");
+        quote?.discountType === "partner30"
+            ? "Sconto partner -30%"
+            : quote?.discountType === "bulk25"
+                ? "Sconto quantità -25%"
+                : quote?.discountType === "piva15"
+                    ? "Sconto P.IVA -15%"
+                    : quote?.discountType === "first10"
+                        ? "Primo acquisto -10%"
+                        : (quote?.discountLabel || "Sconto");
 
     const couponLabelCode = quote?.couponCodeApplied || "";
 
@@ -99,12 +111,26 @@ export default function CartShop() {
     const totalNoShippingCents = Math.max(0, totalCentsSafe - shippingCentsSafe);
 
     const couponAppliedCode = quote?.couponCodeApplied ? String(quote.couponCodeApplied).trim() : "";
+
+    const partnerAppliedCode = quote?.partnerCouponCodeApplied
+        ? String(quote.partnerCouponCodeApplied).trim()
+        : "";
+
     const couponErrorMsg = quoteErrors?.couponCode ? String(quoteErrors.couponCode) : "";
-    const genericQuoteMsg = !couponErrorMsg && quoteError ? String(quoteError) : "";
+    const partnerCouponErrorMsg = quoteErrors?.partnerCouponCode ? String(quoteErrors.partnerCouponCode) : "";
+
+    const genericQuoteMsg =
+        !couponErrorMsg && !partnerCouponErrorMsg && quoteError
+            ? String(quoteError)
+            : "";
 
     const [couponDraft, setCouponDraft] = useState(couponCode || "");
     const [autoCouponMsg, setAutoCouponMsg] = useState("");
     const [lastAutoClearedCode, setLastAutoClearedCode] = useState("");
+
+    const [partnerCouponDraft, setPartnerCouponDraft] = useState(partnerCouponCode || "");
+    const [autoPartnerCouponMsg, setAutoPartnerCouponMsg] = useState("");
+    const [lastAutoClearedPartnerCode, setLastAutoClearedPartnerCode] = useState("");
 
     const [stockNoticeId, setStockNoticeId] = useState("");
     const [stockNoticeText, setStockNoticeText] = useState("");
@@ -112,6 +138,10 @@ export default function CartShop() {
     useEffect(() => {
         setCouponDraft(couponCode || "");
     }, [couponCode]);
+
+    useEffect(() => {
+        setPartnerCouponDraft(partnerCouponCode || "");
+    }, [partnerCouponCode]);
 
     useEffect(() => {
         if (!stockNoticeId) return;
@@ -133,6 +163,21 @@ export default function CartShop() {
         setLastAutoClearedCode("");
         setAutoCouponMsg("");
     }, [couponEnabled, couponCode, couponDraft, setCouponCode]);
+
+    useEffect(() => {
+        if (partnerCouponMode) return;
+
+        if (partnerCouponDraft) setPartnerCouponDraft("");
+        if (partnerCouponCode) setPartnerCouponCode("");
+
+        setLastAutoClearedPartnerCode("");
+        setAutoPartnerCouponMsg("");
+    }, [
+        partnerCouponMode,
+        partnerCouponCode,
+        partnerCouponDraft,
+        setPartnerCouponCode,
+    ]);
 
     useEffect(() => {
         const code = String(couponCode || "").trim();
@@ -163,6 +208,39 @@ export default function CartShop() {
         setAutoCouponMsg(`Il coupon "${code}" non è valido o è scaduto.`);
     }, [couponCode, couponErrorMsg, quoteLoading, lastAutoClearedCode, setCouponCode]);
 
+    useEffect(() => {
+        const code = String(partnerCouponCode || "").trim();
+        if (!code) return;
+        if (!partnerCouponErrorMsg) return;
+
+        if (quoteLoading) return;
+
+        const msg = String(partnerCouponErrorMsg).toLowerCase();
+
+        const shouldAutoClear =
+            msg.includes("non valido") ||
+            msg.includes("invalid") ||
+            msg.includes("inesistente") ||
+            msg.includes("not valid");
+
+        if (!shouldAutoClear) return;
+
+        if (lastAutoClearedPartnerCode === code) return;
+
+        setLastAutoClearedPartnerCode(code);
+
+        setPartnerCouponDraft("");
+        setPartnerCouponCode("");
+
+        setAutoPartnerCouponMsg(`Il codice partner "${code}" non è valido.`);
+    }, [
+        partnerCouponCode,
+        partnerCouponErrorMsg,
+        quoteLoading,
+        lastAutoClearedPartnerCode,
+        setPartnerCouponCode,
+    ]);
+
     function applyCoupon() {
         if (!couponEnabled) return;
 
@@ -178,6 +256,27 @@ export default function CartShop() {
         setLastAutoClearedCode("");
         setCouponDraft("");
         setCouponCode("");
+    }
+
+    function applyPartnerCoupon() {
+        if (!partnerCouponMode) return;
+
+        const code = String(partnerCouponDraft || "")
+            .trim()
+            .toUpperCase()
+            .replace(/\s+/g, "");
+
+        setAutoPartnerCouponMsg("");
+        setLastAutoClearedPartnerCode("");
+        setPartnerCouponDraft(code);
+        setPartnerCouponCode(code);
+    }
+
+    function clearPartnerCoupon() {
+        setAutoPartnerCouponMsg("");
+        setLastAutoClearedPartnerCode("");
+        setPartnerCouponDraft("");
+        setPartnerCouponCode("");
     }
 
     const quoteMap = new Map();
@@ -266,23 +365,23 @@ export default function CartShop() {
     }
 
     function handleInc(product) {
-    const additionalAvailable = getAdditionalAvailableQty(product);
-    const stockQty = getProductStockQty(product);
+        const additionalAvailable = getAdditionalAvailableQty(product);
+        const stockQty = getProductStockQty(product);
 
-    if (additionalAvailable <= 0) {
-        setStockNoticeId(String(product?.id || ""));
-        setStockNoticeText(
-            stockQty === 0
-                ? "Prodotto esaurito."
-                : "Hai raggiunto la quantità massima disponibile per questo prodotto."
-        );
-        return;
+        if (additionalAvailable <= 0) {
+            setStockNoticeId(String(product?.id || ""));
+            setStockNoticeText(
+                stockQty === 0
+                    ? "Prodotto esaurito."
+                    : "Hai raggiunto la quantità massima disponibile per questo prodotto."
+            );
+            return;
+        }
+
+        setStockNoticeId("");
+        setStockNoticeText("");
+        inc(product.id);
     }
-
-    setStockNoticeId("");
-    setStockNoticeText("");
-    inc(product.id);
-}
 
     return (
         <>
@@ -532,9 +631,86 @@ export default function CartShop() {
                                         </div>
 
                                         {bulkDiscountActive ? (
-                                            <div className="shop-coupon__hint">
-                                                Pezzi conteggiati per la soglia quantità: <b>{bulkPiecesCount}</b>
-                                            </div>
+                                            <>
+                                                <div className="shop-coupon__hint">
+                                                    Pezzi conteggiati per la soglia quantità: <b>{bulkPiecesCount}</b>
+                                                </div>
+
+                                                <div className="mt-3">
+                                                    <div className="d-flex align-items-center justify-content-between mb-1">
+                                                        <label className="form-label m-0" style={{ fontSize: 15 }}>
+                                                            Sei partner?
+                                                        </label>
+                                                    </div>
+
+                                                    <div className="shop-coupon__hint mb-2">
+                                                        Inserisci il tuo coupon personale per accedere allo sconto partner -30%.
+                                                    </div>
+
+                                                    <div className="shop-coupon__group">
+                                                        <input
+                                                            className="form-control shop-coupon__input"
+                                                            placeholder="Es. PARTNER30"
+                                                            value={partnerCouponDraft}
+                                                            onChange={(e) => setPartnerCouponDraft(e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === "Enter") {
+                                                                    e.preventDefault();
+                                                                    applyPartnerCoupon();
+                                                                }
+                                                            }}
+                                                            disabled={quoteLoading}
+                                                            inputMode="text"
+                                                            autoCapitalize="characters"
+                                                            autoCorrect="off"
+                                                            spellCheck={false}
+                                                        />
+
+                                                        <button
+                                                            className="btn shop-coupon__btn shop-coupon__btn--apply"
+                                                            type="button"
+                                                            onClick={applyPartnerCoupon}
+                                                            disabled={quoteLoading}
+                                                        >
+                                                            Applica partner
+                                                        </button>
+
+                                                        <button
+                                                            className="btn shop-coupon__btn shop-coupon__btn--reset"
+                                                            type="button"
+                                                            onClick={clearPartnerCoupon}
+                                                            disabled={quoteLoading}
+                                                        >
+                                                            Reset
+                                                        </button>
+                                                    </div>
+
+                                                    {autoPartnerCouponMsg ? (
+                                                        <div className="shop-coupon__msg shop-coupon__msg--error">
+                                                            {autoPartnerCouponMsg}
+                                                        </div>
+                                                    ) : null}
+
+                                                    {!autoPartnerCouponMsg && partnerCouponErrorMsg && !quoteLoading ? (
+                                                        <div className="shop-coupon__msg shop-coupon__msg--error">
+                                                            {partnerCouponErrorMsg}
+                                                        </div>
+                                                    ) : null}
+
+                                                    {!partnerCouponErrorMsg && quote?.partnerDiscountActive && partnerAppliedCode && !quoteLoading ? (
+                                                        <div className="shop-coupon__msg shop-coupon__msg--success">
+                                                            Codice partner <b>{partnerAppliedCode}</b> applicato: sconto -30%
+                                                            {quote?.partnerName ? <> · {quote.partnerName}</> : null}
+                                                        </div>
+                                                    ) : null}
+
+                                                    {quoteLoading ? (
+                                                        <div className="shop-coupon__hint">
+                                                            Verifica coupon partner in corso…
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            </>
                                         ) : null}
                                     </>
                                 )}

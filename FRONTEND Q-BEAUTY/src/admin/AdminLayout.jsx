@@ -41,6 +41,10 @@ export default function AdminLayout() {
                         Recensioni
                     </NavLink>
 
+                    <NavLink to="/admin/partners" className="admin__link">
+                        Partner
+                    </NavLink>
+
                     <div className="admin__divider" />
 
                     <NavLink to="/shop" className="admin__link">

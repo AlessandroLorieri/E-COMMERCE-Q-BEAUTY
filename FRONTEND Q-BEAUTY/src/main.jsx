@@ -34,6 +34,10 @@ import ResetPasswordShop from "./shop/pages/ResetPasswordShop";
 import AdminCoupons from "./admin/pages/AdminCoupons";
 import AdminReviews from "./admin/pages/AdminReviews";
 import AdminShipping from "./admin/pages/AdminShipping";
+import AdminPartners from "./admin/pages/AdminPartners";
+
+import PartnersPage from './partners/pages/PartnersPage';
+import PartnerDetailPage from './partners/pages/PartnerDetailPage';
 
 import NotFoundPage from './NotFoundPage';
 
@@ -148,9 +152,14 @@ root.render(
             <Route path="shipping" element={<AdminShipping />} />
             <Route path="coupons" element={<AdminCoupons />} />
             <Route path="reviews" element={<AdminReviews />} />
+            <Route path="partners" element={<AdminPartners />} />
           </Route>
 
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
+          <Route path="/partners" element={<PartnersPage />} />
+          <Route path="/partners/:slug" element={<PartnerDetailPage />} />
+
 
           {/* catch-all: qualunque altra rotta → home */}
           <Route path="*" element={<NotFoundPage />} />

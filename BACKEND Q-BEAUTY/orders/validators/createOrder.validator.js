@@ -10,10 +10,20 @@ function normalizeCouponCode(v) {
     return typeof v === "string" ? v.trim() : "";
 }
 
+function normalizePartnerCouponCode(v) {
+    return typeof v === "string" ? v.trim().toUpperCase().replace(/\s+/g, "") : "";
+}
+
 function isCouponCode(v) {
     const code = normalizeCouponCode(v);
     if (!code) return false;
     return /^[A-Za-z0-9_-]{3,32}$/.test(code);
+}
+
+function isPartnerCouponCode(v) {
+    const code = normalizePartnerCouponCode(v);
+    if (!code) return false;
+    return /^[A-Z0-9_-]{4,40}$/.test(code);
 }
 
 function isEmail(v) {
@@ -83,6 +93,16 @@ function validateQuoteBody(body) {
         }
     }
 
+    if (Object.prototype.hasOwnProperty.call(body || {}, "partnerCouponCode")) {
+        const raw = body?.partnerCouponCode;
+
+        if (typeof raw === "string" && raw.trim() === "") {
+            // consentito: codice partner vuoto = nessun codice partner
+        } else if (!isPartnerCouponCode(raw)) {
+            errors.partnerCouponCode = "partnerCouponCode non valido (4-40, solo lettere/numeri/_/-)";
+        }
+    }
+
     return errors;
 }
 
@@ -130,6 +150,16 @@ function validateCreateOrderBody(body) {
             // consentito: coupon vuoto = nessun coupon
         } else if (!isCouponCode(raw)) {
             errors.couponCode = "couponCode non valido (3-32, solo lettere/numeri/_/-)";
+        }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body || {}, "partnerCouponCode")) {
+        const raw = body?.partnerCouponCode;
+
+        if (typeof raw === "string" && raw.trim() === "") {
+            // consentito: codice partner vuoto = nessun codice partner
+        } else if (!isPartnerCouponCode(raw)) {
+            errors.partnerCouponCode = "partnerCouponCode non valido (4-40, solo lettere/numeri/_/-)";
         }
     }
 
