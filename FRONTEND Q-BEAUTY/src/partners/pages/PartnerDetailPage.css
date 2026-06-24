@@ -10,21 +10,44 @@
 }
 
 .partner-detail-page__back {
-    border: 1px solid rgba(222, 190, 104, 0.28);
-    color: #fff8de;
-    background: transparent;
-    border-radius: 999px;
-    padding: 8px 14px;
+    --bs-btn-border-radius: 999px;
+    --bs-btn-padding-x: 14px;
+    --bs-btn-padding-y: 8px;
+    --bs-btn-font-size: 13px;
+    --bs-btn-font-weight: 500;
+    --bs-btn-line-height: 1;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 34px;
+    padding: 8px 14px !important;
+
+    border: 1px solid rgba(222, 190, 104, 0.34) !important;
+    border-radius: 999px !important;
+
+    background: rgba(255, 248, 222, 0.035) !important;
+    color: rgba(255, 248, 222, 0.92) !important;
+
     font-size: 13px;
+    line-height: 1;
     letter-spacing: 0.02em;
+    font-weight: 500;
+    text-decoration: none !important;
+
+    box-shadow: none !important;
+    opacity: 1;
 }
 
 .partner-detail-page__back:hover,
 .partner-detail-page__back:focus,
 .partner-detail-page__back:active {
-    background: rgba(222, 190, 104, 0.1);
-    color: #fff8de;
-    border-color: rgba(222, 190, 104, 0.45);
+    background: rgba(222, 190, 104, 0.12) !important;
+    color: #fff8de !important;
+    border-color: rgba(222, 190, 104, 0.55) !important;
+    box-shadow: none !important;
+    transform: translateY(-1px);
 }
 
 .partner-detail-hero {
@@ -150,23 +173,17 @@
     box-shadow:
         0 22px 60px rgba(0, 0, 0, 0.22),
         inset 0 1px 0 rgba(255, 248, 222, 0.03);
-    height: 100%;
     color: #fff8de;
 }
 
 .partner-detail-secondary-box__label {
-    font-size: 12px;
+    font-size: 18px;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.09em;
     color: #debe68;
-    opacity: 0.8;
-    margin-bottom: 8px;
-}
-
-.partner-detail-secondary-box__title {
-    font-size: 28px;
+    opacity: 0.95;
     margin-bottom: 14px;
-    color: #fff8de;
+    font-weight: 600;
 }
 
 .partner-detail-secondary-box__text {

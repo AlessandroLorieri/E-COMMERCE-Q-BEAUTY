@@ -44,7 +44,7 @@ export default function PopupSpedizioni() {
                 <div className="popup-spedizioni__titleWrap">
                     <span className="diamond_small" aria-hidden="true" />
                     <h2 className="popup-spedizioni__title">
-                        TUTTI GLI ORDINI EFFETTUATI DAL 25/03 AL 29/03 VERRANNO SPEDITI IL 30/03
+                        TUTTI GLI ORDINI EFFETTUATI DAL 25/06 AL 29/06 VERRANNO SPEDITI IL 30/06
                     </h2>
                     <span className="diamond_small" aria-hidden="true" />
                 </div>

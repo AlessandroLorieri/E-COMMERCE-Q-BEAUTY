@@ -67,7 +67,8 @@ function HomePage() {
       <div className="home">
 
         {/* POPUP TEMPORANEO AVVISO SPEDIZIONI*/}
-        
+        <PopupSpedizioni />
+
 
 
         <header className="homepage-hero" role="banner">
@@ -92,6 +93,24 @@ function HomePage() {
               <Link to="/shop" className="shop-cta-btn">
                 Vai allo shop
                 <FaShoppingCart style={{ marginLeft: '8px', fontSize: '1rem' }} />
+              </Link>
+            </div>
+          </section>
+
+          <section className={`partners-cta home-reveal ${loaded ? 'visible' : ''}`}>
+            <div className="partners-cta-box">
+              <p className="partners-cta-eyebrow">CENTRI PARTNER</p>
+
+              <h2 className="partners-cta-title">
+                SCOPRI I PARTNER Q･BEAUTY
+              </h2>
+
+              <p className="partners-cta-text">
+                Trova i centri selezionati dove scoprire i prodotti e l’esperienza Q•BEAUTY.
+              </p>
+
+              <Link to="/partners" className="partners-cta-btn">
+                Scopri i partner
               </Link>
             </div>
           </section>

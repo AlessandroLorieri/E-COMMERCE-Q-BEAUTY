@@ -476,10 +476,6 @@ export default function PartnerDetailPage() {
                                             Il centro
                                         </div>
 
-                                        <h2 className="partner-detail-secondary-box__title">
-                                            Esperienza partner Q•BEAUTY
-                                        </h2>
-
                                         <p className="partner-detail-secondary-box__text">
                                             {partner.description}
                                         </p>
@@ -492,12 +488,8 @@ export default function PartnerDetailPage() {
                                             Mappa
                                         </div>
 
-                                        <h2 className="partner-detail-secondary-box__title">
-                                            Dove trovarlo
-                                        </h2>
-
                                         <PartnerGoogleMap partner={partner} />
-                                        
+
                                     </div>
                                 </div>
                             </section>

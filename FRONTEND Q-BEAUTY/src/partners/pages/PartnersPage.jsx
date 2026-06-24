@@ -304,6 +304,12 @@ export default function PartnersPage() {
 
             <div className="partners-page">
                 <div className="container py-5 partners-page__container">
+                    <div className="partners-page__back-wrap">
+                        <Link to="/" className="partners-page__back">
+                            ← Torna alla Home
+                        </Link>
+                    </div>
+
                     <section className="mb-5 text-center">
                         <div className="mx-auto partners-page__intro">
                             <span className="d-inline-block mb-3 partners-page__eyebrow">

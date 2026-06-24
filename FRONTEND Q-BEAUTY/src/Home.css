@@ -161,7 +161,7 @@
 
 .founder-text p {
     margin: 0;
-    color:#f3e9c6ad;
+    color: #f3e9c6ad;
     font-size: 1.18rem;
     line-height: 1.7;
 }
@@ -250,14 +250,14 @@
 
 .founder-title {
     margin: 0 0 10px;
-    color:#DEBE68 !important;
+    color: #DEBE68 !important;
     font-size: 2rem;
     letter-spacing: 0.5px;
     text-align: left;
 }
 
-h3{
-    color:#DEBE68 !important
+h3 {
+    color: #DEBE68 !important
 }
 
 .founder-info {
@@ -269,7 +269,7 @@ h3{
 
 .founder-title {
     margin: 0 0 18px;
-    color:#DEBE68;
+    color: #DEBE68;
     font-size: 2.8rem;
     letter-spacing: 0.5px;
     text-align: left;
@@ -576,6 +576,91 @@ h3{
     }
 }
 
-.site-footer p{
-    color:#f3e9c6ad
+.site-footer p {
+    color: #f3e9c6ad
+}
+
+.partners-cta {
+    width: min(100%, 820px);
+    margin: -56px auto 90px;
+    padding: 0 20px;
+}
+
+.partners-cta-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 18px 24px;
+    background: rgba(0, 0, 0, 0.58);
+    border: 1px solid rgba(222, 190, 104, 0.25);
+    border-radius: 18px;
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.08);
+    text-align: center;
+}
+
+.partners-cta-eyebrow {
+    display: none;
+}
+
+.partners-cta-title {
+    margin: 0;
+    color: #f3e9c6ad;
+    font-size: 2.2rem;
+    line-height: 1.4;
+    font-weight: bold;
+}
+
+.partners-cta-text {
+    display: none;
+}
+
+.partners-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.4rem;
+    border-radius: 999px;
+    background: #DEBE68;
+    color: #000;
+    font-weight: 900;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.partners-cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(212, 175, 55, 0.35);
+    background: linear-gradient(135deg, var(--gold-soft), #9c7c25);
+    color: #000;
+}
+
+@media (max-width: 768px) {
+    .partners-cta {
+        margin: -56px auto 70px;
+    }
+
+    .partners-cta-box {
+        flex-direction: row;
+        gap: 30px;
+        padding: 14px 16px;
+        flex-wrap: nowrap;
+    }
+
+    .partners-cta-title {
+        font-size: 0.98rem;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .partners-cta-btn {
+        width: auto;
+        max-width: none;
+        padding: 0.62rem 1rem;
+        font-size: 0.92rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
 }

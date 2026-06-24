@@ -140,8 +140,8 @@
     }
 }
 
-.partner-card__content > .mb-2,
-.partner-card__content > .mb-4 {
+.partner-card__content>.mb-2,
+.partner-card__content>.mb-4 {
     font-size: 17px;
 }
 
@@ -162,4 +162,37 @@
 .partners-public-map {
     width: 100%;
     height: 420px;
+}
+
+.partners-page__back-wrap {
+    margin-bottom: 22px;
+}
+
+.partners-page__back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(222, 190, 104, 0.34);
+    color: rgba(255, 248, 222, 0.92);
+    background: rgba(255, 248, 222, 0.035);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.partners-page__back:hover,
+.partners-page__back:focus,
+.partners-page__back:active {
+    background: rgba(222, 190, 104, 0.12);
+    color: #fff8de;
+    border-color: rgba(222, 190, 104, 0.55);
+    transform: translateY(-1px);
 }
