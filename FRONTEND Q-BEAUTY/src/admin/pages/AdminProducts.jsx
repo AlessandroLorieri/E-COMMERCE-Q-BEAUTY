@@ -734,7 +734,7 @@ export default function AdminProducts() {
                             ) : null}
                         </div>
 
-                        <div className="col-md-2 d-flex align-items-end">
+                        <div className="col-12">
                             <div className="form-check">
                                 <input
                                     className="form-check-input"
@@ -744,8 +744,12 @@ export default function AdminProducts() {
                                     id="badgeEnabled"
                                 />
                                 <label className="form-check-label" htmlFor="badgeEnabled">
-                                    Abilitato
+                                    Mostra badge promo nella card prodotto
                                 </label>
+                            </div>
+
+                            <div className="form-text">
+                                Se disattivato, il badge non verrà mostrato nello shop anche se i testi sono compilati.
                             </div>
                         </div>
 
@@ -791,7 +795,7 @@ export default function AdminProducts() {
 
 
 
-                        <div className="col-md-2 d-flex align-items-end">
+                        <div className="col-12">
                             <div className="form-check">
                                 <input
                                     className="form-check-input"
@@ -801,8 +805,12 @@ export default function AdminProducts() {
                                     id="isActive"
                                 />
                                 <label className="form-check-label" htmlFor="isActive">
-                                    Attivo
+                                    Prodotto visibile nello shop
                                 </label>
+                            </div>
+
+                            <div className="form-text">
+                                Se disattivato, il prodotto resta salvato in admin ma non viene mostrato nello shop.
                             </div>
                         </div>
 
@@ -827,7 +835,7 @@ export default function AdminProducts() {
                             <th className="text-nowrap" style={{ padding: "14px 18px" }}>Prezzo</th>
                             <th className="text-nowrap" style={{ padding: "14px 18px" }}>Stock</th>
                             <th className="text-nowrap" style={{ padding: "14px 18px" }}>Ordine</th>
-                            <th className="text-nowrap" style={{ padding: "14px 18px" }}>Attivo</th>
+                            <th className="text-nowrap" style={{ padding: "14px 18px" }}>Visibile shop</th>
                             <th style={{ width: "28%", padding: "14px 6px 14px 18px" }}>Azioni</th>
                         </tr>
                     </thead>
