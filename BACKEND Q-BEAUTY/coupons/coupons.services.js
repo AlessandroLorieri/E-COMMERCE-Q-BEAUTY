@@ -42,12 +42,12 @@ async function resolveRules(rulesRaw) {
         let product = null;
 
         if (pidRaw && mongoose.Types.ObjectId.isValid(pidRaw)) {
-            product = await Product.findOne({ _id: pidRaw, isActive: true }).select("productId").lean();
+            product = await Product.findOne({ _id: pidRaw }).select("productId").lean();
         } else if (pidRaw) {
-            product = await Product.findOne({ productId: pidRaw, isActive: true }).select("productId").lean();
+            product = await Product.findOne({ productId: pidRaw }).select("productId").lean();
         }
 
-        if (!product?.productId) e.productId = "Prodotto non valido o inattivo";
+        if (!product?.productId) e.productId = "Prodotto non valido";
 
         const type = String(r.type || "").trim();
         if (type !== "percent" && type !== "fixed") e.type = "type deve essere 'percent' o 'fixed'";

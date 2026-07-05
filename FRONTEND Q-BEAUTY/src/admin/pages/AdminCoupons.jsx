@@ -149,6 +149,51 @@ export default function AdminCoupons() {
     const selectedSet = useMemo(() => new Set(form.selectedProductIds || []), [form.selectedProductIds]);
     const selectedCount = (form.selectedProductIds || []).length;
 
+    const productsById = useMemo(() => {
+        const map = new Map();
+
+        (products || []).forEach((product) => {
+            const mongoId = String(product?._id || "").trim();
+            const productId = String(product?.productId || "").trim();
+
+            if (mongoId) map.set(mongoId, product);
+            if (productId) map.set(productId, product);
+        });
+
+        return map;
+    }, [products]);
+
+    function getCouponRuleProductLabel(rule) {
+        const productValue = rule?.productId;
+
+        if (productValue && typeof productValue === "object") {
+            return (
+                productValue.name ||
+                productValue.productId ||
+                String(productValue._id || "").trim()
+            );
+        }
+
+        const productId = String(productValue || "").trim();
+        const product = productsById.get(productId);
+
+        return product?.name || product?.productId || productId || "Prodotto";
+    }
+
+    function renderCouponActiveOn(coupon) {
+        const rules = Array.isArray(coupon?.rules) ? coupon.rules : [];
+
+        if (!rules.length) return "Nessun prodotto associato";
+
+        const labels = rules
+            .map(getCouponRuleProductLabel)
+            .filter(Boolean);
+
+        const uniqueLabels = [...new Set(labels)];
+
+        return uniqueLabels.length ? uniqueLabels.join(" · ") : "Nessun prodotto associato";
+    }
+
     const manualCoupons = useMemo(
         () => (coupons || []).filter((c) => !c?.isRewardCoupon),
         [coupons]
@@ -464,8 +509,10 @@ export default function AdminCoupons() {
                                     </div>
 
                                     <div className="col-12 col-md-4">
-                                        <div className="text-muted small mb-1">Regole</div>
-                                        <div>{Array.isArray(c.rules) ? c.rules.length : 0}</div>
+                                        <div className="text-muted small mb-1">Attivo su:</div>
+                                        <div className="fw-semibold">
+                                            {renderCouponActiveOn(c)}
+                                        </div>
                                     </div>
 
                                     <div className="col-12 col-md-4">
