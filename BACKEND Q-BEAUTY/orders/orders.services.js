@@ -240,7 +240,7 @@ async function findActivePartnerByCouponCode(codeRaw) {
         partnerCouponEnabled: true,
         partnerCouponCode: code,
     })
-        .select("_id name slug partnerCouponCode partnerCouponEnabled")
+        .select("_id name slug partnerCouponCode partnerCouponEnabled associationStartedAt associationExpiresAt")
         .lean();
 }
 
@@ -251,13 +251,25 @@ function addOneYear(dateRaw) {
     return next;
 }
 
+function isPartnerAssociationActive(expiresAtRaw) {
+    if (!expiresAtRaw) return false;
+
+    const expiresAt = new Date(expiresAtRaw);
+
+    return (
+        !Number.isNaN(expiresAt.getTime()) &&
+        expiresAt >= new Date()
+    );
+}
+
 async function activatePartnerAssociationFromOrder(order) {
     if (!order?._id) return null;
 
     const discountType = String(order.discountType || "").trim();
     const partnerRef = order.partnerRef;
+    const partnerActivationEligible = !!order.partnerActivationEligible;
 
-    if (discountType !== "partner30" || !partnerRef) {
+    if (discountType !== "partner30" || !partnerRef || !partnerActivationEligible) {
         return null;
     }
 
@@ -501,6 +513,8 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
     let partnerCouponCodeApplied = null;
     let partnerRef = null;
     let partnerName = null;
+    let partnerAssociationActive = false;
+    let partnerActivationEligible = false;
 
     if (partnerCouponCode) {
         const partner = await findActivePartnerByCouponCode(partnerCouponCode);
@@ -512,11 +526,13 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
             throw err;
         }
 
-        if (bulkPiecesCount < PARTNER_DISCOUNT_MIN_PIECES) {
+        partnerAssociationActive = isPartnerAssociationActive(partner.associationExpiresAt);
+
+        if (!partnerAssociationActive && bulkPiecesCount < PARTNER_DISCOUNT_MIN_PIECES) {
             const err = new Error("Validation error");
             err.status = 400;
             err.errors = {
-                partnerCouponCode: `Lo sconto partner -30% richiede almeno ${PARTNER_DISCOUNT_MIN_PIECES} pezzi`,
+                partnerCouponCode: `Il codice partner -30% richiede almeno ${PARTNER_DISCOUNT_MIN_PIECES} pezzi per attivare o rinnovare la collaborazione`,
             };
             throw err;
         }
@@ -525,9 +541,15 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
         partnerCouponCodeApplied = partner.partnerCouponCode;
         partnerRef = partner._id;
         partnerName = partner.name || "";
+
+        partnerActivationEligible =
+            !partnerAssociationActive &&
+            bulkPiecesCount >= PARTNER_DISCOUNT_MIN_PIECES;
     }
 
-    if (bulkDiscountActive) {
+    const shouldUseFullSetPriceForGlobalDiscount = bulkDiscountActive || partnerDiscountActive;
+
+    if (shouldUseFullSetPriceForGlobalDiscount) {
         for (const it of resolvedItems) {
             const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
             if (!isSetLine) continue;
@@ -544,7 +566,7 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
     const discountBaseCents = resolvedItems.reduce((sum, it) => {
         const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
 
-        if (!bulkDiscountActive && isSetLine) {
+        if (!shouldUseFullSetPriceForGlobalDiscount && isSetLine) {
             return sum;
         }
 
@@ -588,7 +610,7 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
         const it = resolvedItems[i];
         const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
 
-        if (bulkDiscountActive) {
+        if (shouldUseFullSetPriceForGlobalDiscount) {
             discountableIdx.push(i);
             continue;
         }
@@ -627,12 +649,13 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
     let couponCodeApplied = null;
     let couponDiscountCents = 0;
 
-    const couponEnabled = !bulkDiscountActive;
-    const couponDisabledReason = bulkDiscountActive
-        ? partnerDiscountActive
-            ? "Codice partner applicato. I coupon generici non sono cumulabili."
-            : "Con 30 o più pezzi si applica automaticamente lo sconto quantità -25%. I coupon generici non sono cumulabili."
-        : null;
+    const couponEnabled = !bulkDiscountActive && !partnerDiscountActive;
+
+    const couponDisabledReason = partnerDiscountActive
+        ? "Codice partner applicato. I coupon promozionali non sono cumulabili."
+        : bulkDiscountActive
+            ? "Con 30 o più pezzi si applica automaticamente lo sconto quantità -25%. I coupon promozionali non sono cumulabili."
+            : null;
 
     if (couponEnabled && typeof couponCodeRaw === "string" && couponCodeRaw.trim()) {
         const code = couponCodeRaw.trim().toUpperCase();
@@ -781,6 +804,8 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
         partnerCouponCodeApplied,
         partnerRef,
         partnerName,
+        partnerAssociationActive,
+        partnerActivationEligible,
         bulkDiscountActive,
         bulkPiecesCount,
         couponEnabled,
@@ -1186,6 +1211,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             partnerRef: quote.partnerRef || null,
             partnerCouponCodeApplied: quote.partnerCouponCodeApplied || null,
             partnerName: quote.partnerName || "",
+            partnerActivationEligible: !!quote.partnerActivationEligible,
 
             discountLabel: quote.discountLabel,
             shippingCents: quote.shippingCents,

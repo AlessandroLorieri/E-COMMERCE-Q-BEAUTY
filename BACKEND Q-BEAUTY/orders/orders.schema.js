@@ -100,6 +100,12 @@ const OrderSchema = new mongoose.Schema(
         partnerCouponCodeApplied: { type: String, trim: true, uppercase: true, default: null, index: true },
         partnerName: { type: String, trim: true, default: "" },
 
+        partnerActivationEligible: {
+            type: Boolean,
+            default: false,
+            index: true,
+        },
+
         discountLabel: { type: String, default: null },
         shippingCents: { type: Number, required: true, min: 0, default: 0 },
         totalCents: { type: Number, required: true, min: 0, default: 0 },
