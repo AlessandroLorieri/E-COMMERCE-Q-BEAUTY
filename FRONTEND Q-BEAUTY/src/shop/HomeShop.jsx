@@ -187,6 +187,41 @@ export default function HomeShop() {
         return Math.max(0, stockQty - inCartQty);
     }
 
+    function getCardPriceInfo(product) {
+        const isSet = isSetProduct(product);
+
+        const basePriceCents = isSet
+            ? (isPiva ? 5400 : 6000)
+            : Number(product?.priceCents || 0);
+
+        const salePriceCents = Number(product?.salePriceCents);
+
+        const saleApplied =
+            Boolean(product?.saleEnabled) &&
+            Number.isFinite(salePriceCents) &&
+            salePriceCents >= 0 &&
+            salePriceCents < basePriceCents;
+
+        const displayPriceCents = saleApplied
+            ? Math.trunc(salePriceCents)
+            : Math.trunc(basePriceCents);
+
+        const oldPriceCents = saleApplied
+            ? Math.trunc(basePriceCents)
+            : (
+                Number.isFinite(Number(product?.compareAtPriceCents)) &&
+                    Number(product.compareAtPriceCents) > displayPriceCents
+                    ? Number(product.compareAtPriceCents)
+                    : null
+            );
+
+        return {
+            displayPriceCents,
+            oldPriceCents,
+            saleApplied,
+        };
+    }
+
     function handleAdd(product) {
         const available = getAvailableQty(product);
         if (available <= 0) return;
@@ -194,11 +229,14 @@ export default function HomeShop() {
         const wanted = qtyById[product.id] ?? 1;
         const q = Math.min(Math.max(1, Number(wanted) || 1), available);
 
-        const isSet = isSetProduct(product);
-        const productToAdd =
-            isSet && isPiva
-                ? { ...product, priceCents: 5400 }
-                : product;
+        const {
+            displayPriceCents,
+        } = getCardPriceInfo(product);
+
+        const productToAdd = {
+            ...product,
+            priceCents: displayPriceCents,
+        };
 
         addToCartQty(productToAdd, q);
 
@@ -283,7 +321,11 @@ export default function HomeShop() {
                                     : (stockQty > 0 && available <= 0);
 
                                 const justAdded = !!addedFlashById[String(p.id)];
-                                const displayPriceCents = isSet ? (isPiva ? 5400 : 6000) : Number(p.priceCents || 0);
+                                const {
+                                    displayPriceCents,
+                                    oldPriceCents,
+                                    saleApplied,
+                                } = getCardPriceInfo(p);
 
                                 return (
                                     <div key={p.id} className="col-12 col-lg-6">
@@ -332,10 +374,14 @@ export default function HomeShop() {
                                                     </div>
                                                 ) : null}
 
-                                                {Number.isFinite(Number(p.compareAtPriceCents)) && Number(p.compareAtPriceCents) > displayPriceCents ? (
+                                                {oldPriceCents ? (
                                                     <div className="shop-price-row mb-2">
-                                                        <span className="shop-price-old">{formatEURFromCents(p.compareAtPriceCents)}</span>
+                                                        <span className="shop-price-old">{formatEURFromCents(oldPriceCents)}</span>
                                                         <span className="shop-price-now">{formatEURFromCents(displayPriceCents)}</span>
+
+                                                        {saleApplied ? (
+                                                            <span className="shop-price-sale-label">Promo</span>
+                                                        ) : null}
                                                     </div>
                                                 ) : (
                                                     <p className="card-text mb-2">{formatEURFromCents(displayPriceCents)}</p>

@@ -120,11 +120,31 @@ export default function ProductDetailShop() {
         ? (setBaseAvailableQty > 0 && available <= 0)
         : (stockQty > 0 && inCartQty >= stockQty);
 
-    const displayPriceCents = isSet ? (isPiva ? 5400 : 6000) : Number(product?.priceCents || 0);
+    const basePriceCents = isSet
+        ? (isPiva ? 5400 : 6000)
+        : Number(product?.priceCents || 0);
 
-    const hasCompareAt =
-        Number.isFinite(Number(product?.compareAtPriceCents)) &&
-        Number(product?.compareAtPriceCents) > displayPriceCents;
+    const salePriceCents = Number(product?.salePriceCents);
+
+    const saleApplied =
+        !isSet &&
+        Boolean(product?.saleEnabled) &&
+        Number.isFinite(salePriceCents) &&
+        salePriceCents >= 0 &&
+        salePriceCents < basePriceCents;
+
+    const displayPriceCents = saleApplied
+        ? Math.trunc(salePriceCents)
+        : Math.trunc(basePriceCents);
+
+    const oldPriceCents = saleApplied
+        ? Math.trunc(basePriceCents)
+        : (
+            Number.isFinite(Number(product?.compareAtPriceCents)) &&
+                Number(product.compareAtPriceCents) > displayPriceCents
+                ? Math.trunc(Number(product.compareAtPriceCents))
+                : null
+        );
 
     const images = useMemo(() => {
         const cover = String(product?.imageUrl || "").trim();
@@ -298,7 +318,10 @@ export default function ProductDetailShop() {
 
         if (safeQ <= 0) return;
 
-        const productToAdd = isSet && isPiva ? { ...product, priceCents: 5400 } : product;
+        const productToAdd = {
+            ...product,
+            priceCents: displayPriceCents,
+        };
         addToCartQty(productToAdd, safeQ);
         setQty(1);
     }
@@ -535,14 +558,21 @@ export default function ProductDetailShop() {
                                     </div>
 
                                     <div className="product-detail-price">
-                                        {hasCompareAt ? (
+                                        {oldPriceCents ? (
                                             <div className="product-detail-price-row">
                                                 <div className="product-detail-price-old">
-                                                    {formatEURFromCents(product.compareAtPriceCents)}
+                                                    {formatEURFromCents(oldPriceCents)}
                                                 </div>
+
                                                 <div className="product-detail-price-now">
                                                     {formatEURFromCents(displayPriceCents)}
                                                 </div>
+
+                                                {saleApplied ? (
+                                                    <div className="product-detail-price-sale-label">
+                                                        Promo
+                                                    </div>
+                                                ) : null}
                                             </div>
                                         ) : (
                                             <div className="product-detail-price-now">

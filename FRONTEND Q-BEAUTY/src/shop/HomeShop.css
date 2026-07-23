@@ -222,3 +222,16 @@ button.btn.shop-btn-primary:disabled {
     letter-spacing: .2px;
 }
 
+.shop-price-sale-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(222, 190, 104, 0.45);
+    color: #debe68;
+    font-size: 12px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}

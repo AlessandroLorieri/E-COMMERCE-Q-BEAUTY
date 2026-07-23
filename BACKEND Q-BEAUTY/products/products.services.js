@@ -338,6 +338,18 @@ async function createProduct(payload) {
 
     const priceCents = Number(payload?.priceCents);
     const compareAtNorm = normalizeOptionalCents(payload?.compareAtPriceCents);
+
+    const saleEnabled = payload?.saleEnabled === undefined ? false : Boolean(payload.saleEnabled);
+    const salePriceNorm = normalizeOptionalCents(payload?.salePriceCents);
+    const saleBlocksCustomerDiscounts =
+        payload?.saleBlocksCustomerDiscounts === undefined
+            ? true
+            : Boolean(payload.saleBlocksCustomerDiscounts);
+    const saleBlocksCoupons =
+        payload?.saleBlocksCoupons === undefined
+            ? true
+            : Boolean(payload.saleBlocksCoupons);
+
     const stockQty = Number(payload?.stockQty);
     const isActive = payload?.isActive === undefined ? true : Boolean(payload.isActive);
 
@@ -367,6 +379,22 @@ async function createProduct(payload) {
             errors.compareAtPriceCents = "Il prezzo originale deve essere >= del prezzo finale";
         }
     }
+    if (payload?.salePriceCents !== undefined) {
+        if (Number.isNaN(salePriceNorm)) {
+            errors.salePriceCents = "salePriceCents non valido";
+        } else if (
+            salePriceNorm !== null &&
+            Number.isFinite(priceCents) &&
+            salePriceNorm >= priceCents
+        ) {
+            errors.salePriceCents = "Il prezzo promo deve essere inferiore al prezzo di listino";
+        }
+    }
+
+    if (saleEnabled && (salePriceNorm === undefined || salePriceNorm === null)) {
+        errors.salePriceCents = "Inserisci un prezzo promo oppure disattiva la promozione";
+    }
+
     if (!Number.isFinite(stockQty) || stockQty < 0) errors.stockQty = "stockQty non valido";
     if (!Number.isFinite(sortOrder) || sortOrder < 0) errors.sortOrder = "sortOrder non valido";
     if (!validateOptionalUrl(imageUrl)) {
@@ -409,6 +437,12 @@ async function createProduct(payload) {
             name,
             priceCents: Math.trunc(priceCents),
             ...(compareAtNorm !== undefined ? { compareAtPriceCents: compareAtNorm } : {}),
+
+            saleEnabled,
+            ...(salePriceNorm !== undefined ? { salePriceCents: salePriceNorm } : {}),
+            saleBlocksCustomerDiscounts,
+            saleBlocksCoupons,
+
             stockQty: Math.trunc(stockQty),
             sortOrder: Math.trunc(sortOrder),
 
@@ -495,6 +529,47 @@ async function updateProduct(idOrProductId, payload) {
 
             updates.compareAtPriceCents = v;
         }
+    }
+
+    if (payload?.saleEnabled !== undefined) {
+        updates.saleEnabled = Boolean(payload.saleEnabled);
+    }
+
+    if (payload?.salePriceCents !== undefined) {
+        const v = normalizeOptionalCents(payload.salePriceCents);
+
+        if (Number.isNaN(v)) {
+            errors.salePriceCents = "salePriceCents non valido";
+        } else {
+            if (v !== null) {
+                let finalPrice = updates.priceCents;
+
+                if (finalPrice === undefined) {
+                    const current = await Product.findOne(query).select({ priceCents: 1 }).lean();
+                    if (!current) {
+                        const err = new Error("Product not found");
+                        err.status = 404;
+                        throw err;
+                    }
+
+                    finalPrice = current.priceCents;
+                }
+
+                if (v >= finalPrice) {
+                    errors.salePriceCents = "Il prezzo promo deve essere inferiore al prezzo di listino";
+                }
+            }
+
+            updates.salePriceCents = v;
+        }
+    }
+
+    if (payload?.saleBlocksCustomerDiscounts !== undefined) {
+        updates.saleBlocksCustomerDiscounts = Boolean(payload.saleBlocksCustomerDiscounts);
+    }
+
+    if (payload?.saleBlocksCoupons !== undefined) {
+        updates.saleBlocksCoupons = Boolean(payload.saleBlocksCoupons);
     }
 
     if (payload?.stockQty !== undefined) {
@@ -587,6 +662,51 @@ async function updateProduct(idOrProductId, payload) {
             if (b.textColor !== undefined) {
                 updates["badge.textColor"] = normalizeOptionalString(b.textColor);
             }
+        }
+    }
+
+    if (
+        updates.saleEnabled !== undefined ||
+        updates.salePriceCents !== undefined ||
+        updates.priceCents !== undefined
+    ) {
+        const current = await Product.findOne(query)
+            .select({ priceCents: 1, saleEnabled: 1, salePriceCents: 1 })
+            .lean();
+
+        if (!current) {
+            const err = new Error("Product not found");
+            err.status = 404;
+            throw err;
+        }
+
+        const finalPrice =
+            updates.priceCents !== undefined
+                ? updates.priceCents
+                : Number(current.priceCents);
+
+        const finalSaleEnabled =
+            updates.saleEnabled !== undefined
+                ? updates.saleEnabled
+                : Boolean(current.saleEnabled);
+
+        const finalSalePrice =
+            updates.salePriceCents !== undefined
+                ? updates.salePriceCents
+                : current.salePriceCents ?? null;
+
+        if (finalSaleEnabled && finalSalePrice === null) {
+            errors.salePriceCents = "Inserisci un prezzo promo oppure disattiva la promozione";
+        }
+
+        if (
+            finalSaleEnabled &&
+            finalSalePrice !== null &&
+            Number.isFinite(Number(finalSalePrice)) &&
+            Number.isFinite(Number(finalPrice)) &&
+            Number(finalSalePrice) >= Number(finalPrice)
+        ) {
+            errors.salePriceCents = "Il prezzo promo deve essere inferiore al prezzo di listino";
         }
     }
 

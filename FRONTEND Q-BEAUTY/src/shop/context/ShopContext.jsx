@@ -124,11 +124,23 @@ function normalizeProductFromApi(p) {
     const id = mongoId || legacyId;
     if (!id) return null;
 
-    const priceCents =
+    const originalPriceCents =
         Number(p?.priceCents ?? p?.unitPriceCents ?? p?.amountCents ?? p?.price_in_cents) ||
         (p?.price != null && p?.price !== "" ? toCents(p.price) : 0);
 
-    const price = p?.price != null && p?.price !== "" ? p.price : priceCents / 100;
+    const salePriceCents = Number(p?.salePriceCents);
+
+    const saleApplied =
+        Boolean(p?.saleEnabled) &&
+        Number.isFinite(salePriceCents) &&
+        salePriceCents >= 0 &&
+        salePriceCents < originalPriceCents;
+
+    const priceCents = saleApplied
+        ? Math.trunc(salePriceCents)
+        : Math.trunc(originalPriceCents);
+
+    const price = priceCents / 100;
 
     const image =
         p?.image ||
@@ -145,8 +157,12 @@ function normalizeProductFromApi(p) {
         id,
         _id: mongoId || p?._id,
         legacyId,
+
+        originalPriceCents: Math.trunc(originalPriceCents),
         priceCents,
         price,
+
+        saleApplied,
         image,
         __active: isProductActive(p),
     };

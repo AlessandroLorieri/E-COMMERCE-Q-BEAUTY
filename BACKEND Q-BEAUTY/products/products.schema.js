@@ -12,6 +12,14 @@ const ProductSchema = new mongoose.Schema(
 
         compareAtPriceCents: { type: Number, default: null, min: 0 },
 
+        saleEnabled: { type: Boolean, default: false },
+
+        salePriceCents: { type: Number, default: null, min: 0 },
+
+        saleBlocksCustomerDiscounts: { type: Boolean, default: true },
+
+        saleBlocksCoupons: { type: Boolean, default: true },
+
         stockQty: { type: Number, required: true, min: 0, default: 0, index: true },
 
         imageUrl: { type: String, default: null, trim: true },

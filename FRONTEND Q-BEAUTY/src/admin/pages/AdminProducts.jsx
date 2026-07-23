@@ -133,6 +133,12 @@ export default function AdminProducts() {
         name: "",
         priceEur: "",
         compareAtPriceEur: "",
+
+        saleEnabled: false,
+        salePriceEur: "",
+        saleBlocksCustomerDiscounts: true,
+        saleBlocksCoupons: true,
+
         stockQty: "0",
         sortOrder: "9999",
         isActive: true,
@@ -226,6 +232,12 @@ export default function AdminProducts() {
             name: "",
             priceEur: "",
             compareAtPriceEur: "",
+
+            saleEnabled: false,
+            salePriceEur: "",
+            saleBlocksCustomerDiscounts: true,
+            saleBlocksCoupons: true,
+
             stockQty: "0",
             sortOrder: "9999",
             isActive: true,
@@ -258,6 +270,15 @@ export default function AdminProducts() {
                 p.compareAtPriceCents == null
                     ? ""
                     : String(((Number(p.compareAtPriceCents || 0) / 100) || 0).toFixed(2)).replace(".", ","),
+
+            saleEnabled: !!p.saleEnabled,
+            salePriceEur:
+                p.salePriceCents == null
+                    ? ""
+                    : String(((Number(p.salePriceCents || 0) / 100) || 0).toFixed(2)).replace(".", ","),
+            saleBlocksCustomerDiscounts: p.saleBlocksCustomerDiscounts !== false,
+            saleBlocksCoupons: p.saleBlocksCoupons !== false,
+
             stockQty: String(p.stockQty ?? 0),
             sortOrder: String(p.sortOrder ?? 9999),
             isActive: !!p.isActive,
@@ -311,6 +332,28 @@ export default function AdminProducts() {
             compareAtClear = true;
         }
 
+        const saleRaw = String(form.salePriceEur ?? "").trim();
+        let salePriceCents = undefined;
+        let salePriceClear = false;
+
+        if (saleRaw) {
+            const v = eurosToCents(saleRaw);
+
+            if (v === null) {
+                errors.salePriceEur = "Prezzo promo non valido";
+            } else if (priceCents !== null && v >= priceCents) {
+                errors.salePriceEur = "Il prezzo promo deve essere inferiore al prezzo di listino";
+            } else {
+                salePriceCents = v;
+            }
+        } else {
+            salePriceClear = true;
+        }
+
+        if (form.saleEnabled && !saleRaw) {
+            errors.salePriceEur = "Inserisci un prezzo promo oppure disattiva la promozione";
+        }
+
         const imageUrl = String(form.imageUrl || "").trim();
 
         if (imageUrl && !isValidProductMediaUrl(imageUrl)) {
@@ -334,6 +377,13 @@ export default function AdminProducts() {
             priceCents,
             compareAtPriceCents,
             compareAtClear,
+
+            saleEnabled: !!form.saleEnabled,
+            salePriceCents,
+            salePriceClear,
+            saleBlocksCustomerDiscounts: !!form.saleBlocksCustomerDiscounts,
+            saleBlocksCoupons: !!form.saleBlocksCoupons,
+
             stockQty: Math.trunc(stock),
             sortOrder: Math.trunc(sortOrder),
             galleryUrls,
@@ -345,7 +395,22 @@ export default function AdminProducts() {
         e.preventDefault();
         setErrMsg("");
 
-        const { ok, priceCents, compareAtPriceCents, compareAtClear, stockQty, sortOrder, galleryUrls } = validateForm();
+        const {
+            ok,
+            priceCents,
+            compareAtPriceCents,
+            compareAtClear,
+
+            saleEnabled,
+            salePriceCents,
+            salePriceClear,
+            saleBlocksCustomerDiscounts,
+            saleBlocksCoupons,
+
+            stockQty,
+            sortOrder,
+            galleryUrls,
+        } = validateForm();
         if (!ok) return;
 
         const howTo = String(form.howToText || "")
@@ -387,6 +452,11 @@ export default function AdminProducts() {
 
                         ...(compareAtPriceCents !== undefined ? { compareAtPriceCents } : {}),
 
+                        saleEnabled,
+                        ...(salePriceCents !== undefined ? { salePriceCents } : {}),
+                        saleBlocksCustomerDiscounts,
+                        saleBlocksCoupons,
+
                         stockQty,
                         sortOrder,
                         isActive: !!form.isActive,
@@ -408,6 +478,12 @@ export default function AdminProducts() {
                         name: String(form.name).trim(),
                         priceCents,
                         compareAtPriceCents: compareAtClear ? null : compareAtPriceCents,
+
+                        saleEnabled,
+                        salePriceCents: salePriceClear ? null : salePriceCents,
+                        saleBlocksCustomerDiscounts,
+                        saleBlocksCoupons,
+
                         stockQty,
                         sortOrder,
                         isActive: !!form.isActive,
@@ -440,8 +516,8 @@ export default function AdminProducts() {
                 if (payloadErrors.howTo) mapped.howToText = payloadErrors.howTo;
                 if (payloadErrors.ingredients) mapped.ingredientsText = payloadErrors.ingredients;
                 if (payloadErrors.compareAtPriceCents) mapped.compareAtPriceEur = payloadErrors.compareAtPriceCents;
-                if (payloadErrors.badge) mapped.badge = payloadErrors.badge;
-                setFormErrors((prev) => ({ ...prev, ...mapped }));
+                if (payloadErrors.salePriceCents) mapped.salePriceEur = payloadErrors.salePriceCents;
+                if (payloadErrors.badge) mapped.badge = payloadErrors.badge; setFormErrors((prev) => ({ ...prev, ...mapped }));
             }
             setErrMsg(e2.message || "Errore salvataggio");
         } finally {
@@ -649,6 +725,115 @@ export default function AdminProducts() {
                             ) : null}
                         </div>
 
+                        <div className="col-12">
+                            <hr className="my-2" />
+                            <h6 className="m-0">Promozione prodotto</h6>
+                            <div className="text-muted" style={{ fontSize: 13 }}>
+                                Gestisce il prezzo promo per clienti privati e P.IVA. I partner restano esclusi da questa logica.
+                            </div>
+                        </div>
+
+                        <div className="col-12">
+                            <div className="form-check">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    checked={!!form.saleEnabled}
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+
+                                        setForm((f) => ({
+                                            ...f,
+                                            saleEnabled: checked,
+
+                                            ...(checked
+                                                ? {}
+                                                : {
+                                                    salePriceEur: "",
+                                                    saleBlocksCustomerDiscounts: true,
+                                                    saleBlocksCoupons: true,
+                                                }),
+                                        }));
+                                    }}
+                                    id="saleEnabled"
+                                />
+                                <label className="form-check-label" htmlFor="saleEnabled">
+                                    Attiva prezzo promozionale
+                                </label>
+                            </div>
+
+                            <div className="form-text">
+                                Se attivo, privati e P.IVA vedranno il prezzo promo. I partner continueranno a usare il prezzo di listino.
+                            </div>
+                        </div>
+
+                        {form.saleEnabled ? (
+                            <>
+                                <div className="col-md-3">
+                                    <label className="form-label">Prezzo promo (EUR)</label>
+                                    <input
+                                        className={`form-control ${formErrors.salePriceEur ? "is-invalid" : ""}`}
+                                        placeholder="es. 19,90"
+                                        value={form.salePriceEur}
+                                        onChange={(e) => setForm((f) => ({ ...f, salePriceEur: e.target.value }))}
+                                    />
+                                    {formErrors.salePriceEur ? (
+                                        <div className="invalid-feedback">{formErrors.salePriceEur}</div>
+                                    ) : (
+                                        <div className="form-text">
+                                            Deve essere inferiore al prezzo di listino.
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="col-md-4">
+                                    <div className="form-check mt-md-4 pt-md-2">
+                                        <input
+                                            className="form-check-input"
+                                            type="checkbox"
+                                            checked={!!form.saleBlocksCustomerDiscounts}
+                                            onChange={(e) => setForm((f) => ({ ...f, saleBlocksCustomerDiscounts: e.target.checked }))}
+                                            id="saleBlocksCustomerDiscounts"
+                                        />
+                                        <label className="form-check-label" htmlFor="saleBlocksCustomerDiscounts">
+                                            Blocca sconti automatici clienti
+                                        </label>
+                                    </div>
+
+                                    <div className="form-text">
+                                        Blocca primo acquisto -10%, P.IVA -15% e quantità -25% su questo prodotto.
+                                    </div>
+                                </div>
+
+                                <div className="col-md-4">
+                                    <div className="form-check mt-md-4 pt-md-2">
+                                        <input
+                                            className="form-check-input"
+                                            type="checkbox"
+                                            checked={!!form.saleBlocksCoupons}
+                                            onChange={(e) => setForm((f) => ({ ...f, saleBlocksCoupons: e.target.checked }))}
+                                            id="saleBlocksCoupons"
+                                        />
+                                        <label className="form-check-label" htmlFor="saleBlocksCoupons">
+                                            Blocca coupon promozionali
+                                        </label>
+                                    </div>
+
+                                    <div className="form-text">
+                                        Blocca i coupon creati dal pannello admin su questo prodotto.
+                                    </div>
+                                </div>
+                            </>
+                        ) : null}
+
+                        <div className="col-12 mt-4">
+                            <hr className="my-2" />
+                            <h6 className="m-0">Immagini prodotto</h6>
+                            <div className="text-muted" style={{ fontSize: 13 }}>
+                                Inserisci l’immagine principale e le immagini gallery mostrate nella scheda prodotto.
+                            </div>
+                        </div>
+
                         <div className="col-md-6">
                             <label className="form-label">Immagine (URL Cloudflare)</label>
                             <input
@@ -846,7 +1031,13 @@ export default function AdminProducts() {
                                 <td style={{ padding: "14px 18px 14px 6px" }}>{p.name}</td>
 
                                 <td className="text-nowrap" style={{ padding: "14px 18px" }}>
-                                    {formatEURFromCents(p.priceCents)}
+                                    <div>{formatEURFromCents(p.priceCents)}</div>
+
+                                    {p.saleEnabled && p.salePriceCents != null ? (
+                                        <div className="text-success" style={{ fontSize: 13 }}>
+                                            Promo: {formatEURFromCents(p.salePriceCents)}
+                                        </div>
+                                    ) : null}
                                 </td>
 
                                 <td className="text-nowrap" style={{ padding: "14px 18px" }}>

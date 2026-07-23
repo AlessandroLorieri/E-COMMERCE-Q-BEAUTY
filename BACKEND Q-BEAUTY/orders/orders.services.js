@@ -452,17 +452,30 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
         const slug = p.productId ? String(p.productId) : null;
         const isSet = normProductId(slug) === SET_ID_NORM;
 
-        let unitPriceCents = Number(p.priceCents);
+        const originalUnitPriceCents = Number(p.priceCents);
 
-        if (isSet) {
-            unitPriceCents = user.customerType === "piva" ? 5400 : 6000;
-        }
-
-        if (!Number.isFinite(unitPriceCents) || unitPriceCents < 0) {
+        if (!Number.isFinite(originalUnitPriceCents) || originalUnitPriceCents < 0) {
             const err = new Error("Prezzo prodotto non valido");
             err.status = 500;
             throw err;
         }
+
+        let baseUnitPriceCents = originalUnitPriceCents;
+
+        if (isSet) {
+            baseUnitPriceCents = user.customerType === "piva" ? 5400 : 6000;
+        }
+
+        const salePriceCents = Number(p.salePriceCents);
+        const saleCanApply =
+            Boolean(p.saleEnabled) &&
+            Number.isFinite(salePriceCents) &&
+            salePriceCents >= 0 &&
+            salePriceCents < baseUnitPriceCents;
+
+        let unitPriceCents = saleCanApply
+            ? Math.trunc(salePriceCents)
+            : Math.trunc(baseUnitPriceCents);
 
         const lineTotalCents = unitPriceCents * i.qty;
 
@@ -472,6 +485,15 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
             productSlug: p.productId ? String(p.productId) : null,
             name: p.name,
             qty: i.qty,
+
+            originalUnitPriceCents: Math.trunc(originalUnitPriceCents),
+            baseUnitPriceCents: Math.trunc(baseUnitPriceCents),
+
+            saleApplied: saleCanApply,
+            salePriceCents: saleCanApply ? Math.trunc(salePriceCents) : null,
+            saleBlocksCustomerDiscounts: p.saleBlocksCustomerDiscounts !== false,
+            saleBlocksCoupons: p.saleBlocksCoupons !== false,
+
             unitPriceCents,
             lineTotalCents,
             couponDiscountCents: 0,
@@ -552,10 +574,28 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
     if (shouldUseFullSetPriceForGlobalDiscount) {
         for (const it of resolvedItems) {
             const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
-            if (!isSetLine) continue;
 
-            it.unitPriceCents = SET_FULL_PRICE_CENTS;
-            it.lineTotalCents = SET_FULL_PRICE_CENTS * (Number(it.qty) || 1);
+            if (partnerDiscountActive) {
+                const originalUnitPrice = isSetLine
+                    ? SET_FULL_PRICE_CENTS
+                    : Number(it.originalUnitPriceCents);
+
+                it.unitPriceCents = Math.trunc(originalUnitPrice);
+                it.lineTotalCents = it.unitPriceCents * (Number(it.qty) || 1);
+
+                it.saleApplied = false;
+                it.salePriceCents = null;
+
+                continue;
+            }
+
+            if (shouldUseFullSetPriceForGlobalDiscount && isSetLine) {
+                it.unitPriceCents = SET_FULL_PRICE_CENTS;
+                it.lineTotalCents = SET_FULL_PRICE_CENTS * (Number(it.qty) || 1);
+
+                it.saleApplied = false;
+                it.salePriceCents = null;
+            }
         }
     }
 
@@ -565,6 +605,10 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
 
     const discountBaseCents = resolvedItems.reduce((sum, it) => {
         const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
+
+        if (!partnerDiscountActive && it.saleApplied && it.saleBlocksCustomerDiscounts) {
+            return sum;
+        }
 
         if (!shouldUseFullSetPriceForGlobalDiscount && isSetLine) {
             return sum;
@@ -609,6 +653,10 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
     for (let i = 0; i < resolvedItems.length; i++) {
         const it = resolvedItems[i];
         const isSetLine = normProductId(it.productSlug || "") === SET_ID_NORM;
+
+        if (!partnerDiscountActive && it.saleApplied && it.saleBlocksCustomerDiscounts) {
+            continue;
+        }
 
         if (shouldUseFullSetPriceForGlobalDiscount) {
             discountableIdx.push(i);
@@ -722,6 +770,10 @@ async function computeQuote(userId, itemsRaw, couponCodeRaw, partnerCouponCodeRa
 
             const rule = ruleMap.get(normProductId(it.productSlug || ""));
             if (!rule) continue;
+
+            if (it.saleApplied && it.saleBlocksCoupons) {
+                continue;
+            }
 
             const type = String(rule.type || "").trim();
             const value = Number(rule.value);
