@@ -1331,12 +1331,12 @@ export default function AdminPartners() {
                                                                 </div>
 
                                                                 <div className="col-12 col-md-6">
-                                                                    <div className="text-muted">Ultimo ordine partner</div>
+                                                                    <div className="text-muted">Ordine attivazione/rinnovo</div>
                                                                     <div>{partner.associationLastOrderPublicId || "—"}</div>
                                                                 </div>
 
                                                                 <div className="col-12 col-md-6">
-                                                                    <div className="text-muted">Data ultimo ordine partner</div>
+                                                                    <div className="text-muted">Data attivazione/rinnovo</div>
                                                                     <div>{formatDateIT(partner.associationLastOrderAt)}</div>
                                                                 </div>
                                                             </div>
