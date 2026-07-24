@@ -17,12 +17,14 @@ function normalizePartnerCouponCode(v) {
     return String(v || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
-const VALID_SPENT_STATUSES = new Set([
+const VALID_SPENT_STATUS_LIST = [
     "paid",
     "processing",
     "shipped",
     "completed",
-]);
+];
+
+const VALID_SPENT_STATUSES = new Set(VALID_SPENT_STATUS_LIST);
 
 function sumOrderPieces(order) {
     if (!Array.isArray(order?.items)) return 0;
@@ -321,6 +323,7 @@ async function adminGetPartnerOrders(id) {
     }
 
     const orders = await Order.find({
+        status: { $in: VALID_SPENT_STATUS_LIST },
         $or: orConditions,
     })
         .sort({ createdAt: -1 })
