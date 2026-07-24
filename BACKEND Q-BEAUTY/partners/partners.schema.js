@@ -37,6 +37,13 @@ const partnerSchema = new mongoose.Schema(
             set: normalizeText,
         },
 
+        contactPersonName: {
+            type: String,
+            default: "",
+            trim: true,
+            set: normalizeText,
+        },
+
         slug: {
             type: String,
             default: "",
@@ -158,6 +165,13 @@ const partnerSchema = new mongoose.Schema(
         },
 
         instagram: {
+            type: String,
+            default: "",
+            trim: true,
+            set: normalizeUrl,
+        },
+
+        personalInstagram: {
             type: String,
             default: "",
             trim: true,

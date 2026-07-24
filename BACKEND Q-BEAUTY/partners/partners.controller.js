@@ -3,6 +3,7 @@ const {
     getPublicPartnerBySlug,
     adminListPartners,
     adminGetPartner,
+    adminGetPartnerOrders,
     createPartner,
     updatePartner,
     deletePartner,
@@ -60,6 +61,19 @@ async function adminGet(req, res) {
     }
 }
 
+async function adminGetOrders(req, res) {
+    try {
+        const data = await adminGetPartnerOrders(req.params.id);
+        return res.json(data);
+    } catch (err) {
+        console.error("partners.adminGetOrders error:", err);
+        return res.status(err.status || 500).json({
+            message: err.message || "Errore caricamento ordini partner",
+            errors: err.errors || undefined,
+        });
+    }
+}
+
 async function adminCreate(req, res) {
     try {
         const partner = await createPartner(req.body || {});
@@ -104,6 +118,7 @@ module.exports = {
     publicGetBySlug,
     adminList,
     adminGet,
+    adminGetOrders,
     adminCreate,
     adminUpdate,
     adminDelete,

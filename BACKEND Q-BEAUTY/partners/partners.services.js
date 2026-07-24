@@ -1,4 +1,5 @@
 const Partner = require("./partners.schema");
+const Order = require("../orders/orders.schema");
 
 function normalizeText(v) {
     return String(v || "").trim();
@@ -16,6 +17,62 @@ function normalizePartnerCouponCode(v) {
     return String(v || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
+const VALID_SPENT_STATUSES = new Set([
+    "paid",
+    "processing",
+    "shipped",
+    "completed",
+]);
+
+function sumOrderPieces(order) {
+    if (!Array.isArray(order?.items)) return 0;
+
+    return order.items.reduce((sum, item) => {
+        return sum + Math.max(0, Math.trunc(Number(item?.qty) || 0));
+    }, 0);
+}
+
+function mapPartnerOrder(order) {
+    const piecesCount = sumOrderPieces(order);
+    const isValidSpentStatus = VALID_SPENT_STATUSES.has(String(order?.status || ""));
+
+    return {
+        _id: String(order._id),
+        publicId: order.publicId || "",
+        createdAt: order.createdAt || null,
+        status: order.status || "",
+        piecesCount,
+
+        subtotalCents: Number(order.subtotalCents) || 0,
+        discountCents: Number(order.discountCents) || 0,
+        couponDiscountCents: Number(order.couponDiscountCents) || 0,
+        globalDiscountCents: Number(order.globalDiscountCents) || 0,
+        shippingCents: Number(order.shippingCents) || 0,
+        totalCents: Number(order.totalCents) || 0,
+
+        partnerCouponCodeApplied: order.partnerCouponCodeApplied || "",
+        partnerActivationEligible: !!order.partnerActivationEligible,
+        discountType: order.discountType || "none",
+
+        paymentProvider: order.paymentProvider || "",
+        paymentMethodType: order.paymentMethodType || "",
+        paymentMethodLabel: order.paymentMethodLabel || "",
+
+        isValidSpentStatus,
+
+        items: Array.isArray(order.items)
+            ? order.items.map((item) => ({
+                productId: item.productId || "",
+                productSlug: item.productSlug || "",
+                name: item.name || "",
+                qty: Number(item.qty) || 0,
+                unitPriceCents: Number(item.unitPriceCents) || 0,
+                lineTotalCents: Number(item.lineTotalCents) || 0,
+                couponDiscountCents: Number(item.couponDiscountCents) || 0,
+            }))
+            : [],
+    };
+}
 
 function normalizeCap(v) {
     return String(v || "").replace(/\D/g, "").trim();
@@ -67,6 +124,7 @@ function parseTextList(value) {
 function normalizePartnerPayload(payload = {}) {
     return {
         name: normalizeText(payload.name),
+        contactPersonName: normalizeText(payload.contactPersonName),
         slug: normalizeLower(payload.slug),
         address: normalizeText(payload.address),
         cap: normalizeCap(payload.cap),
@@ -81,6 +139,7 @@ function normalizePartnerPayload(payload = {}) {
         partnerCouponEnabled: parseBoolean(payload.partnerCouponEnabled, false),
         website: normalizeUrl(payload.website),
         instagram: normalizeUrl(payload.instagram),
+        personalInstagram: normalizeUrl(payload.personalInstagram),
         services: parseTextList(payload.services),
         treatments: parseTextList(payload.treatments),
         description: normalizeText(payload.description),
@@ -143,6 +202,10 @@ function validatePartnerPayload(data) {
 
     if (data.instagram && !/^https?:\/\//i.test(String(data.instagram))) {
         errors.instagram = "URL Instagram non valido";
+    }
+
+    if (data.personalInstagram && !/^https?:\/\//i.test(String(data.personalInstagram))) {
+        errors.personalInstagram = "URL Instagram personale non valido";
     }
 
     if (data.lat != null) {
@@ -240,6 +303,87 @@ async function adminGetPartner(id) {
     return partner;
 }
 
+async function adminGetPartnerOrders(id) {
+    const partner = await Partner.findById(id).lean();
+
+    if (!partner) {
+        const err = new Error("Partner not found");
+        err.status = 404;
+        throw err;
+    }
+
+    const orConditions = [{ partnerRef: partner._id }];
+
+    const couponCode = normalizePartnerCouponCode(partner.partnerCouponCode);
+
+    if (couponCode) {
+        orConditions.push({ partnerCouponCodeApplied: couponCode });
+    }
+
+    const orders = await Order.find({
+        $or: orConditions,
+    })
+        .sort({ createdAt: -1 })
+        .select({
+            publicId: 1,
+            createdAt: 1,
+            status: 1,
+            items: 1,
+
+            subtotalCents: 1,
+            discountCents: 1,
+            couponDiscountCents: 1,
+            globalDiscountCents: 1,
+            shippingCents: 1,
+            totalCents: 1,
+
+            partnerRef: 1,
+            partnerCouponCodeApplied: 1,
+            partnerName: 1,
+            partnerActivationEligible: 1,
+            discountType: 1,
+
+            paymentProvider: 1,
+            paymentMethodType: 1,
+            paymentMethodLabel: 1,
+        })
+        .lean();
+
+    const mappedOrders = orders.map(mapPartnerOrder);
+
+    const validOrders = mappedOrders.filter((order) => order.isValidSpentStatus);
+
+    const summary = validOrders.reduce(
+        (acc, order) => {
+            acc.ordersCount += 1;
+            acc.piecesCount += Number(order.piecesCount) || 0;
+            acc.spentCents += Number(order.totalCents) || 0;
+
+            if (!acc.lastOrderAt || new Date(order.createdAt) > new Date(acc.lastOrderAt)) {
+                acc.lastOrderAt = order.createdAt;
+            }
+
+            return acc;
+        },
+        {
+            ordersCount: 0,
+            piecesCount: 0,
+            spentCents: 0,
+            lastOrderAt: null,
+        }
+    );
+
+    return {
+        partner: {
+            _id: String(partner._id),
+            name: partner.name || "",
+            partnerCouponCode: partner.partnerCouponCode || "",
+        },
+        summary,
+        orders: mappedOrders,
+    };
+}
+
 async function createPartner(payload) {
     const data = normalizePartnerPayload(payload);
     validatePartnerPayload(data);
@@ -260,6 +404,7 @@ async function updatePartner(id, payload) {
 
     const data = normalizePartnerPayload({
         name: payload.name ?? existing.name,
+        contactPersonName: payload.contactPersonName ?? existing.contactPersonName,
         slug: payload.slug ?? existing.slug,
         address: payload.address ?? existing.address,
         cap: payload.cap ?? existing.cap,
@@ -274,6 +419,7 @@ async function updatePartner(id, payload) {
         partnerCouponEnabled: payload.partnerCouponEnabled ?? existing.partnerCouponEnabled,
         website: payload.website ?? existing.website,
         instagram: payload.instagram ?? existing.instagram,
+        personalInstagram: payload.personalInstagram ?? existing.personalInstagram,
         services: payload.services ?? existing.services,
         treatments: payload.treatments ?? existing.treatments,
         description: payload.description ?? existing.description,
@@ -313,6 +459,7 @@ module.exports = {
     getPublicPartnerBySlug,
     adminListPartners,
     adminGetPartner,
+    adminGetPartnerOrders,
     createPartner,
     updatePartner,
     deletePartner,

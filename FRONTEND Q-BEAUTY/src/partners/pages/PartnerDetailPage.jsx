@@ -8,6 +8,44 @@ function renderServices(services = []) {
     return services.join(" • ");
 }
 
+function formatInstagramLabel(url) {
+    const raw = String(url || "").trim();
+    if (!raw) return "";
+
+    try {
+        const parsed = new URL(raw);
+        const handle = parsed.pathname
+            .split("/")
+            .map((part) => part.trim())
+            .filter(Boolean)[0];
+
+        return handle ? `@${handle.replace(/^@+/, "")}` : "Instagram";
+    } catch {
+        return raw.startsWith("@") ? raw : "Instagram";
+    }
+}
+
+function formatWebsiteLabel(url) {
+    const raw = String(url || "").trim();
+    if (!raw) return "";
+
+    try {
+        const parsed = new URL(raw);
+        return parsed.hostname.replace(/^www\./i, "");
+    } catch {
+        return raw
+            .replace(/^https?:\/\//i, "")
+            .replace(/^www\./i, "")
+            .replace(/\/+$/, "");
+    }
+}
+
+function normalizeList(value) {
+    return Array.isArray(value)
+        ? value.map((v) => String(v || "").trim()).filter(Boolean)
+        : [];
+}
+
 const GOOGLE_MAPS_SCRIPT_ID = "google-maps-partner-detail-script";
 
 function loadGoogleMaps(apiKey) {
@@ -155,6 +193,10 @@ export default function PartnerDetailPage() {
         }
         return partner.image ? [partner.image] : [];
     }, [partner]);
+
+    const treatments = useMemo(() => {
+        return normalizeList(partner?.treatments);
+    }, [partner?.treatments]);
 
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [nextImageIndex, setNextImageIndex] = useState(null);
@@ -388,6 +430,12 @@ export default function PartnerDetailPage() {
                                                 {partner.name}
                                             </h1>
 
+                                            {partner.contactPersonName ? (
+                                                <div className="partner-detail-hero__referent">
+                                                    {partner.contactPersonName}
+                                                </div>
+                                            ) : null}
+
                                             <div className="partner-detail-hero__meta">
                                                 {partner.city} ({partner.province}) · {partner.region}
                                             </div>
@@ -446,7 +494,7 @@ export default function PartnerDetailPage() {
                                                             target="_blank"
                                                             rel="noreferrer"
                                                         >
-                                                            {partner.website}
+                                                            {formatWebsiteLabel(partner.website)}
                                                         </a>
                                                     </div>
                                                 ) : null}
@@ -459,7 +507,20 @@ export default function PartnerDetailPage() {
                                                             target="_blank"
                                                             rel="noreferrer"
                                                         >
-                                                            {partner.instagram}
+                                                            {formatInstagramLabel(partner.instagram)}
+                                                        </a>
+                                                    </div>
+                                                ) : null}
+
+                                                {partner.personalInstagram ? (
+                                                    <div className="partner-detail-contact-item">
+                                                        <strong>Instagram:</strong>{" "}
+                                                        <a
+                                                            href={partner.personalInstagram}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                        >
+                                                            {formatInstagramLabel(partner.personalInstagram)}
                                                         </a>
                                                     </div>
                                                 ) : null}
@@ -479,6 +540,22 @@ export default function PartnerDetailPage() {
                                         <p className="partner-detail-secondary-box__text">
                                             {partner.description}
                                         </p>
+
+                                        {treatments.length > 0 ? (
+                                            <div className="partner-detail-treatments">
+                                                <div className="partner-detail-treatments__title">
+                                                    Trattamenti principali
+                                                </div>
+
+                                                <ul className="partner-detail-treatments__list">
+                                                    {treatments.map((treatment, index) => (
+                                                        <li key={`${treatment}-${index}`}>
+                                                            {treatment}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ) : null}
                                     </div>
                                 </div>
 

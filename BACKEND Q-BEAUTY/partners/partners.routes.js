@@ -5,6 +5,7 @@ const {
     publicGetBySlug,
     adminList,
     adminGet,
+    adminGetOrders,
     adminCreate,
     adminUpdate,
     adminDelete,
@@ -22,6 +23,7 @@ router.get("/slug/:slug", publicGetBySlug);
  * ADMIN
  */
 router.get("/admin", authRequired, adminOnly, adminList);
+router.get("/admin/:id/orders", authRequired, adminOnly, adminGetOrders);
 router.get("/admin/:id", authRequired, adminOnly, adminGet);
 router.post("/admin", authRequired, adminOnly, adminCreate);
 router.patch("/admin/:id", authRequired, adminOnly, adminUpdate);

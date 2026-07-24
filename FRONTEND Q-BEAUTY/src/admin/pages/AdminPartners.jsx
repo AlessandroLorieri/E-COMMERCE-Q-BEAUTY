@@ -6,6 +6,7 @@ import "./AdminPartners.css";
 
 const EMPTY_FORM = {
     name: "",
+    contactPersonName: "",
     slug: "",
     address: "",
     cap: "",
@@ -20,6 +21,7 @@ const EMPTY_FORM = {
     partnerCouponEnabled: false,
     website: "",
     instagram: "",
+    personalInstagram: "",
     services: "",
     treatments: "",
     description: "",
@@ -69,6 +71,45 @@ function formatDateIT(value) {
         month: "2-digit",
         year: "numeric",
     }).format(date);
+}
+
+function formatMoneyCents(value) {
+    const cents = Number(value) || 0;
+
+    return new Intl.NumberFormat("it-IT", {
+        style: "currency",
+        currency: "EUR",
+    }).format(cents / 100);
+}
+
+function formatOrderStatus(status) {
+    const map = {
+        draft: "Bozza",
+        pending_payment: "In attesa pagamento",
+        paid: "Pagato",
+        processing: "In lavorazione",
+        shipped: "Spedito",
+        completed: "Completato",
+        cancelled: "Annullato",
+        refunded: "Rimborsato",
+    };
+
+    return map[status] || status || "—";
+}
+
+function getOrderStatusBadgeClass(status) {
+    const map = {
+        draft: "text-bg-secondary",
+        pending_payment: "text-bg-warning",
+        paid: "text-bg-success",
+        processing: "text-bg-primary",
+        shipped: "text-bg-info",
+        completed: "text-bg-success",
+        cancelled: "text-bg-danger",
+        refunded: "text-bg-dark",
+    };
+
+    return map[status] || "text-bg-secondary";
 }
 
 function getDaysUntil(value) {
@@ -268,6 +309,10 @@ export default function AdminPartners() {
     const [editingId, setEditingId] = useState("");
     const [expandedPartnerId, setExpandedPartnerId] = useState("");
 
+    const [partnerOrdersById, setPartnerOrdersById] = useState({});
+    const [partnerOrdersLoadingById, setPartnerOrdersLoadingById] = useState({});
+    const [partnerOrdersErrorById, setPartnerOrdersErrorById] = useState({});
+
     async function loadPartners() {
         if (!apiBase) {
             setError("VITE_API_URL mancante");
@@ -295,6 +340,45 @@ export default function AdminPartners() {
         }
     }
 
+    async function loadPartnerOrders(partnerIdRaw) {
+        const partnerId = String(partnerIdRaw || "");
+        if (!partnerId) return;
+
+        setPartnerOrdersLoadingById((prev) => ({
+            ...prev,
+            [partnerId]: true,
+        }));
+
+        setPartnerOrdersErrorById((prev) => ({
+            ...prev,
+            [partnerId]: "",
+        }));
+
+        try {
+            const res = await authFetch(`/api/partners/admin/${partnerId}/orders`);
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                throw new Error(data?.message || "Errore caricamento ordini partner");
+            }
+
+            setPartnerOrdersById((prev) => ({
+                ...prev,
+                [partnerId]: data,
+            }));
+        } catch (err) {
+            setPartnerOrdersErrorById((prev) => ({
+                ...prev,
+                [partnerId]: err.message || "Errore caricamento ordini partner",
+            }));
+        } finally {
+            setPartnerOrdersLoadingById((prev) => ({
+                ...prev,
+                [partnerId]: false,
+            }));
+        }
+    }
+
     useEffect(() => {
         loadPartners();
     }, []);
@@ -309,7 +393,19 @@ export default function AdminPartners() {
 
     function togglePartnerDetails(id) {
         const partnerId = String(id || "");
-        setExpandedPartnerId((prev) => (prev === partnerId ? "" : partnerId));
+        if (!partnerId) return;
+
+        const isOpening = expandedPartnerId !== partnerId;
+
+        setExpandedPartnerId(isOpening ? partnerId : "");
+
+        if (
+            isOpening &&
+            !partnerOrdersById[partnerId] &&
+            !partnerOrdersLoadingById[partnerId]
+        ) {
+            loadPartnerOrders(partnerId);
+        }
     }
 
     function handleChange(e) {
@@ -343,6 +439,7 @@ export default function AdminPartners() {
 
         setForm({
             name: partner.name || "",
+            contactPersonName: partner.contactPersonName || "",
             slug: partner.slug || "",
             address: partner.address || "",
             cap: partner.cap || "",
@@ -357,6 +454,7 @@ export default function AdminPartners() {
             partnerCouponEnabled: Boolean(partner.partnerCouponEnabled),
             website: partner.website || "",
             instagram: partner.instagram || "",
+            personalInstagram: partner.personalInstagram || "",
             services: toTextareaValue(partner.services),
             treatments: toTextareaValue(partner.treatments),
             description: partner.description || "",
@@ -393,6 +491,7 @@ export default function AdminPartners() {
     const payload = useMemo(() => {
         return {
             name: normalizeText(form.name),
+            contactPersonName: normalizeText(form.contactPersonName),
             slug: normalizeSlug(form.slug),
             address: normalizeText(form.address),
             cap: normalizeText(form.cap),
@@ -407,6 +506,7 @@ export default function AdminPartners() {
             partnerCouponEnabled: Boolean(form.partnerCouponEnabled),
             website: normalizeText(form.website),
             instagram: normalizeText(form.instagram),
+            personalInstagram: normalizeText(form.personalInstagram),
             services: form.services,
             treatments: form.treatments,
             description: normalizeText(form.description),
@@ -505,6 +605,24 @@ export default function AdminPartners() {
                 setExpandedPartnerId("");
             }
 
+            setPartnerOrdersById((prev) => {
+                const next = { ...prev };
+                delete next[String(id)];
+                return next;
+            });
+
+            setPartnerOrdersLoadingById((prev) => {
+                const next = { ...prev };
+                delete next[String(id)];
+                return next;
+            });
+
+            setPartnerOrdersErrorById((prev) => {
+                const next = { ...prev };
+                delete next[String(id)];
+                return next;
+            });
+
             await loadPartners();
         } catch (err) {
             setError(err.message || "Errore eliminazione partner");
@@ -557,7 +675,7 @@ export default function AdminPartners() {
                             <form onSubmit={handleSubmit} noValidate>
                                 <div className="row g-2">
                                     <div className="col-12">
-                                        <label className="form-label">Nome</label>
+                                        <label className="form-label">Nome Centro</label>
                                         <input
                                             className={`form-control ${fieldErrors.name ? "is-invalid" : ""}`}
                                             name="name"
@@ -565,6 +683,23 @@ export default function AdminPartners() {
                                             onChange={handleChange}
                                         />
                                         {fieldErrors.name ? <div className="invalid-feedback">{fieldErrors.name}</div> : null}
+                                    </div>
+
+                                    <div className="col-12">
+                                        <label className="form-label">Referente</label>
+                                        <input
+                                            className={`form-control ${fieldErrors.contactPersonName ? "is-invalid" : ""}`}
+                                            name="contactPersonName"
+                                            value={form.contactPersonName}
+                                            onChange={handleChange}
+                                            placeholder="Es. Camilla Mangino"
+                                        />
+                                        {fieldErrors.contactPersonName ? (
+                                            <div className="invalid-feedback">{fieldErrors.contactPersonName}</div>
+                                        ) : null}
+                                        <div className="form-text">
+                                            Nome della persona referente del centro. Verrà mostrato sotto al nome del partner.
+                                        </div>
                                     </div>
 
                                     <div className="col-12">
@@ -756,17 +891,34 @@ export default function AdminPartners() {
                                     </div>
 
                                     <div className="col-12">
-                                        <label className="form-label">Instagram</label>
+                                        <label className="form-label">Instagram negozio</label>
                                         <input
                                             className={`form-control ${fieldErrors.instagram ? "is-invalid" : ""}`}
                                             name="instagram"
                                             value={form.instagram}
                                             onChange={handleChange}
-                                            placeholder="Es. https://www.instagram.com/nomeprofilo"
+                                            placeholder="Es. https://www.instagram.com/nomecentro"
                                         />
                                         {fieldErrors.instagram ? (
                                             <div className="invalid-feedback">{fieldErrors.instagram}</div>
                                         ) : null}
+                                    </div>
+
+                                    <div className="col-12">
+                                        <label className="form-label">Instagram personale</label>
+                                        <input
+                                            className={`form-control ${fieldErrors.personalInstagram ? "is-invalid" : ""}`}
+                                            name="personalInstagram"
+                                            value={form.personalInstagram}
+                                            onChange={handleChange}
+                                            placeholder="Es. https://www.instagram.com/nomecognome"
+                                        />
+                                        {fieldErrors.personalInstagram ? (
+                                            <div className="invalid-feedback">{fieldErrors.personalInstagram}</div>
+                                        ) : null}
+                                        <div className="form-text">
+                                            Facoltativo. Profilo personale della referente o della titolare.
+                                        </div>
                                     </div>
 
                                     <div className="col-12">
@@ -1019,6 +1171,12 @@ export default function AdminPartners() {
                                                         /partners/{partner.slug}
                                                     </div>
 
+                                                    {partner.contactPersonName ? (
+                                                        <div className="text-muted mt-1" style={{ fontSize: 13 }}>
+                                                            Referente: {partner.contactPersonName}
+                                                        </div>
+                                                    ) : null}
+
                                                     <div className="mt-2" style={{ fontSize: 14 }}>
                                                         {partner.city} ({partner.province}) · {partner.region}
                                                     </div>
@@ -1037,7 +1195,13 @@ export default function AdminPartners() {
                                                         ) : null}
                                                         {partner.instagram ? (
                                                             <a href={partner.instagram} target="_blank" rel="noreferrer">
-                                                                Instagram
+                                                                Instagram negozio
+                                                            </a>
+                                                        ) : null}
+
+                                                        {partner.personalInstagram ? (
+                                                            <a href={partner.personalInstagram} target="_blank" rel="noreferrer">
+                                                                Instagram personale
                                                             </a>
                                                         ) : null}
                                                     </div>
@@ -1075,6 +1239,10 @@ export default function AdminPartners() {
                                                     <div className="row g-3">
                                                         <div className="col-12 col-lg-7">
                                                             <div className="row g-2" style={{ fontSize: 14 }}>
+                                                                <div className="col-12 col-md-6">
+                                                                    <div className="text-muted">Referente</div>
+                                                                    <div>{partner.contactPersonName || "—"}</div>
+                                                                </div>
                                                                 <div className="col-12">
                                                                     <div className="text-muted">Indirizzo</div>
                                                                     <div>
@@ -1122,10 +1290,21 @@ export default function AdminPartners() {
                                                                 </div>
 
                                                                 <div className="col-12 col-md-6">
-                                                                    <div className="text-muted">Instagram</div>
+                                                                    <div className="text-muted">Instagram negozio</div>
                                                                     {partner.instagram ? (
                                                                         <a href={partner.instagram} target="_blank" rel="noreferrer">
                                                                             {partner.instagram}
+                                                                        </a>
+                                                                    ) : (
+                                                                        <div>—</div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="col-12 col-md-6">
+                                                                    <div className="text-muted">Instagram personale</div>
+                                                                    {partner.personalInstagram ? (
+                                                                        <a href={partner.personalInstagram} target="_blank" rel="noreferrer">
+                                                                            {partner.personalInstagram}
                                                                         </a>
                                                                     ) : (
                                                                         <div>—</div>
@@ -1268,6 +1447,223 @@ export default function AdminPartners() {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                        <div className="col-12">
+                                                            <div className="mt-3 pt-3 border-top border-secondary-subtle">
+                                                                <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+                                                                    <div>
+                                                                        <h6 className="mb-1">Ordini partner</h6>
+                                                                        <div className="text-muted" style={{ fontSize: 13 }}>
+                                                                            Ordini effettuati con codice partner o collegati a questo partner.
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-sm btn-outline-light"
+                                                                        onClick={() => loadPartnerOrders(partner._id)}
+                                                                        disabled={!!partnerOrdersLoadingById[String(partner._id)]}
+                                                                    >
+                                                                        {partnerOrdersLoadingById[String(partner._id)] ? "Aggiorno..." : "Aggiorna ordini"}
+                                                                    </button>
+                                                                </div>
+
+                                                                {(() => {
+                                                                    const partnerId = String(partner._id || "");
+                                                                    const data = partnerOrdersById[partnerId] || null;
+                                                                    const loadingOrders = !!partnerOrdersLoadingById[partnerId];
+                                                                    const ordersError = partnerOrdersErrorById[partnerId] || "";
+
+                                                                    if (loadingOrders && !data) {
+                                                                        return (
+                                                                            <div className="text-muted" style={{ fontSize: 14 }}>
+                                                                                Carico ordini partner...
+                                                                            </div>
+                                                                        );
+                                                                    }
+
+                                                                    if (ordersError) {
+                                                                        return (
+                                                                            <div className="alert alert-danger py-2 mb-0" role="alert">
+                                                                                {ordersError}
+                                                                            </div>
+                                                                        );
+                                                                    }
+
+                                                                    if (!data) {
+                                                                        return (
+                                                                            <div className="text-muted" style={{ fontSize: 14 }}>
+                                                                                Nessun dato ordine caricato.
+                                                                            </div>
+                                                                        );
+                                                                    }
+
+                                                                    const summary = data.summary || {};
+                                                                    const orders = Array.isArray(data.orders) ? data.orders : [];
+
+                                                                    return (
+                                                                        <>
+                                                                            <div className="row g-2 mb-3">
+                                                                                <div className="col-6 col-lg-3">
+                                                                                    <div className="alert alert-secondary py-2 px-3 mb-0">
+                                                                                        <div className="fw-semibold">
+                                                                                            {Number(summary.ordersCount) || 0}
+                                                                                        </div>
+                                                                                        <div style={{ fontSize: 13 }}>Ordini validi</div>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div className="col-6 col-lg-3">
+                                                                                    <div className="alert alert-secondary py-2 px-3 mb-0">
+                                                                                        <div className="fw-semibold">
+                                                                                            {Number(summary.piecesCount) || 0}
+                                                                                        </div>
+                                                                                        <div style={{ fontSize: 13 }}>Pezzi acquistati</div>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div className="col-6 col-lg-3">
+                                                                                    <div className="alert alert-success py-2 px-3 mb-0">
+                                                                                        <div className="fw-semibold">
+                                                                                            {formatMoneyCents(summary.spentCents)}
+                                                                                        </div>
+                                                                                        <div style={{ fontSize: 13 }}>Totale speso</div>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div className="col-6 col-lg-3">
+                                                                                    <div className="alert alert-secondary py-2 px-3 mb-0">
+                                                                                        <div className="fw-semibold">
+                                                                                            {formatDateIT(summary.lastOrderAt)}
+                                                                                        </div>
+                                                                                        <div style={{ fontSize: 13 }}>Ultimo ordine</div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {orders.length === 0 ? (
+                                                                                <div className="text-muted" style={{ fontSize: 14 }}>
+                                                                                    Nessun ordine trovato per questo partner.
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div className="d-grid gap-3">
+                                                                                    {orders.map((order) => (
+                                                                                        <div
+                                                                                            key={order._id}
+                                                                                            className="border rounded-3 p-3"
+                                                                                            style={{ borderColor: "rgba(255,255,255,.12)" }}
+                                                                                        >
+                                                                                            <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-3">
+                                                                                                <div>
+                                                                                                    <div className="fw-semibold">
+                                                                                                        Ordine {order.publicId || order._id}
+                                                                                                    </div>
+
+                                                                                                    <div className="text-muted" style={{ fontSize: 13 }}>
+                                                                                                        {formatDateIT(order.createdAt)}
+                                                                                                    </div>
+                                                                                                </div>
+
+                                                                                                <div className="d-flex gap-2 flex-wrap">
+                                                                                                    <span className={`badge ${getOrderStatusBadgeClass(order.status)}`}>
+                                                                                                        {formatOrderStatus(order.status)}
+                                                                                                    </span>
+
+                                                                                                    {order.isValidSpentStatus ? (
+                                                                                                        <span className="badge text-bg-success">
+                                                                                                            Conteggiato nella spesa
+                                                                                                        </span>
+                                                                                                    ) : (
+                                                                                                        <span className="badge text-bg-secondary">
+                                                                                                            Non conteggiato
+                                                                                                        </span>
+                                                                                                    )}
+
+                                                                                                    {order.partnerActivationEligible ? (
+                                                                                                        <span className="badge text-bg-warning">
+                                                                                                            Attiva/rinnova collaborazione
+                                                                                                        </span>
+                                                                                                    ) : null}
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div className="row g-2 mb-3">
+                                                                                                <div className="col-6 col-lg-3">
+                                                                                                    <div className="text-muted" style={{ fontSize: 13 }}>Pezzi</div>
+                                                                                                    <div className="fw-semibold">{Number(order.piecesCount) || 0}</div>
+                                                                                                </div>
+
+                                                                                                <div className="col-6 col-lg-3">
+                                                                                                    <div className="text-muted" style={{ fontSize: 13 }}>Subtotale</div>
+                                                                                                    <div className="fw-semibold">{formatMoneyCents(order.subtotalCents)}</div>
+                                                                                                </div>
+
+                                                                                                <div className="col-6 col-lg-3">
+                                                                                                    <div className="text-muted" style={{ fontSize: 13 }}>Sconto</div>
+                                                                                                    <div className="fw-semibold">-{formatMoneyCents(order.discountCents)}</div>
+                                                                                                </div>
+
+                                                                                                <div className="col-6 col-lg-3">
+                                                                                                    <div className="text-muted" style={{ fontSize: 13 }}>Totale</div>
+                                                                                                    <div className="fw-semibold">{formatMoneyCents(order.totalCents)}</div>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div className="row g-2 mb-3">
+                                                                                                <div className="col-12 col-md-6">
+                                                                                                    <div className="text-muted" style={{ fontSize: 13 }}>Coupon partner usato</div>
+                                                                                                    <div>{order.partnerCouponCodeApplied || "—"}</div>
+                                                                                                </div>
+
+                                                                                                <div className="col-12 col-md-6">
+                                                                                                    <div className="text-muted" style={{ fontSize: 13 }}>Pagamento</div>
+                                                                                                    <div>
+                                                                                                        {order.paymentMethodLabel ||
+                                                                                                            order.paymentMethodType ||
+                                                                                                            order.paymentProvider ||
+                                                                                                            "—"}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            {Array.isArray(order.items) && order.items.length ? (
+                                                                                                <div className="table-responsive">
+                                                                                                    <table className="table table-sm table-dark table-striped align-middle mb-0">
+                                                                                                        <thead>
+                                                                                                            <tr>
+                                                                                                                <th>Prodotto</th>
+                                                                                                                <th className="text-end">Q.tà</th>
+                                                                                                                <th className="text-end">Prezzo</th>
+                                                                                                                <th className="text-end">Totale riga</th>
+                                                                                                            </tr>
+                                                                                                        </thead>
+
+                                                                                                        <tbody>
+                                                                                                            {order.items.map((item, index) => (
+                                                                                                                <tr key={`${order._id}-${item.productId}-${index}`}>
+                                                                                                                    <td>{item.name || item.productId || "Prodotto"}</td>
+                                                                                                                    <td className="text-end">{Number(item.qty) || 0}</td>
+                                                                                                                    <td className="text-end">{formatMoneyCents(item.unitPriceCents)}</td>
+                                                                                                                    <td className="text-end">{formatMoneyCents(item.lineTotalCents)}</td>
+                                                                                                                </tr>
+                                                                                                            ))}
+                                                                                                        </tbody>
+                                                                                                    </table>
+                                                                                                </div>
+                                                                                            ) : (
+                                                                                                <div className="text-muted" style={{ fontSize: 13 }}>
+                                                                                                    Nessun dettaglio prodotto disponibile.
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                        </div>
+
                                                     </div>
                                                 </div>
                                             ) : null}
