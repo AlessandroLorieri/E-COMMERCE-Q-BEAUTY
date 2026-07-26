@@ -948,6 +948,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             address: addr.address,
             streetNumber: addr.streetNumber,
             city: addr.city,
+            province: addr.province,
             cap: addr.cap,
         });
 
@@ -983,8 +984,19 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
     const shippingPhone = String(normalizedAddress?.phone || "").trim();
     const shippingStreet = String(normalizedAddress?.address || "").trim();
     const shippingStreetNumber = String(normalizedAddress?.streetNumber || "").trim();
-    const shippingCity = String(normalizedAddress?.city || "").trim();
-    const shippingCap = String(normalizedAddress?.cap || "").trim();
+    const shippingCity = String(
+        normalizedAddress?.city || ""
+    ).trim();
+
+    const shippingProvince = String(
+        normalizedAddress?.province || ""
+    )
+        .trim()
+        .toUpperCase();
+
+    const shippingCap = String(
+        normalizedAddress?.cap || ""
+    ).trim();
 
     const shippingErrors = {};
 
@@ -993,8 +1005,20 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
     if (!shippingPhone) shippingErrors.phone = "Telefono di spedizione richiesto";
     if (!shippingStreet) shippingErrors.address = "Indirizzo richiesto";
     if (!shippingStreetNumber) shippingErrors.streetNumber = "N° civico richiesto";
-    if (!shippingCity) shippingErrors.city = "Città richiesta";
-    if (!/^\d{5}$/.test(shippingCap)) shippingErrors.cap = "CAP non valido (5 cifre)";
+    if (!shippingCity) {
+        shippingErrors.city = "Città richiesta";
+    }
+
+    if (!shippingProvince) {
+        shippingErrors.province = "Provincia richiesta";
+    } else if (!/^[A-Z]{2}$/.test(shippingProvince)) {
+        shippingErrors.province =
+            "Provincia non valida: inserisci la sigla di 2 lettere";
+    }
+
+    if (!/^\d{5}$/.test(shippingCap)) {
+        shippingErrors.cap = "CAP non valido (5 cifre)";
+    }
 
     if (Object.keys(shippingErrors).length) {
         const err = new Error("Validation error");
@@ -1024,6 +1048,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             address: billingAddressRaw?.address,
             streetNumber: billingAddressRaw?.streetNumber,
             city: billingAddressRaw?.city,
+            province: billingAddressRaw?.province,
             cap: billingAddressRaw?.cap,
         });
 
@@ -1048,6 +1073,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             address: billingBase.address || "",
             streetNumber: billingBase.streetNumber || "",
             city: billingBase.city || "",
+            province: billingBase.province || "",
             cap: billingBase.cap || "",
         };
     } else if (user?.customerType === "piva") {
@@ -1079,6 +1105,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             !!String(billingAddr?.address || "").trim() &&
             !!String(billingAddr?.streetNumber || "").trim() &&
             !!String(billingAddr?.city || "").trim() &&
+            !!String(billingAddr?.province || "").trim() &&
             !!String(billingAddr?.cap || "").trim();
 
         if (!hasCompleteBillingAddress) {
@@ -1102,6 +1129,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             address: billingAddr?.address,
             streetNumber: billingAddr?.streetNumber,
             city: billingAddr?.city,
+            province: billingAddr?.province,
             cap: billingAddr?.cap,
         });
 
@@ -1127,6 +1155,7 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             address: billingBase.address || "",
             streetNumber: billingBase.streetNumber || "",
             city: billingBase.city || "",
+            province: billingBase.province || "",
             cap: billingBase.cap || "",
         };
     } else {
@@ -1160,9 +1189,22 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             phone: pickFirst(billingAddr?.phone, normalizedAddress?.phone, user?.phone),
             taxCode: billingTaxCode,
             address: pickFirst(billingAddr?.address, normalizedAddress?.address),
-            streetNumber: pickFirst(billingAddr?.streetNumber, normalizedAddress?.streetNumber),
-            city: pickFirst(billingAddr?.city, normalizedAddress?.city),
-            cap: pickFirst(billingAddr?.cap, normalizedAddress?.cap),
+            streetNumber: pickFirst(
+                billingAddr?.streetNumber,
+                normalizedAddress?.streetNumber
+            ),
+            city: pickFirst(
+                billingAddr?.city,
+                normalizedAddress?.city
+            ),
+            province: pickFirst(
+                billingAddr?.province,
+                normalizedAddress?.province
+            ),
+            cap: pickFirst(
+                billingAddr?.cap,
+                normalizedAddress?.cap
+            ),
         });
 
         billingBase.phone = billingBase.phone || billingAddr?.phone || normalizedAddress?.phone || user?.phone || "";
@@ -1184,8 +1226,38 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
             address: billingBase.address || "",
             streetNumber: billingBase.streetNumber || "",
             city: billingBase.city || "",
+            province: billingBase.province || "",
             cap: billingBase.cap || "",
         };
+    }
+
+    const finalBillingProvince = String(
+        billingAddress?.province || ""
+    )
+        .trim()
+        .toUpperCase();
+
+    if (!finalBillingProvince) {
+        const err = new Error("Validation error");
+        err.status = 400;
+        err.errors = {
+            billingAddress: {
+                province: "Provincia di fatturazione richiesta",
+            },
+        };
+        throw err;
+    }
+
+    if (!/^[A-Z]{2}$/.test(finalBillingProvince)) {
+        const err = new Error("Validation error");
+        err.status = 400;
+        err.errors = {
+            billingAddress: {
+                province:
+                    "Provincia di fatturazione non valida: inserisci la sigla di 2 lettere",
+            },
+        };
+        throw err;
     }
 
     const decremented = [];

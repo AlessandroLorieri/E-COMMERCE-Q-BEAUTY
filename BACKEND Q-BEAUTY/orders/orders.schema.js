@@ -28,6 +28,12 @@ const ShippingAddressSchema = new mongoose.Schema(
         address: { type: String, trim: true, default: "" },
         streetNumber: { type: String, trim: true, default: "" },
         city: { type: String, trim: true, default: "" },
+        province: {
+            type: String,
+            trim: true,
+            uppercase: true,
+            default: "",
+        },
         cap: { type: String, trim: true, default: "" },
     },
     { _id: false }
@@ -51,6 +57,12 @@ const BillingAddressSchema = new mongoose.Schema(
         address: { type: String, trim: true, default: "" },
         streetNumber: { type: String, trim: true, default: "" },
         city: { type: String, trim: true, default: "" },
+        province: {
+            type: String,
+            trim: true,
+            uppercase: true,
+            default: "",
+        },
         cap: { type: String, trim: true, default: "" },
     },
     { _id: false }

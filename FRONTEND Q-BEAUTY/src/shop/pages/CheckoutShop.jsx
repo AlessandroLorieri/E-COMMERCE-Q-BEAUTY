@@ -37,6 +37,7 @@ export default function CheckoutShop() {
         address: "",
         streetNumber: "",
         city: "",
+        province: "",
         cap: "",
     });
 
@@ -49,6 +50,7 @@ export default function CheckoutShop() {
         address: "",
         streetNumber: "",
         city: "",
+        province: "",
         cap: "",
     });
 
@@ -116,6 +118,9 @@ export default function CheckoutShop() {
                         address: def.address || prev.address,
                         streetNumber: def.streetNumber || prev.streetNumber,
                         city: normalizeHumanText(def.city || prev.city),
+                        province: normalizeProvince(
+                            def.province || prev.province
+                        ),
                         cap: def.cap || prev.cap,
                     }));
                 } else {
@@ -151,6 +156,7 @@ export default function CheckoutShop() {
             address: a.address || "",
             streetNumber: a.streetNumber || "",
             city: normalizeHumanText(a.city || ""),
+            province: normalizeProvince(a.province || ""),
             cap: a.cap || "",
         }));
 
@@ -170,6 +176,7 @@ export default function CheckoutShop() {
             address: "",
             streetNumber: "",
             city: "",
+            province: "",
             cap: "",
         }));
         setFieldErrors({});
@@ -178,7 +185,16 @@ export default function CheckoutShop() {
 
     function onChange(e) {
         const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
+
+        const nextValue =
+            name === "province"
+                ? normalizeProvince(value)
+                : value;
+
+        setForm((prev) => ({
+            ...prev,
+            [name]: nextValue,
+        }));
         setSubmitError("");
 
         setFieldErrors((prev) => {
@@ -191,7 +207,16 @@ export default function CheckoutShop() {
 
     function onBillingChange(e) {
         const { name, value } = e.target;
-        setBillingForm((prev) => ({ ...prev, [name]: value }));
+
+        const nextValue =
+            name === "province"
+                ? normalizeProvince(value)
+                : value;
+
+        setBillingForm((prev) => ({
+            ...prev,
+            [name]: nextValue,
+        }));
         setSubmitError("");
 
         const errorKeyMap = {
@@ -201,6 +226,7 @@ export default function CheckoutShop() {
             address: "billingAddress",
             streetNumber: "billingStreetNumber",
             city: "billingCity",
+            province: "billingProvince",
             cap: "billingCap",
         };
 
@@ -225,6 +251,7 @@ export default function CheckoutShop() {
             delete next.billingAddress;
             delete next.billingStreetNumber;
             delete next.billingCity;
+            delete next.billingProvince;
             delete next.billingCap;
             return next;
         });
@@ -236,6 +263,14 @@ export default function CheckoutShop() {
             .toLowerCase()
             .replace(/\s+/g, " ")
             .replace(/(^|[\s'-])([a-zà-öø-ÿ])/g, (_, sep, ch) => `${sep}${ch.toUpperCase()}`);
+    }
+
+    function normalizeProvince(value) {
+        return String(value || "")
+            .trim()
+            .replace(/[^a-zA-Z]/g, "")
+            .slice(0, 2)
+            .toUpperCase();
     }
 
     function normalizeTaxCode(v) {
@@ -334,6 +369,17 @@ export default function CheckoutShop() {
         if (!form.streetNumber.trim()) e.streetNumber = "N° civico richiesto";
         if (!form.city.trim()) e.city = "Città richiesta";
 
+        const shippingProvince = normalizeProvince(
+            form.province
+        );
+
+        if (!shippingProvince) {
+            e.province = "Provincia richiesta";
+        } else if (!/^[A-Z]{2}$/.test(shippingProvince)) {
+            e.province =
+                "Inserisci la sigla della provincia con 2 lettere";
+        }
+
         if (!form.cap.trim()) e.cap = "CAP richiesto";
         else if (!/^\d{5}$/.test(form.cap.trim())) e.cap = "CAP non valido (5 cifre)";
 
@@ -351,6 +397,17 @@ export default function CheckoutShop() {
                 if (!billingForm.address.trim()) e.billingAddress = "Indirizzo richiesto";
                 if (!billingForm.streetNumber.trim()) e.billingStreetNumber = "N° civico richiesto";
                 if (!billingForm.city.trim()) e.billingCity = "Città richiesta";
+
+                const billingProvince = normalizeProvince(
+                    billingForm.province
+                );
+
+                if (!billingProvince) {
+                    e.billingProvince = "Provincia richiesta";
+                } else if (!/^[A-Z]{2}$/.test(billingProvince)) {
+                    e.billingProvince =
+                        "Inserisci la sigla della provincia con 2 lettere";
+                }
 
                 if (!billingForm.cap.trim()) e.billingCap = "CAP richiesto";
                 else if (!/^\d{5}$/.test(billingForm.cap.trim())) e.billingCap = "CAP non valido (5 cifre)";
@@ -429,6 +486,7 @@ export default function CheckoutShop() {
             address: form.address.trim(),
             streetNumber: form.streetNumber.trim(),
             city: normalizeHumanText(form.city),
+            province: normalizeProvince(form.province),
             cap: form.cap.trim(),
             country: "IT",
         };
@@ -447,6 +505,7 @@ export default function CheckoutShop() {
                 address: form.address.trim(),
                 streetNumber: form.streetNumber.trim(),
                 city: normalizeHumanText(form.city),
+                province: normalizeProvince(form.province),
                 cap: form.cap.trim(),
                 country: "IT",
             };
@@ -461,6 +520,9 @@ export default function CheckoutShop() {
             address: billingForm.address.trim(),
             streetNumber: billingForm.streetNumber.trim(),
             city: normalizeHumanText(billingForm.city),
+            province: normalizeProvince(
+                billingForm.province
+            ),
             cap: billingForm.cap.trim(),
             country: "IT",
         };
@@ -536,6 +598,7 @@ export default function CheckoutShop() {
                     address: form.address.trim(),
                     streetNumber: form.streetNumber.trim(),
                     city: normalizeHumanText(form.city),
+                    province: normalizeProvince(form.province),
                     cap: form.cap.trim(),
                     email: user?.email || "",
                 });
@@ -655,6 +718,7 @@ export default function CheckoutShop() {
                     address: form.address.trim(),
                     streetNumber: form.streetNumber.trim(),
                     city: normalizeHumanText(form.city),
+                    province: normalizeProvince(form.province),
                     cap: form.cap.trim(),
                     email: user?.email || "",
                 });
@@ -907,7 +971,7 @@ export default function CheckoutShop() {
 
                             {addressMode === "saved" && selectedAddressId ? (
                                 <div className="checkout-locked-note mb-3" role="status">
-                                    Stai usando un indirizzo salvato. Puoi modificare solo il <strong>telefono</strong>.
+                                    Stai usando un indirizzo salvato. Puoi modificare il <strong>telefono</strong> e la <strong>provincia</strong>.
                                     Per cambiare gli altri dati seleziona <strong>“Inserisci un nuovo indirizzo”</strong>.
                                 </div>
                             ) : null}
@@ -984,46 +1048,117 @@ export default function CheckoutShop() {
                                     {fieldErrors.address && <div className="invalid-feedback">{fieldErrors.address}</div>}
                                 </div>
 
-                                <div className="col-12 col-md-3">
+                                <div className="col-12 col-md-2">
                                     <label className="form-label">N° civico</label>
+
                                     <input
-                                        className={`form-control ${fieldErrors.streetNumber ? "is-invalid" : ""}`}
+                                        className={`form-control ${fieldErrors.streetNumber
+                                            ? "is-invalid"
+                                            : ""
+                                            }`}
                                         name="streetNumber"
                                         value={form.streetNumber}
                                         onChange={onChange}
-                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                        disabled={
+                                            busy ||
+                                            (
+                                                addressMode === "saved" &&
+                                                selectedAddressId
+                                            )
+                                        }
                                     />
-                                    {fieldErrors.streetNumber && <div className="invalid-feedback">{fieldErrors.streetNumber}</div>}
+
+                                    {fieldErrors.streetNumber ? (
+                                        <div className="invalid-feedback">
+                                            {fieldErrors.streetNumber}
+                                        </div>
+                                    ) : null}
                                 </div>
 
-                                <div className="col-12 col-md-6">
+                                <div className="col-12 col-md-5">
                                     <label className="form-label">Città</label>
+
                                     <input
-                                        className={`form-control ${fieldErrors.city ? "is-invalid" : ""}`}
+                                        className={`form-control ${fieldErrors.city ? "is-invalid" : ""
+                                            }`}
                                         name="city"
                                         value={form.city}
                                         onChange={onChange}
                                         onBlur={(e) =>
                                             setForm((prev) => ({
                                                 ...prev,
-                                                city: normalizeHumanText(e.target.value),
+                                                city: normalizeHumanText(
+                                                    e.target.value
+                                                ),
                                             }))
                                         }
-                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                        disabled={
+                                            busy ||
+                                            (
+                                                addressMode === "saved" &&
+                                                selectedAddressId
+                                            )
+                                        }
                                     />
-                                    {fieldErrors.city && <div className="invalid-feedback">{fieldErrors.city}</div>}
+
+                                    {fieldErrors.city ? (
+                                        <div className="invalid-feedback">
+                                            {fieldErrors.city}
+                                        </div>
+                                    ) : null}
+                                </div>
+
+                                <div className="col-12 col-md-2">
+                                    <label className="form-label">Provincia</label>
+
+                                    <input
+                                        className={`form-control ${fieldErrors.province
+                                            ? "is-invalid"
+                                            : ""
+                                            }`}
+                                        name="province"
+                                        value={form.province}
+                                        onChange={onChange}
+                                        placeholder="PR"
+                                        maxLength={2}
+                                        autoCapitalize="characters"
+                                        autoCorrect="off"
+                                        spellCheck={false}
+                                        disabled={busy}
+                                    />
+
+                                    {fieldErrors.province ? (
+                                        <div className="invalid-feedback">
+                                            {fieldErrors.province}
+                                        </div>
+                                    ) : null}
                                 </div>
 
                                 <div className="col-12 col-md-3">
                                     <label className="form-label">CAP</label>
+
                                     <input
-                                        className={`form-control ${fieldErrors.cap ? "is-invalid" : ""}`}
+                                        className={`form-control ${fieldErrors.cap ? "is-invalid" : ""
+                                            }`}
                                         name="cap"
                                         value={form.cap}
                                         onChange={onChange}
-                                        disabled={busy || (addressMode === "saved" && selectedAddressId)}
+                                        inputMode="numeric"
+                                        maxLength={5}
+                                        disabled={
+                                            busy ||
+                                            (
+                                                addressMode === "saved" &&
+                                                selectedAddressId
+                                            )
+                                        }
                                     />
-                                    {fieldErrors.cap && <div className="invalid-feedback">{fieldErrors.cap}</div>}
+
+                                    {fieldErrors.cap ? (
+                                        <div className="invalid-feedback">
+                                            {fieldErrors.cap}
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
 
@@ -1143,46 +1278,103 @@ export default function CheckoutShop() {
                                                     {fieldErrors.billingAddress && <div className="invalid-feedback">{fieldErrors.billingAddress}</div>}
                                                 </div>
 
-                                                <div className="col-12 col-md-3">
+                                                <div className="col-12 col-md-2">
                                                     <label className="form-label">N° civico</label>
+
                                                     <input
-                                                        className={`form-control ${fieldErrors.billingStreetNumber ? "is-invalid" : ""}`}
+                                                        className={`form-control ${fieldErrors.billingStreetNumber
+                                                            ? "is-invalid"
+                                                            : ""
+                                                            }`}
                                                         name="streetNumber"
                                                         value={billingForm.streetNumber}
                                                         onChange={onBillingChange}
                                                         disabled={busy}
                                                     />
-                                                    {fieldErrors.billingStreetNumber && <div className="invalid-feedback">{fieldErrors.billingStreetNumber}</div>}
+
+                                                    {fieldErrors.billingStreetNumber ? (
+                                                        <div className="invalid-feedback">
+                                                            {fieldErrors.billingStreetNumber}
+                                                        </div>
+                                                    ) : null}
                                                 </div>
 
-                                                <div className="col-12 col-md-6">
+                                                <div className="col-12 col-md-5">
                                                     <label className="form-label">Città</label>
+
                                                     <input
-                                                        className={`form-control ${fieldErrors.billingCity ? "is-invalid" : ""}`}
+                                                        className={`form-control ${fieldErrors.billingCity
+                                                            ? "is-invalid"
+                                                            : ""
+                                                            }`}
                                                         name="city"
                                                         value={billingForm.city}
                                                         onChange={onBillingChange}
                                                         onBlur={(e) =>
                                                             setBillingForm((prev) => ({
                                                                 ...prev,
-                                                                city: normalizeHumanText(e.target.value),
+                                                                city: normalizeHumanText(
+                                                                    e.target.value
+                                                                ),
                                                             }))
                                                         }
                                                         disabled={busy}
                                                     />
-                                                    {fieldErrors.billingCity && <div className="invalid-feedback">{fieldErrors.billingCity}</div>}
+
+                                                    {fieldErrors.billingCity ? (
+                                                        <div className="invalid-feedback">
+                                                            {fieldErrors.billingCity}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+
+                                                <div className="col-12 col-md-2">
+                                                    <label className="form-label">Provincia</label>
+
+                                                    <input
+                                                        className={`form-control ${fieldErrors.billingProvince
+                                                            ? "is-invalid"
+                                                            : ""
+                                                            }`}
+                                                        name="province"
+                                                        value={billingForm.province}
+                                                        onChange={onBillingChange}
+                                                        placeholder="PR"
+                                                        maxLength={2}
+                                                        autoCapitalize="characters"
+                                                        autoCorrect="off"
+                                                        spellCheck={false}
+                                                        disabled={busy}
+                                                    />
+
+                                                    {fieldErrors.billingProvince ? (
+                                                        <div className="invalid-feedback">
+                                                            {fieldErrors.billingProvince}
+                                                        </div>
+                                                    ) : null}
                                                 </div>
 
                                                 <div className="col-12 col-md-3">
                                                     <label className="form-label">CAP</label>
+
                                                     <input
-                                                        className={`form-control ${fieldErrors.billingCap ? "is-invalid" : ""}`}
+                                                        className={`form-control ${fieldErrors.billingCap
+                                                            ? "is-invalid"
+                                                            : ""
+                                                            }`}
                                                         name="cap"
                                                         value={billingForm.cap}
                                                         onChange={onBillingChange}
+                                                        inputMode="numeric"
+                                                        maxLength={5}
                                                         disabled={busy}
                                                     />
-                                                    {fieldErrors.billingCap && <div className="invalid-feedback">{fieldErrors.billingCap}</div>}
+
+                                                    {fieldErrors.billingCap ? (
+                                                        <div className="invalid-feedback">
+                                                            {fieldErrors.billingCap}
+                                                        </div>
+                                                    ) : null}
                                                 </div>
                                             </>
                                         ) : null}

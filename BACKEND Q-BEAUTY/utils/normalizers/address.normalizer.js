@@ -28,6 +28,14 @@ function normalizeCap(cap) {
     return digits.trim();
 }
 
+function normalizeProvince(province) {
+    return String(province || "")
+        .trim()
+        .replace(/[^a-zA-Z]/g, "")
+        .slice(0, 2)
+        .toUpperCase();
+}
+
 function normalizeShippingAddress(addr) {
     const a = addr && typeof addr === "object" ? addr : {};
 
@@ -55,6 +63,7 @@ function normalizeShippingAddress(addr) {
         address: finalAddress,
         streetNumber: finalStreetNumber,
         city: toTitleCaseItalian(a.city),
+        province: normalizeProvince(a.province),
         cap: normalizeCap(a.cap),
     };
 }

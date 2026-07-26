@@ -28,6 +28,7 @@ export default function RegisterShop() {
         address: "",
         streetNumber: "",
         city: "",
+        province: "",
         cap: "",
         taxCodeSameAsVat: false,
         confirmBusinessData: false,
@@ -98,6 +99,13 @@ export default function RegisterShop() {
                 };
             }
 
+            if (name === "province") {
+                return {
+                    ...prev,
+                    province: normalizeProvince(value),
+                };
+            }
+
             return {
                 ...prev,
                 [name]: value,
@@ -121,6 +129,14 @@ export default function RegisterShop() {
             .filter(Boolean)
             .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
             .join(" ");
+    }
+
+    function normalizeProvince(value) {
+        return String(value || "")
+            .trim()
+            .replace(/[^a-zA-Z]/g, "")
+            .slice(0, 2)
+            .toUpperCase();
     }
 
     function normalizeSdiCode(value) {
@@ -283,11 +299,23 @@ export default function RegisterShop() {
             }
 
             if (!String(form.city || "").trim()) {
-                nextErrors.city = "Inserisci la città della sede legale.";
+                nextErrors.city =
+                    "Inserisci la città della sede legale.";
+            }
+
+            const province = normalizeProvince(form.province);
+
+            if (!province) {
+                nextErrors.province =
+                    "Inserisci la provincia della sede legale.";
+            } else if (!/^[A-Z]{2}$/.test(province)) {
+                nextErrors.province =
+                    "Inserisci una sigla di provincia valida di 2 lettere.";
             }
 
             if (!/^\d{5}$/.test(String(form.cap || "").trim())) {
-                nextErrors.cap = "Inserisci un CAP valido (5 cifre).";
+                nextErrors.cap =
+                    "Inserisci un CAP valido (5 cifre).";
             }
 
             const sdiCode = normalizeSdiCode(form.sdiCode);
@@ -355,9 +383,17 @@ export default function RegisterShop() {
                 payload.sdiCode = String(form.sdiCode || "").trim().toUpperCase();
                 payload.pec = String(form.pec || "").trim().toLowerCase();
                 payload.address = String(form.address || "").trim();
-                payload.streetNumber = String(form.streetNumber || "").trim();
-                payload.city = normalizeCity(form.city);
-                payload.cap = String(form.cap || "").trim();
+                payload.streetNumber =
+                    String(form.streetNumber || "").trim();
+
+                payload.city =
+                    normalizeCity(form.city);
+
+                payload.province =
+                    normalizeProvince(form.province);
+
+                payload.cap =
+                    String(form.cap || "").trim();
                 payload.confirmBusinessData = form.confirmBusinessData;
             }
 
@@ -740,24 +776,31 @@ export default function RegisterShop() {
                                     ) : null}
                                 </div>
 
-                                <div className="col-12 col-md-4">
+                                <div className="col-12 col-md-2">
                                     <label className="form-label">N° civico</label>
+
                                     <input
-                                        className={`form-control ${fieldErrors.streetNumber ? "is-invalid" : ""}`}
+                                        className={`form-control ${fieldErrors.streetNumber ? "is-invalid" : ""
+                                            }`}
                                         name="streetNumber"
                                         value={form.streetNumber}
                                         onChange={onChange}
                                         required
                                     />
+
                                     {fieldErrors.streetNumber ? (
-                                        <div className="invalid-feedback d-block">{fieldErrors.streetNumber}</div>
+                                        <div className="invalid-feedback d-block">
+                                            {fieldErrors.streetNumber}
+                                        </div>
                                     ) : null}
                                 </div>
 
                                 <div className="col-12 col-md-5">
                                     <label className="form-label">Città</label>
+
                                     <input
-                                        className={`form-control ${fieldErrors.city ? "is-invalid" : ""}`}
+                                        className={`form-control ${fieldErrors.city ? "is-invalid" : ""
+                                            }`}
                                         name="city"
                                         value={form.city}
                                         onChange={onChange}
@@ -769,15 +812,44 @@ export default function RegisterShop() {
                                         }
                                         required
                                     />
+
                                     {fieldErrors.city ? (
-                                        <div className="invalid-feedback d-block">{fieldErrors.city}</div>
+                                        <div className="invalid-feedback d-block">
+                                            {fieldErrors.city}
+                                        </div>
+                                    ) : null}
+                                </div>
+
+                                <div className="col-12 col-md-2">
+                                    <label className="form-label">Provincia</label>
+
+                                    <input
+                                        className={`form-control ${fieldErrors.province ? "is-invalid" : ""
+                                            }`}
+                                        name="province"
+                                        value={form.province}
+                                        onChange={onChange}
+                                        placeholder="Es.   PR"
+                                        maxLength={2}
+                                        autoCapitalize="characters"
+                                        autoCorrect="off"
+                                        spellCheck={false}
+                                        required
+                                    />
+
+                                    {fieldErrors.province ? (
+                                        <div className="invalid-feedback d-block">
+                                            {fieldErrors.province}
+                                        </div>
                                     ) : null}
                                 </div>
 
                                 <div className="col-12 col-md-3">
                                     <label className="form-label">CAP</label>
+
                                     <input
-                                        className={`form-control ${fieldErrors.cap ? "is-invalid" : ""}`}
+                                        className={`form-control ${fieldErrors.cap ? "is-invalid" : ""
+                                            }`}
                                         name="cap"
                                         value={form.cap}
                                         onChange={onChange}
@@ -785,8 +857,11 @@ export default function RegisterShop() {
                                         maxLength={5}
                                         required
                                     />
+
                                     {fieldErrors.cap ? (
-                                        <div className="invalid-feedback d-block">{fieldErrors.cap}</div>
+                                        <div className="invalid-feedback d-block">
+                                            {fieldErrors.cap}
+                                        </div>
                                     ) : null}
                                 </div>
 

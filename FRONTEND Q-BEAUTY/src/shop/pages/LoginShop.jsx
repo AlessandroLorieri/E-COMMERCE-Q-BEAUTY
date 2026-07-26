@@ -35,6 +35,7 @@ export default function LoginShop() {
         billingAddress: "",
         billingStreetNumber: "",
         billingCity: "",
+        billingProvince: "",
         billingCap: "",
     });
 
@@ -56,6 +57,7 @@ export default function LoginShop() {
         address: "",
         streetNumber: "",
         city: "",
+        province: "",
         cap: "",
     });
     const [newAddrError, setNewAddrError] = useState("");
@@ -70,6 +72,7 @@ export default function LoginShop() {
         address: "",
         streetNumber: "",
         city: "",
+        province: "",
         cap: "",
     });
     const [editAddrError, setEditAddrError] = useState("");
@@ -91,7 +94,17 @@ export default function LoginShop() {
 
     function onProfileChange(e) {
         const { name, value } = e.target;
-        setProfile((p) => ({ ...p, [name]: value }));
+
+        const nextValue =
+            name === "billingProvince"
+                ? normalizeProvince(value)
+                : value;
+
+        setProfile((prev) => ({
+            ...prev,
+            [name]: nextValue,
+        }));
+
         setProfileError("");
         setProfileOk("");
     }
@@ -102,6 +115,14 @@ export default function LoginShop() {
             .toLowerCase()
             .replace(/\s+/g, " ")
             .replace(/(^|[\s'-])([a-zà-öø-ÿ])/g, (_, sep, ch) => `${sep}${ch.toUpperCase()}`);
+    }
+
+    function normalizeProvince(value) {
+        return String(value || "")
+            .trim()
+            .replace(/[^a-zA-Z]/g, "")
+            .slice(0, 2)
+            .toUpperCase();
     }
 
     function buildProfileState(sourceUser, list = []) {
@@ -123,6 +144,7 @@ export default function LoginShop() {
             billingAddress: billingAddress?.address || "",
             billingStreetNumber: billingAddress?.streetNumber || "",
             billingCity: billingAddress?.city || "",
+            billingProvince: billingAddress?.province || "",
             billingCap: billingAddress?.cap || "",
         };
     }
@@ -162,9 +184,17 @@ export default function LoginShop() {
         const normalizedSdiCode = String(profile.sdiCode || "").trim().toUpperCase();
         const normalizedPec = String(profile.pec || "").trim().toLowerCase();
         const normalizedBillingAddress = String(profile.billingAddress || "").trim();
-        const normalizedBillingStreetNumber = String(profile.billingStreetNumber || "").trim();
-        const normalizedBillingCity = normalizeHumanText(profile.billingCity);
-        const normalizedBillingCap = String(profile.billingCap || "").trim();
+        const normalizedBillingStreetNumber =
+            String(profile.billingStreetNumber || "").trim();
+
+        const normalizedBillingCity =
+            normalizeHumanText(profile.billingCity);
+
+        const normalizedBillingProvince =
+            normalizeProvince(profile.billingProvince);
+
+        const normalizedBillingCap =
+            String(profile.billingCap || "").trim();
 
         if (!normalizedFirstName) {
             setProfileError("Nome richiesto");
@@ -212,6 +242,18 @@ export default function LoginShop() {
                 return;
             }
 
+            if (!normalizedBillingProvince) {
+                setProfileError("Provincia sede legale richiesta");
+                return;
+            }
+
+            if (!/^[A-Z]{2}$/.test(normalizedBillingProvince)) {
+                setProfileError(
+                    "Provincia sede legale non valida: inserisci una sigla di 2 lettere"
+                );
+                return;
+            }
+
             if (!/^\d{5}$/.test(normalizedBillingCap)) {
                 setProfileError("CAP sede legale non valido (5 cifre)");
                 return;
@@ -246,6 +288,7 @@ export default function LoginShop() {
                                 address: normalizedBillingAddress,
                                 streetNumber: normalizedBillingStreetNumber,
                                 city: normalizedBillingCity,
+                                province: normalizedBillingProvince,
                                 cap: normalizedBillingCap,
                             }
                             : undefined,
@@ -264,6 +307,9 @@ export default function LoginShop() {
                     data?.errors?.taxCode ||
                     data?.errors?.billingAddressId ||
                     data?.errors?.billingAddress ||
+                    data?.errors?.billingProvince ||
+                    data?.errors?.billingCity ||
+                    data?.errors?.billingCap ||
                     data?.message ||
                     "Errore salvataggio";
                 throw new Error(msg);
@@ -301,13 +347,33 @@ export default function LoginShop() {
 
     function onNewAddrChange(e) {
         const { name, value } = e.target;
-        setNewAddr((prev) => ({ ...prev, [name]: value }));
+
+        const nextValue =
+            name === "province"
+                ? normalizeProvince(value)
+                : value;
+
+        setNewAddr((prev) => ({
+            ...prev,
+            [name]: nextValue,
+        }));
+
         setNewAddrError("");
     }
 
     function onEditAddrChange(e) {
         const { name, value } = e.target;
-        setEditAddr((prev) => ({ ...prev, [name]: value }));
+
+        const nextValue =
+            name === "province"
+                ? normalizeProvince(value)
+                : value;
+
+        setEditAddr((prev) => ({
+            ...prev,
+            [name]: nextValue,
+        }));
+
         setEditAddrError("");
         setAddrError("");
     }
@@ -324,6 +390,7 @@ export default function LoginShop() {
             address: String(addr?.address || ""),
             streetNumber: String(addr?.streetNumber || ""),
             city: String(addr?.city || ""),
+            province: String(addr?.province || ""),
             cap: String(addr?.cap || ""),
         });
         setEditAddrError("");
@@ -340,6 +407,7 @@ export default function LoginShop() {
             address: "",
             streetNumber: "",
             city: "",
+            province: "",
             cap: "",
         });
         setEditAddrError("");
@@ -360,8 +428,28 @@ export default function LoginShop() {
         if (!editAddr.phone.trim()) return setEditAddrError("Telefono richiesto");
         if (!editAddr.address.trim()) return setEditAddrError("Indirizzo richiesto");
         if (!editAddr.streetNumber.trim()) return setEditAddrError("N° civico richiesto");
-        if (!editAddr.city.trim()) return setEditAddrError("Città richiesta");
-        if (!/^\d{5}$/.test(editAddr.cap.trim())) return setEditAddrError("CAP non valido (5 cifre)");
+        if (!editAddr.city.trim()) {
+            return setEditAddrError("Città richiesta");
+        }
+
+        const normalizedEditProvince =
+            normalizeProvince(editAddr.province);
+
+        if (!normalizedEditProvince) {
+            return setEditAddrError("Provincia richiesta");
+        }
+
+        if (!/^[A-Z]{2}$/.test(normalizedEditProvince)) {
+            return setEditAddrError(
+                "Provincia non valida: inserisci una sigla di 2 lettere"
+            );
+        }
+
+        if (!/^\d{5}$/.test(editAddr.cap.trim())) {
+            return setEditAddrError(
+                "CAP non valido (5 cifre)"
+            );
+        }
 
         setEditAddrSubmitting(true);
 
@@ -374,6 +462,7 @@ export default function LoginShop() {
                 streetNumber: editAddr.streetNumber.trim(),
                 city: normalizeHumanText(editAddr.city),
                 cap: editAddr.cap.trim(),
+                province: normalizedEditProvince,
                 email: user?.email || "",
             });
 
@@ -463,8 +552,28 @@ export default function LoginShop() {
         if (!newAddr.phone.trim()) return setNewAddrError("Telefono richiesto");
         if (!newAddr.address.trim()) return setNewAddrError("Indirizzo richiesto");
         if (!newAddr.streetNumber.trim()) return setNewAddrError("N° civico richiesto");
-        if (!newAddr.city.trim()) return setNewAddrError("Città richiesta");
-        if (!/^\d{5}$/.test(newAddr.cap.trim())) return setNewAddrError("CAP non valido (5 cifre)");
+        if (!newAddr.city.trim()) {
+            return setNewAddrError("Città richiesta");
+        }
+
+        const normalizedNewProvince =
+            normalizeProvince(newAddr.province);
+
+        if (!normalizedNewProvince) {
+            return setNewAddrError("Provincia richiesta");
+        }
+
+        if (!/^[A-Z]{2}$/.test(normalizedNewProvince)) {
+            return setNewAddrError(
+                "Provincia non valida: inserisci una sigla di 2 lettere"
+            );
+        }
+
+        if (!/^\d{5}$/.test(newAddr.cap.trim())) {
+            return setNewAddrError(
+                "CAP non valido (5 cifre)"
+            );
+        }
 
         setNewAddrSubmitting(true);
         try {
@@ -475,6 +584,7 @@ export default function LoginShop() {
                 address: newAddr.address.trim(),
                 streetNumber: newAddr.streetNumber.trim(),
                 city: normalizeHumanText(newAddr.city),
+                province: normalizedNewProvince,
                 cap: newAddr.cap.trim(),
                 email: user?.email || "",
             });
@@ -493,6 +603,7 @@ export default function LoginShop() {
                 address: "",
                 streetNumber: "",
                 city: "",
+                province: "",
                 cap: "",
             });
             setNewAddrMakeDefault(false);
@@ -656,7 +767,8 @@ export default function LoginShop() {
                             </div>
                         ) : null}
 
-                        {currentUser?.customerType === "piva" && !profile.billingAddressId ? (
+                        {currentUser?.customerType === "piva" &&
+                            (!profile.billingAddressId || !profile.billingProvince) ? (
                             <div className="alert alert-warning py-2" role="alert">
                                 Per completare gli ordini come Partita IVA devi inserire la sede legale di fatturazione.
                             </div>
@@ -726,7 +838,8 @@ export default function LoginShop() {
                                                 if (!id) return currentUser?.customerType === "piva" ? "Non impostato" : "—";
                                                 if (!a) return "Salvato ma non caricato";
                                                 const civic = a.streetNumber ? `, ${a.streetNumber}` : "";
-                                                return `${a.address}${civic}, ${a.city} (${a.cap})`;
+                                                return `${a.address}${civic}, ${a.cap} ${a.city}${a.province ? ` (${a.province})` : ""
+                                                    }`;
                                             })()}
                                         </strong>
                                     </div>
@@ -871,8 +984,9 @@ export default function LoginShop() {
                                                 />
                                             </div>
 
-                                            <div className="col-12 col-md-4">
+                                            <div className="col-12 col-md-2">
                                                 <label className="form-label">N° civico</label>
+
                                                 <input
                                                     className="form-control"
                                                     name="billingStreetNumber"
@@ -883,6 +997,7 @@ export default function LoginShop() {
 
                                             <div className="col-12 col-md-5">
                                                 <label className="form-label">Città</label>
+
                                                 <input
                                                     className="form-control"
                                                     name="billingCity"
@@ -891,19 +1006,40 @@ export default function LoginShop() {
                                                     onBlur={(e) =>
                                                         setProfile((prev) => ({
                                                             ...prev,
-                                                            billingCity: normalizeHumanText(e.target.value),
+                                                            billingCity: normalizeHumanText(
+                                                                e.target.value
+                                                            ),
                                                         }))
                                                     }
                                                 />
                                             </div>
 
+                                            <div className="col-12 col-md-2">
+                                                <label className="form-label">Provincia</label>
+
+                                                <input
+                                                    className="form-control"
+                                                    name="billingProvince"
+                                                    value={profile.billingProvince}
+                                                    onChange={onProfileChange}
+                                                    placeholder="PR"
+                                                    maxLength={2}
+                                                    autoCapitalize="characters"
+                                                    autoCorrect="off"
+                                                    spellCheck={false}
+                                                />
+                                            </div>
+
                                             <div className="col-12 col-md-3">
                                                 <label className="form-label">CAP</label>
+
                                                 <input
                                                     className="form-control"
                                                     name="billingCap"
                                                     value={profile.billingCap}
                                                     onChange={onProfileChange}
+                                                    inputMode="numeric"
+                                                    maxLength={5}
                                                 />
                                             </div>
                                         </div>
@@ -932,7 +1068,8 @@ export default function LoginShop() {
                                                     const civic = a.streetNumber ? `, ${a.streetNumber}` : "";
                                                     return (
                                                         <option key={a._id} value={a._id}>
-                                                            {a.address}{civic}, {a.city} ({a.cap})
+                                                            {a.address}{civic}, {a.cap} {a.city}
+                                                            {a.province ? ` (${a.province})` : ""}
                                                         </option>
                                                     );
                                                 })}
@@ -1001,7 +1138,8 @@ export default function LoginShop() {
                                                         {a.address}{civic}
                                                     </div>
                                                     <div className="text-muted" style={{ fontSize: 13 }}>
-                                                        {a.city} ({a.cap})
+                                                        {a.cap} {a.city}
+                                                        {a.province ? ` (${a.province})` : ""}
                                                     </div>
                                                 </div>
 
@@ -1101,8 +1239,9 @@ export default function LoginShop() {
                                                             />
                                                         </div>
 
-                                                        <div className="col-12 col-md-4">
+                                                        <div className="col-12 col-md-2">
                                                             <label className="form-label">N° civico</label>
+
                                                             <input
                                                                 className="form-control"
                                                                 name="streetNumber"
@@ -1113,6 +1252,7 @@ export default function LoginShop() {
 
                                                         <div className="col-12 col-md-5">
                                                             <label className="form-label">Città</label>
+
                                                             <input
                                                                 className="form-control"
                                                                 name="city"
@@ -1127,13 +1267,32 @@ export default function LoginShop() {
                                                             />
                                                         </div>
 
+                                                        <div className="col-12 col-md-2">
+                                                            <label className="form-label">Provincia</label>
+
+                                                            <input
+                                                                className="form-control"
+                                                                name="province"
+                                                                value={editAddr.province}
+                                                                onChange={onEditAddrChange}
+                                                                placeholder="Es. PR"
+                                                                maxLength={2}
+                                                                autoCapitalize="characters"
+                                                                autoCorrect="off"
+                                                                spellCheck={false}
+                                                            />
+                                                        </div>
+
                                                         <div className="col-12 col-md-3">
                                                             <label className="form-label">CAP</label>
+
                                                             <input
                                                                 className="form-control"
                                                                 name="cap"
                                                                 value={editAddr.cap}
                                                                 onChange={onEditAddrChange}
+                                                                inputMode="numeric"
+                                                                maxLength={5}
                                                             />
                                                         </div>
                                                     </div>
@@ -1220,13 +1379,20 @@ export default function LoginShop() {
                                             <input className="form-control" name="address" value={newAddr.address} onChange={onNewAddrChange} />
                                         </div>
 
-                                        <div className="col-12 col-md-4">
+                                        <div className="col-12 col-md-2">
                                             <label className="form-label">N° civico</label>
-                                            <input className="form-control" name="streetNumber" value={newAddr.streetNumber} onChange={onNewAddrChange} />
+
+                                            <input
+                                                className="form-control"
+                                                name="streetNumber"
+                                                value={newAddr.streetNumber}
+                                                onChange={onNewAddrChange}
+                                            />
                                         </div>
 
                                         <div className="col-12 col-md-5">
                                             <label className="form-label">Città</label>
+
                                             <input
                                                 className="form-control"
                                                 name="city"
@@ -1241,9 +1407,33 @@ export default function LoginShop() {
                                             />
                                         </div>
 
+                                        <div className="col-12 col-md-2">
+                                            <label className="form-label">Provincia</label>
+
+                                            <input
+                                                className="form-control"
+                                                name="province"
+                                                value={newAddr.province}
+                                                onChange={onNewAddrChange}
+                                                placeholder="Es. PR"
+                                                maxLength={2}
+                                                autoCapitalize="characters"
+                                                autoCorrect="off"
+                                                spellCheck={false}
+                                            />
+                                        </div>
+
                                         <div className="col-12 col-md-3">
                                             <label className="form-label">CAP</label>
-                                            <input className="form-control" name="cap" value={newAddr.cap} onChange={onNewAddrChange} />
+
+                                            <input
+                                                className="form-control"
+                                                name="cap"
+                                                value={newAddr.cap}
+                                                onChange={onNewAddrChange}
+                                                inputMode="numeric"
+                                                maxLength={5}
+                                            />
                                         </div>
                                     </div>
 

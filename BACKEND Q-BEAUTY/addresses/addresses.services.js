@@ -31,6 +31,9 @@ function validateRequiredShippingAddressFields(address) {
     const street = String(address?.address || "").trim();
     const streetNumber = String(address?.streetNumber || "").trim();
     const city = String(address?.city || "").trim();
+    const province = String(address?.province || "")
+        .trim()
+        .toUpperCase();
     const cap = String(address?.cap || "").trim();
 
     const errors = {};
@@ -41,7 +44,17 @@ function validateRequiredShippingAddressFields(address) {
     if (!street) errors.address = "Indirizzo richiesto";
     if (!streetNumber) errors.streetNumber = "N° civico richiesto";
     if (!city) errors.city = "Città richiesta";
-    if (!/^\d{5}$/.test(cap)) errors.cap = "CAP non valido (5 cifre)";
+
+    if (!province) {
+        errors.province = "Provincia richiesta";
+    } else if (!/^[A-Z]{2}$/.test(province)) {
+        errors.province =
+            "Provincia non valida: inserisci la sigla di 2 lettere";
+    }
+
+    if (!/^\d{5}$/.test(cap)) {
+        errors.cap = "CAP non valido (5 cifre)";
+    }
 
     if (Object.keys(errors).length) {
         const err = new Error("Validation error");
@@ -107,8 +120,11 @@ async function updateAddress(userId, addressId, payload) {
         phone: payload?.phone ?? existing.phone,
         taxCode: payload?.taxCode ?? existing.taxCode,
         address: payload?.address ?? existing.address,
-        streetNumber: payload?.streetNumber ?? existing.streetNumber,
+        streetNumber:
+            payload?.streetNumber ?? existing.streetNumber,
         city: payload?.city ?? existing.city,
+        province:
+            payload?.province ?? existing.province,
         cap: payload?.cap ?? existing.cap,
     });
 
@@ -122,6 +138,7 @@ async function updateAddress(userId, addressId, payload) {
     existing.address = normalized.address;
     existing.streetNumber = normalized.streetNumber;
     existing.city = normalized.city;
+    existing.province = normalized.province;
     existing.cap = normalized.cap;
 
     if (payload?.label !== undefined) {

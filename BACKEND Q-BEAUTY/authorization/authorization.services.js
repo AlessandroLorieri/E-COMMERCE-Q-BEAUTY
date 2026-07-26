@@ -122,6 +122,7 @@ async function registerUser(payload) {
         address,
         streetNumber,
         city,
+        province,
         cap,
         confirmBusinessData,
     } = payload || {};
@@ -155,8 +156,17 @@ async function registerUser(payload) {
     const normalizedPec = normalizePec(pec);
 
     const normalizedAddress = address ? String(address).trim() : "";
-    const normalizedStreetNumber = streetNumber ? String(streetNumber).trim() : "";
+    const normalizedStreetNumber = streetNumber
+        ? String(streetNumber).trim()
+        : "";
     const normalizedCity = city ? String(city).trim() : "";
+
+    const normalizedProvince = String(province || "")
+        .trim()
+        .replace(/[^a-zA-Z]/g, "")
+        .slice(0, 2)
+        .toUpperCase();
+
     const normalizedCap = cap ? String(cap).trim() : "";
 
     const confirmedBusinessData =
@@ -205,9 +215,42 @@ async function registerUser(payload) {
             throw err;
         }
 
-        if (!normalizedAddress || !normalizedStreetNumber || !normalizedCity || !normalizedCap) {
-            const err = new Error("Legal billing address is required for piva");
+        const legalAddressErrors = {};
+
+        if (!normalizedAddress) {
+            legalAddressErrors.address =
+                "Indirizzo sede legale richiesto";
+        }
+
+        if (!normalizedStreetNumber) {
+            legalAddressErrors.streetNumber =
+                "N° civico sede legale richiesto";
+        }
+
+        if (!normalizedCity) {
+            legalAddressErrors.city =
+                "Città sede legale richiesta";
+        }
+
+        if (!normalizedProvince) {
+            legalAddressErrors.province =
+                "Provincia sede legale richiesta";
+        } else if (!/^[A-Z]{2}$/.test(normalizedProvince)) {
+            legalAddressErrors.province =
+                "Provincia non valida: inserisci la sigla di 2 lettere";
+        }
+
+        if (!/^\d{5}$/.test(normalizedCap)) {
+            legalAddressErrors.cap =
+                "CAP sede legale non valido (5 cifre)";
+        }
+
+        if (Object.keys(legalAddressErrors).length) {
+            const err = new Error(
+                "Controlla i dati della sede legale"
+            );
             err.status = 400;
+            err.errors = legalAddressErrors;
             throw err;
         }
 
@@ -258,6 +301,7 @@ async function registerUser(payload) {
                 address: normalizedAddress,
                 streetNumber: normalizedStreetNumber,
                 city: normalizedCity,
+                province: normalizedProvince,
                 cap: normalizedCap,
             });
 
@@ -483,13 +527,41 @@ async function updateMeUser(userId, payload) {
         if (hasBillingAddressInput) {
             const addressValue = String(billingAddressInput?.address || "").trim();
             const streetNumberValue = String(billingAddressInput?.streetNumber || "").trim();
-            const cityValue = String(billingAddressInput?.city || "").trim();
-            const capValue = String(billingAddressInput?.cap || "").trim();
+            const cityValue = String(
+                billingAddressInput?.city || ""
+            ).trim();
+
+            const provinceValue = String(
+                billingAddressInput?.province || ""
+            )
+                .trim()
+                .replace(/[^a-zA-Z]/g, "")
+                .slice(0, 2)
+                .toUpperCase();
+
+            const capValue = String(
+                billingAddressInput?.cap || ""
+            ).trim();
 
             if (!addressValue) errors.billingAddress = "Indirizzo sede legale richiesto";
             if (!streetNumberValue) errors.billingStreetNumber = "N° civico sede legale richiesto";
-            if (!cityValue) errors.billingCity = "Città sede legale richiesta";
-            if (!/^\d{5}$/.test(capValue)) errors.billingCap = "CAP sede legale non valido (5 cifre)";
+            if (!cityValue) {
+                errors.billingCity =
+                    "Città sede legale richiesta";
+            }
+
+            if (!provinceValue) {
+                errors.billingProvince =
+                    "Provincia sede legale richiesta";
+            } else if (!/^[A-Z]{2}$/.test(provinceValue)) {
+                errors.billingProvince =
+                    "Provincia non valida: inserisci la sigla di 2 lettere";
+            }
+
+            if (!/^\d{5}$/.test(capValue)) {
+                errors.billingCap =
+                    "CAP sede legale non valido (5 cifre)";
+            }
         }
 
         if (!user.companyName) errors.companyName = errors.companyName || "Ragione sociale richiesta";
@@ -539,6 +611,7 @@ async function updateMeUser(userId, payload) {
             address: billingAddressInput?.address,
             streetNumber: billingAddressInput?.streetNumber,
             city: billingAddressInput?.city,
+            province: billingAddressInput?.province,
             cap: billingAddressInput?.cap,
         });
 
@@ -558,9 +631,17 @@ async function updateMeUser(userId, payload) {
             currentBillingAddress.email = normalizedBilling.email || "";
             currentBillingAddress.taxCode = normalizedBilling.taxCode || "";
             currentBillingAddress.address = normalizedBilling.address || "";
-            currentBillingAddress.streetNumber = normalizedBilling.streetNumber || "";
-            currentBillingAddress.city = normalizedBilling.city || "";
-            currentBillingAddress.cap = normalizedBilling.cap || "";
+            currentBillingAddress.streetNumber =
+                normalizedBilling.streetNumber || "";
+
+            currentBillingAddress.city =
+                normalizedBilling.city || "";
+
+            currentBillingAddress.province =
+                normalizedBilling.province || "";
+
+            currentBillingAddress.cap =
+                normalizedBilling.cap || "";
 
             await currentBillingAddress.save();
             user.billingAddressRef = currentBillingAddress._id;
@@ -577,6 +658,7 @@ async function updateMeUser(userId, payload) {
                 address: normalizedBilling.address || "",
                 streetNumber: normalizedBilling.streetNumber || "",
                 city: normalizedBilling.city || "",
+                province: normalizedBilling.province || "",
                 cap: normalizedBilling.cap || "",
             });
 
@@ -723,7 +805,9 @@ async function adminListUsers({ page = 1, limit = 20, q, customerType } = {}) {
         const billingAddresses = await Address.find({
             _id: { $in: billingAddressIds },
         })
-            .select("label name surname phone email taxCode address streetNumber city cap")
+            .select(
+                "label name surname phone email taxCode address streetNumber city province cap"
+            )
             .lean();
 
         billingAddressesById = billingAddresses.reduce((map, addr) => {
