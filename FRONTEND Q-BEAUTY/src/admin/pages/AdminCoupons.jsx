@@ -614,8 +614,23 @@ export default function AdminCoupons() {
                                     </div>
 
                                     <div className="col-12 col-md-4">
-                                        <div className="text-muted small mb-1">Scadenza</div>
-                                        <div>{c.endsAt ? formatDate(c.endsAt) : "—"}</div>
+                                        <div className="text-muted small mb-1">Validità</div>
+
+                                        <div className="d-flex flex-column gap-1">
+                                            <div>
+                                                <span className="text-muted">Dal:</span>{" "}
+                                                <strong>
+                                                    {c.startsAt ? formatDate(c.startsAt) : "-"}
+                                                </strong>
+                                            </div>
+
+                                            <div>
+                                                <span className="text-muted">Al:</span>{" "}
+                                                <strong>
+                                                    {c.endsAt ? formatDate(c.endsAt) : "-"}
+                                                </strong>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
