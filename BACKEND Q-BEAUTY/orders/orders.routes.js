@@ -205,6 +205,29 @@ function validateAdminStatusBody(req, res, next) {
     next();
 }
 
+function validateAdminFlagsBody(req, res, next) {
+    const hasIsInvoiced = typeof req.body?.isInvoiced === "boolean";
+    const hasIsWaybillCreated =
+        typeof req.body?.isWaybillCreated === "boolean";
+
+    if (!hasIsInvoiced && !hasIsWaybillCreated) {
+        return res.status(400).json({
+            message: "Inserisci almeno un valore tra fatturato e bollettato",
+        });
+    }
+
+    req.body = {
+        ...(hasIsInvoiced
+            ? { isInvoiced: req.body.isInvoiced }
+            : {}),
+        ...(hasIsWaybillCreated
+            ? { isWaybillCreated: req.body.isWaybillCreated }
+            : {}),
+    };
+
+    next();
+}
+
 function validateAdminBankReminderBody(req, res, next) {
     if (req.body?.confirm !== true) {
         return res.status(400).json({ message: "Conferma invio mancante" });
@@ -249,6 +272,16 @@ router.patch(
     validateObjectIdParam("id"),
     validateAdminStatusBody,
     controller.adminSetStatus
+);
+
+router.patch(
+    "/admin/:id/admin-flags",
+    authRequired,
+    adminOnly,
+    adminWriteLimiter,
+    validateObjectIdParam("id"),
+    validateAdminFlagsBody,
+    controller.adminSetAdminFlags
 );
 
 router.post(

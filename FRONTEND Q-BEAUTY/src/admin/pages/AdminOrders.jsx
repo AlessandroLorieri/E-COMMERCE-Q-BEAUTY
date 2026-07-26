@@ -89,6 +89,7 @@ export default function AdminOrders() {
 
     const [openId, setOpenId] = useState(null);
     const [savingId, setSavingId] = useState(null);
+    const [savingAdminFlagId, setSavingAdminFlagId] = useState(null);
     const [trackingDraft, setTrackingDraft] = useState({});
 
     const qs = useMemo(() => {
@@ -190,6 +191,54 @@ export default function AdminOrders() {
             }
         } finally {
             setSavingId(null);
+        }
+    }
+
+    async function setAdminFlag(orderId, field, value) {
+        if (value === false) {
+            const label =
+                field === "isInvoiced"
+                    ? "Fatturato"
+                    : "Bollettato";
+
+            const confirmed = window.confirm(
+                `Vuoi davvero rimuovere la spunta "${label}"?\n\nLa data registrata verrà cancellata.`
+            );
+
+            if (!confirmed) return;
+        }
+
+        setErrMsg("");
+        setSavingAdminFlagId(orderId);
+
+        try {
+            const data = await apiFetch(
+                `/api/orders/admin/${encodeURIComponent(orderId)}/admin-flags`,
+                {
+                    method: "PATCH",
+                    body: JSON.stringify({
+                        [field]: value,
+                    }),
+                }
+            );
+
+            setOrders((prev) =>
+                prev.map((order) =>
+                    order._id === orderId
+                        ? {
+                            ...order,
+                            isInvoiced: data.isInvoiced,
+                            invoicedAt: data.invoicedAt,
+                            isWaybillCreated: data.isWaybillCreated,
+                            waybillCreatedAt: data.waybillCreatedAt,
+                        }
+                        : order
+                )
+            );
+        } catch (e) {
+            setErrMsg(e.message || "Errore aggiornamento gestione amministrativa");
+        } finally {
+            setSavingAdminFlagId(null);
         }
     }
 
@@ -515,6 +564,10 @@ export default function AdminOrders() {
                     const discount = Number(o.discountCents ?? 0);
                     const totalCents = Number(o.totalCents ?? 0);
 
+                    const isInvoiced = Boolean(o.isInvoiced);
+                    const isWaybillCreated = Boolean(o.isWaybillCreated);
+                    const isSavingAdminFlags = savingAdminFlagId === o._id;
+
                     const computedShipping = Math.max(0, totalCents - Math.max(0, subtotal - discount));
                     const shipping = Number.isFinite(Number(o.shippingCents)) ? Number(o.shippingCents) : computedShipping;
 
@@ -550,6 +603,52 @@ export default function AdminOrders() {
                                     </div>
                                 </div>
                             </button>
+
+                            <div className="d-flex flex-wrap gap-3 mt-2" style={{ fontSize: 13 }}>
+                                <label className="d-flex align-items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={isInvoiced}
+                                        disabled={isSavingAdminFlags}
+                                        onChange={(e) =>
+                                            setAdminFlag(o._id, "isInvoiced", e.target.checked)
+                                        }
+                                    />
+
+                                    <span>
+                                        <b>Fatturato</b>
+                                        {isInvoiced && o.invoicedAt ? (
+                                            <span className="text-muted">
+                                                {" "}• {formatDate(o.invoicedAt)}
+                                            </span>
+                                        ) : null}
+                                    </span>
+                                </label>
+
+                                <label className="d-flex align-items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={isWaybillCreated}
+                                        disabled={isSavingAdminFlags}
+                                        onChange={(e) =>
+                                            setAdminFlag(
+                                                o._id,
+                                                "isWaybillCreated",
+                                                e.target.checked
+                                            )
+                                        }
+                                    />
+
+                                    <span>
+                                        <b>Bollettato</b>
+                                        {isWaybillCreated && o.waybillCreatedAt ? (
+                                            <span className="text-muted">
+                                                {" "}• {formatDate(o.waybillCreatedAt)}
+                                            </span>
+                                        ) : null}
+                                    </span>
+                                </label>
+                            </div>
 
                             {isOpen ? (
                                 <div className="mt-3 pt-3 border-top">
@@ -602,6 +701,64 @@ export default function AdminOrders() {
                                                     <b>{formatDate(o.paymentReminderSentAt)}</b>
                                                 </div>
                                             ) : null}
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-3">
+                                        <div className="fw-semibold mb-2">
+                                            Gestione amministrativa
+                                        </div>
+
+                                        <div className="d-flex flex-wrap gap-3" style={{ fontSize: 14 }}>
+                                            <label className="d-flex align-items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isInvoiced}
+                                                    disabled={isSavingAdminFlags}
+                                                    onChange={(e) =>
+                                                        setAdminFlag(
+                                                            o._id,
+                                                            "isInvoiced",
+                                                            e.target.checked
+                                                        )
+                                                    }
+                                                />
+
+                                                <span>
+                                                    <b>Fatturato</b>
+
+                                                    {isInvoiced && o.invoicedAt ? (
+                                                        <span className="text-muted">
+                                                            {" "}• {formatDate(o.invoicedAt)}
+                                                        </span>
+                                                    ) : null}
+                                                </span>
+                                            </label>
+
+                                            <label className="d-flex align-items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isWaybillCreated}
+                                                    disabled={isSavingAdminFlags}
+                                                    onChange={(e) =>
+                                                        setAdminFlag(
+                                                            o._id,
+                                                            "isWaybillCreated",
+                                                            e.target.checked
+                                                        )
+                                                    }
+                                                />
+
+                                                <span>
+                                                    <b>Bollettato</b>
+
+                                                    {isWaybillCreated && o.waybillCreatedAt ? (
+                                                        <span className="text-muted">
+                                                            {" "}• {formatDate(o.waybillCreatedAt)}
+                                                        </span>
+                                                    ) : null}
+                                                </span>
+                                            </label>
                                         </div>
                                     </div>
 

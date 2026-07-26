@@ -1579,6 +1579,68 @@ async function adminSetOrderStatus(orderId, newStatus, shipment) {
     return order;
 }
 
+async function adminSetOrderAdminFlags(orderId, flags = {}) {
+    const id = String(orderId || "").trim();
+
+    if (!id) {
+        const err = new Error("Order id required");
+        err.status = 400;
+        throw err;
+    }
+
+    const hasIsInvoiced = typeof flags.isInvoiced === "boolean";
+    const hasIsWaybillCreated = typeof flags.isWaybillCreated === "boolean";
+
+    if (!hasIsInvoiced && !hasIsWaybillCreated) {
+        const err = new Error("Validation error");
+        err.status = 400;
+        err.errors = {
+            adminFlags: "Inserisci almeno un valore tra fatturato e bollettato",
+        };
+        throw err;
+    }
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+        const err = new Error("Order not found");
+        err.status = 404;
+        throw err;
+    }
+
+    if (hasIsInvoiced) {
+        const wasInvoiced = Boolean(order.isInvoiced);
+
+        order.isInvoiced = flags.isInvoiced;
+
+        if (flags.isInvoiced && !wasInvoiced) {
+            order.invoicedAt = new Date();
+        }
+
+        if (!flags.isInvoiced) {
+            order.invoicedAt = null;
+        }
+    }
+
+    if (hasIsWaybillCreated) {
+        const wasWaybillCreated = Boolean(order.isWaybillCreated);
+
+        order.isWaybillCreated = flags.isWaybillCreated;
+
+        if (flags.isWaybillCreated && !wasWaybillCreated) {
+            order.waybillCreatedAt = new Date();
+        }
+
+        if (!flags.isWaybillCreated) {
+            order.waybillCreatedAt = null;
+        }
+    }
+
+    await order.save();
+
+    return order;
+}
+
 async function adminSendBankReminder(orderId) {
     const id = String(orderId || "").trim();
 
@@ -2081,6 +2143,7 @@ module.exports = {
     adminListOrders,
     adminGetOrder,
     adminSetOrderStatus,
+    adminSetOrderAdminFlags,
     adminGetDashboardStats,
     adminCancelOrderAndRestock,
     adminGetDashboardYears,

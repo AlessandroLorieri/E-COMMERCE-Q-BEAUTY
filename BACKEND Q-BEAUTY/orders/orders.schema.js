@@ -118,6 +118,26 @@ const OrderSchema = new mongoose.Schema(
 
         paymentReminderSentAt: { type: Date, default: null },
 
+        isInvoiced: {
+            type: Boolean,
+            default: false,
+        },
+
+        invoicedAt: {
+            type: Date,
+            default: null,
+        },
+
+        isWaybillCreated: {
+            type: Boolean,
+            default: false,
+        },
+
+        waybillCreatedAt: {
+            type: Date,
+            default: null,
+        },
+
         shipment: {
             carrierName: { type: String, trim: true, default: "" },
             trackingCode: { type: String, trim: true, default: "" },

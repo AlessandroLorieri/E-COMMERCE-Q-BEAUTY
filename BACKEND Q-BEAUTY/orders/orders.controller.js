@@ -6,6 +6,7 @@ const {
     adminListOrders,
     adminGetOrder,
     adminSetOrderStatus,
+    adminSetOrderAdminFlags,
     adminGetDashboardStats,
     adminCancelOrderAndRestock,
     adminGetDashboardYears,
@@ -349,6 +350,41 @@ async function adminSetStatus(req, res) {
     }
 }
 
+async function adminSetAdminFlags(req, res) {
+    try {
+        const { id } = req.params;
+
+        const flags = {};
+
+        if (typeof req.body?.isInvoiced === "boolean") {
+            flags.isInvoiced = req.body.isInvoiced;
+        }
+
+        if (typeof req.body?.isWaybillCreated === "boolean") {
+            flags.isWaybillCreated = req.body.isWaybillCreated;
+        }
+
+        const order = await adminSetOrderAdminFlags(id, flags);
+
+        return res.json({
+            orderId: order._id,
+
+            isInvoiced: Boolean(order.isInvoiced),
+            invoicedAt: order.invoicedAt || null,
+
+            isWaybillCreated: Boolean(order.isWaybillCreated),
+            waybillCreatedAt: order.waybillCreatedAt || null,
+        });
+    } catch (err) {
+        const status = err.status || 500;
+
+        return res.status(status).json({
+            message: err.message || "Server error",
+            errors: err.errors || undefined,
+        });
+    }
+}
+
 async function adminSendBankReminder(req, res) {
     try {
         const { id } = req.params;
@@ -438,6 +474,7 @@ module.exports = {
     adminList,
     adminGet,
     adminSetStatus,
+    adminSetAdminFlags,
     adminSendBankReminder,
     adminStats,
     adminCancel,
