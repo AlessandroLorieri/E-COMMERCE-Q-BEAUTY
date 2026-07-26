@@ -27,6 +27,42 @@ function formatDate(value) {
     }
 }
 
+function localDateTimeToIso(value) {
+    if (!value) return null;
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    return date.toISOString();
+}
+
+function isoToLocalDateTime(value) {
+    if (!value) return "";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+    const pad = (number) => String(number).padStart(2, "0");
+
+    return [
+        date.getFullYear(),
+        "-",
+        pad(date.getMonth() + 1),
+        "-",
+        pad(date.getDate()),
+        "T",
+        pad(date.getHours()),
+        ":",
+        pad(date.getMinutes()),
+    ].join("");
+}
+
 export default function AdminCoupons() {
     const navigate = useNavigate();
     const { authFetch } = useAuth();
@@ -194,6 +230,54 @@ export default function AdminCoupons() {
         return uniqueLabels.length ? uniqueLabels.join(" · ") : "Nessun prodotto associato";
     }
 
+    function renderCouponDiscount(coupon) {
+        const rules = Array.isArray(coupon?.rules) ? coupon.rules : [];
+
+        if (!rules.length) return "—";
+
+        const discounts = rules.map((rule) => {
+            const type = String(rule?.type || "").trim();
+            const value = Number(rule?.value);
+
+            if (!Number.isFinite(value)) return null;
+
+            if (type === "percent") {
+                return {
+                    key: `percent-${value}`,
+                    label: `-${value.toLocaleString("it-IT")}%`,
+                };
+            }
+
+            if (type === "fixed") {
+                return {
+                    key: `fixed-${value}`,
+                    label: `-${(value / 100).toLocaleString("it-IT", {
+                        style: "currency",
+                        currency: "EUR",
+                    })} per unità`,
+                };
+            }
+
+            return null;
+        }).filter(Boolean);
+
+        const uniqueDiscounts = [
+            ...new Map(
+                discounts.map((discount) => [discount.key, discount])
+            ).values(),
+        ];
+
+        if (!uniqueDiscounts.length) return "—";
+
+        if (uniqueDiscounts.length === 1) {
+            return uniqueDiscounts[0].label;
+        }
+
+        return uniqueDiscounts
+            .map((discount) => discount.label)
+            .join(" · ");
+    }
+
     const manualCoupons = useMemo(
         () => (coupons || []).filter((c) => !c?.isRewardCoupon),
         [coupons]
@@ -228,8 +312,8 @@ export default function AdminCoupons() {
         setEditingId(c._id);
         setRulesMixedWarning("");
 
-        const startsAt = c.startsAt ? String(c.startsAt).slice(0, 16) : "";
-        const endsAt = c.endsAt ? String(c.endsAt).slice(0, 16) : "";
+        const startsAt = isoToLocalDateTime(c.startsAt);
+        const endsAt = isoToLocalDateTime(c.endsAt);
 
         const rules = Array.isArray(c.rules) ? c.rules : [];
         const selectedProductIds = rules
@@ -346,8 +430,13 @@ export default function AdminCoupons() {
                 code,
                 name: String(form.name || "").trim() || null,
                 isActive: !!form.isActive,
-                startsAt: startsAtRaw || null,
-                endsAt: endsAtRaw || null,
+                startsAt: startsAtRaw
+                    ? localDateTimeToIso(startsAtRaw)
+                    : null,
+
+                endsAt: endsAtRaw
+                    ? localDateTimeToIso(endsAtRaw)
+                    : null,
                 maxUses: parsedMaxUses,
                 rules: rulesOut,
             },
@@ -510,8 +599,17 @@ export default function AdminCoupons() {
 
                                     <div className="col-12 col-md-4">
                                         <div className="text-muted small mb-1">Attivo su:</div>
+
                                         <div className="fw-semibold">
                                             {renderCouponActiveOn(c)}
+                                        </div>
+
+                                        <div className="text-muted small mt-3 mb-1">
+                                            Sconto applicato:
+                                        </div>
+
+                                        <div className="fw-semibold">
+                                            {renderCouponDiscount(c)}
                                         </div>
                                     </div>
 
