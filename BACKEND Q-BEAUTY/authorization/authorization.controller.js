@@ -59,7 +59,11 @@ async function register(req, res) {
     } catch (err) {
         if (err?.status) {
             const status = err.status || 500;
-            return res.status(status).json({ message: err.message || "Server error" });
+
+            return res.status(status).json({
+                message: err.message || "Server error",
+                errors: err.errors || undefined,
+            });
         }
 
         const mapped = mapMongooseError(err);

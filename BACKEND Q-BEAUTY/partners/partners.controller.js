@@ -4,6 +4,7 @@ const {
     adminListPartners,
     adminGetPartner,
     adminGetPartnerOrders,
+    adminGetPartnerLeaderboard,
     createPartner,
     updatePartner,
     deletePartner,
@@ -74,6 +75,22 @@ async function adminGetOrders(req, res) {
     }
 }
 
+async function adminGetLeaderboard(req, res) {
+    try {
+        const data = await adminGetPartnerLeaderboard();
+        return res.json(data);
+    } catch (err) {
+        console.error("partners.adminGetLeaderboard error:", err);
+
+        return res.status(err.status || 500).json({
+            message:
+                err.message ||
+                "Errore caricamento classifica partner",
+            errors: err.errors || undefined,
+        });
+    }
+}
+
 async function adminCreate(req, res) {
     try {
         const partner = await createPartner(req.body || {});
@@ -119,6 +136,7 @@ module.exports = {
     adminList,
     adminGet,
     adminGetOrders,
+    adminGetLeaderboard,
     adminCreate,
     adminUpdate,
     adminDelete,

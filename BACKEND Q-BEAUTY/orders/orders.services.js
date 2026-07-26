@@ -1478,10 +1478,31 @@ async function adminSetOrderStatus(orderId, newStatus, shipment) {
     const finalTrackingCodeForValidation = (inTrackingCode || existingTrackingCode).trim();
     const finalTrackingUrlForValidation = (inTrackingUrl || existingTrackingUrl).trim();
 
-    if (status === "shipped" && (!finalTrackingCodeForValidation || !finalTrackingUrlForValidation)) {
+    const hasFinalTrackingCode = Boolean(
+        finalTrackingCodeForValidation
+    );
+
+    const hasFinalTrackingUrl = Boolean(
+        finalTrackingUrlForValidation
+    );
+
+    const hasAnyFinalTracking =
+        hasFinalTrackingCode || hasFinalTrackingUrl;
+
+    const hasCompleteFinalTracking =
+        hasFinalTrackingCode && hasFinalTrackingUrl;
+
+    if (
+        status === "shipped" &&
+        hasAnyFinalTracking &&
+        !hasCompleteFinalTracking
+    ) {
         const err = new Error("Validation error");
         err.status = 400;
-        err.errors = { shipment: "Per segnare come spedito servono codice tracking E link tracking" };
+        err.errors = {
+            shipment:
+                "Inserisci sia il codice tracking sia il link tracking, oppure lasciali entrambi vuoti",
+        };
         throw err;
     }
 

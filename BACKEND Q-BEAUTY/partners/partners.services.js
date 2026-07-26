@@ -387,6 +387,123 @@ async function adminGetPartnerOrders(id) {
     };
 }
 
+async function adminGetPartnerLeaderboard() {
+    const partners = await Partner.find({})
+        .select("_id partnerCouponCode")
+        .lean();
+
+    const partnerIds = new Set(
+        partners.map((partner) => String(partner._id))
+    );
+
+    const partnerIdByCouponCode = new Map();
+
+    for (const partner of partners) {
+        const couponCode = normalizePartnerCouponCode(
+            partner.partnerCouponCode
+        );
+
+        if (couponCode) {
+            partnerIdByCouponCode.set(
+                couponCode,
+                String(partner._id)
+            );
+        }
+    }
+
+    const orders = await Order.find({
+        status: { $in: VALID_SPENT_STATUS_LIST },
+        $or: [
+            { partnerRef: { $ne: null } },
+            { partnerCouponCodeApplied: { $nin: [null, ""] } },
+        ],
+    })
+        .select({
+            partnerRef: 1,
+            partnerCouponCodeApplied: 1,
+            items: 1,
+            totalCents: 1,
+        })
+        .lean();
+
+    const totalsByPartnerId = new Map();
+
+    for (const order of orders) {
+        const partnerRefId = order.partnerRef
+            ? String(order.partnerRef)
+            : "";
+
+        const couponCode = normalizePartnerCouponCode(
+            order.partnerCouponCodeApplied
+        );
+
+        const partnerId =
+            (partnerRefId && partnerIds.has(partnerRefId)
+                ? partnerRefId
+                : "") ||
+            partnerIdByCouponCode.get(couponCode) ||
+            "";
+
+        if (!partnerId) continue;
+
+        const current = totalsByPartnerId.get(partnerId) || {
+            piecesCount: 0,
+            spentCents: 0,
+        };
+
+        current.piecesCount += sumOrderPieces(order);
+        current.spentCents += Math.max(
+            0,
+            Number(order.totalCents) || 0
+        );
+
+        totalsByPartnerId.set(partnerId, current);
+    }
+
+    const rows = Array.from(totalsByPartnerId.entries()).map(
+        ([partnerId, totals]) => ({
+            partnerId,
+            piecesCount: totals.piecesCount,
+            spentCents: totals.spentCents,
+        })
+    );
+
+    const topPiecesCount = rows.reduce(
+        (max, row) => Math.max(max, row.piecesCount),
+        0
+    );
+
+    const topSpentCents = rows.reduce(
+        (max, row) => Math.max(max, row.spentCents),
+        0
+    );
+
+    return {
+        topPiecesCount,
+        topSpentCents,
+
+        topPiecesPartnerIds:
+            topPiecesCount > 0
+                ? rows
+                    .filter(
+                        (row) =>
+                            row.piecesCount === topPiecesCount
+                    )
+                    .map((row) => row.partnerId)
+                : [],
+
+        topSpentPartnerIds:
+            topSpentCents > 0
+                ? rows
+                    .filter(
+                        (row) =>
+                            row.spentCents === topSpentCents
+                    )
+                    .map((row) => row.partnerId)
+                : [],
+    };
+}
+
 async function createPartner(payload) {
     const data = normalizePartnerPayload(payload);
     validatePartnerPayload(data);
@@ -463,6 +580,7 @@ module.exports = {
     adminListPartners,
     adminGetPartner,
     adminGetPartnerOrders,
+    adminGetPartnerLeaderboard,
     createPartner,
     updatePartner,
     deletePartner,

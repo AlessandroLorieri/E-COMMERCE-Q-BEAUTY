@@ -397,7 +397,7 @@ export default function AdminOrders() {
                 </div>
             </div>
 
-            <div className="list-group">
+            <div className="list-group admin-orders-list">
                 {(orders || []).filter((o) => o && o._id).map((o) => {
                     const isOpen = openId === o._id;
                     const u = o.user || {};
@@ -552,13 +552,44 @@ export default function AdminOrders() {
 
                     const trackingNotified = Boolean(o?.shipment?.notifiedAt);
 
-                    const hasTracking =
-                        Boolean(String(draft.trackingCode || "").trim()) &&
+                    const hasTrackingCode = Boolean(
+                        String(draft.trackingCode || "").trim()
+                    );
+
+                    const hasTrackingUrlInput = Boolean(
+                        String(draft.trackingUrl || "").trim()
+                    );
+
+                    const hasAnyTracking =
+                        hasTrackingCode || hasTrackingUrlInput;
+
+                    const hasCompleteTracking =
+                        hasTrackingCode &&
                         trackingUrlOk &&
                         !trackingCodeIsUrl;
 
-                    const canShipStatus = o.status === "processing" || o.status === "paid" || o.status === "shipped";
-                    const canSendShipment = canShipStatus && hasTracking && !trackingNotified;
+                    const trackingIncomplete =
+                        hasAnyTracking && !hasCompleteTracking;
+
+                    const trackingPairError =
+                        trackingIncomplete &&
+                            !trackingCodeError &&
+                            !trackingUrlError
+                            ? "Inserisci sia il codice sia il link tracking, oppure lascia entrambi vuoti."
+                            : "";
+
+                    const canShipStatus =
+                        o.status === "processing" ||
+                        o.status === "paid" ||
+                        o.status === "shipped";
+
+                    const alreadyShipped = o.status === "shipped";
+
+                    const canMarkAsShipped =
+                        canShipStatus &&
+                        !trackingIncomplete &&
+                        !trackingNotified &&
+                        (!alreadyShipped || hasCompleteTracking);
 
                     const subtotal = Number(o.subtotalCents ?? 0);
                     const discount = Number(o.discountCents ?? 0);
@@ -574,7 +605,7 @@ export default function AdminOrders() {
                     return (
                         <div
                             key={o._id}
-                            className={`list-group-item ${isOpen ? "border border-primary" : ""}`}
+                            className={`list-group-item admin-order-card ${isOpen ? "border border-primary" : ""}`}
                         >
 
                             <button
@@ -869,9 +900,9 @@ export default function AdminOrders() {
                                             />
                                         </div>
 
-                                        {(trackingCodeError || trackingUrlError) ? (
+                                        {(trackingCodeError || trackingUrlError || trackingPairError) ? (
                                             <div className="text-danger mt-2" style={{ fontSize: 13 }}>
-                                                {trackingCodeError || trackingUrlError}
+                                                {trackingCodeError || trackingUrlError || trackingPairError}
                                             </div>
                                         ) : null}
 
@@ -879,19 +910,33 @@ export default function AdminOrders() {
                                             <button
                                                 type="button"
                                                 className={`btn btn-sm ${trackingNotified ? "btn-success" : "btn-primary"}`}
-                                                disabled={savingId === o._id || !canSendShipment}
+                                                disabled={savingId === o._id || !canMarkAsShipped}
                                                 onClick={() => setStatus(o._id, "shipped", draft)}
                                                 title={
                                                     trackingNotified
                                                         ? "Tracking già inviato"
                                                         : !canShipStatus
                                                             ? "Puoi spedire solo se l'ordine è Pagato/In preparazione"
-                                                            : !hasTracking
-                                                                ? "Inserisci codice tracking e link tracking"
-                                                                : ""
+                                                            : trackingIncomplete
+                                                                ? "Inserisci sia codice tracking sia link tracking, oppure lasciali entrambi vuoti"
+                                                                : alreadyShipped && !hasCompleteTracking
+                                                                    ? "Ordine già segnato come spedito"
+                                                                    : hasCompleteTracking
+                                                                        ? "Segna come spedito e invia il tracking"
+                                                                        : "Segna come spedito senza inviare il tracking"
                                                 }
                                             >
-                                                {savingId === o._id ? "..." : trackingNotified ? "Tracking inviato ✅" : "Segna come spedito + invia tracking"}
+                                                {savingId === o._id
+                                                    ? "..."
+                                                    : trackingNotified
+                                                        ? "Tracking inviato ✅"
+                                                        : alreadyShipped && hasCompleteTracking
+                                                            ? "Invia tracking"
+                                                            : alreadyShipped
+                                                                ? "Ordine spedito ✅"
+                                                                : hasCompleteTracking
+                                                                    ? "Segna come spedito + invia tracking"
+                                                                    : "Segna come spedito"}
                                             </button>
                                         </div>
                                     </div>

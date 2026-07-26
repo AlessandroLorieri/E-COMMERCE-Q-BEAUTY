@@ -320,17 +320,28 @@ async function adminSetStatus(req, res) {
             }
         }
 
-        const hasTracking = Boolean(trackingCode) || Boolean(trackingUrl);
+        const hasTrackingCode = Boolean(trackingCode);
+        const hasTrackingUrl = Boolean(trackingUrl);
+
+        const hasAnyTracking = hasTrackingCode || hasTrackingUrl;
+        const hasCompleteTracking = hasTrackingCode && hasTrackingUrl;
 
         const shipment =
             carrierName || trackingCode || trackingUrl
                 ? { carrierName, trackingCode, trackingUrl }
                 : null;
 
-        if (newStatus === "shipped" && !hasTracking) {
+        if (
+            newStatus === "shipped" &&
+            hasAnyTracking &&
+            !hasCompleteTracking
+        ) {
             return res.status(400).json({
                 message: "Validation error",
-                errors: { shipment: "Inserisci almeno codice tracking o link tracking" },
+                errors: {
+                    shipment:
+                        "Inserisci sia il codice tracking sia il link tracking, oppure lasciali entrambi vuoti",
+                },
             });
         }
 

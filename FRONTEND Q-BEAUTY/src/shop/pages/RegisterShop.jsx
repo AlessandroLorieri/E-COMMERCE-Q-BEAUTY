@@ -136,6 +136,30 @@ export default function RegisterShop() {
             .toLowerCase();
     }
 
+    const ORDINARY_EMAIL_DOMAINS = new Set([
+        "gmail.com",
+        "googlemail.com",
+        "libero.it",
+        "virgilio.it",
+        "outlook.com",
+        "outlook.it",
+        "hotmail.com",
+        "hotmail.it",
+        "live.com",
+        "live.it",
+        "yahoo.com",
+        "yahoo.it",
+        "icloud.com",
+        "me.com",
+        "tiscali.it",
+        "alice.it",
+        "tim.it",
+        "fastwebnet.it",
+        "email.it",
+        "proton.me",
+        "protonmail.com",
+    ]);
+
     function isValidSdiCode(value) {
         const s = normalizeSdiCode(value);
         if (!s) return false;
@@ -143,9 +167,17 @@ export default function RegisterShop() {
     }
 
     function isValidPec(value) {
-        const s = normalizePec(value);
-        if (!s) return false;
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+        const pec = normalizePec(value);
+
+        if (!pec) return false;
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pec)) {
+            return false;
+        }
+
+        const domain = pec.split("@").pop();
+
+        return Boolean(domain) && !ORDINARY_EMAIL_DOMAINS.has(domain);
     }
 
     function formatRegisterError(err) {
@@ -261,27 +293,26 @@ export default function RegisterShop() {
             const sdiCode = normalizeSdiCode(form.sdiCode);
             const pec = normalizePec(form.pec);
 
-            const hasSdi = !!sdiCode;
-            const hasPec = !!pec;
-            const pecValid = hasPec ? isValidPec(pec) : false;
+            const hasSdi = Boolean(sdiCode);
+            const hasPec = Boolean(pec);
+            const pecValid = hasPec && isValidPec(pec);
 
             if (!hasSdi && !hasPec) {
-                nextErrors.sdiPec = "Inserisci almeno uno tra Codice SDI e PEC.";
+                nextErrors.sdiCode =
+                    "Inserisci il Codice SDI oppure un indirizzo PEC.";
+
+                nextErrors.pec =
+                    "Inserisci un indirizzo PEC oppure il Codice SDI.";
             }
 
             if (hasSdi && !isValidSdiCode(sdiCode)) {
-                nextErrors.sdiCode = "Codice SDI non valido.";
+                nextErrors.sdiCode =
+                    "Il Codice SDI deve contenere esattamente 7 caratteri alfanumerici.";
             }
 
-            if (sdiCode === "0000000" && !pecValid) {
-                nextErrors.sdiPec = "Se inserisci 0000000 devi indicare anche una PEC valida.";
-                if (!hasPec) {
-                    nextErrors.pec = "Con Codice SDI 0000000 la PEC è obbligatoria.";
-                } else {
-                    nextErrors.pec = "PEC non valida.";
-                }
-            } else if (hasPec && !pecValid) {
-                nextErrors.pec = "PEC non valida.";
+            if (hasPec && !pecValid) {
+                nextErrors.pec =
+                    "Inserisci un indirizzo PEC valido. Gmail, Libero, Outlook e altre email normali non sono accettate.";
             }
 
             if (!form.confirmBusinessData) {
@@ -333,7 +364,17 @@ export default function RegisterShop() {
             await register(payload);
             navigate(next, { replace: true });
         } catch (err) {
-            setError(formatRegisterError(err));
+            const payloadErrors = err?.payload?.errors;
+
+            if (
+                payloadErrors &&
+                typeof payloadErrors === "object"
+            ) {
+                setFieldErrors(payloadErrors);
+                setError("");
+            } else {
+                setError(formatRegisterError(err));
+            }
         } finally {
             setSubmitting(false);
         }
@@ -596,47 +637,86 @@ export default function RegisterShop() {
                                 </div>
 
                                 <div className="col-12 col-md-6">
-                                    <label className="form-label">Codice destinatario SDI</label>
+                                    <label className="form-label">
+                                        Codice destinatario SDI
+                                    </label>
+
                                     <input
-                                        className={`form-control ${fieldErrors.sdiCode || fieldErrors.sdiPec ? "is-invalid" : ""}`}
+                                        className={`form-control ${fieldErrors.sdiCode ? "is-invalid" : ""
+                                            }`}
                                         name="sdiCode"
                                         value={form.sdiCode}
                                         onChange={onChange}
                                         placeholder="Es. ABCD123"
                                         maxLength={7}
-                                        aria-invalid={fieldErrors.sdiCode || fieldErrors.sdiPec ? "true" : "false"}
+                                        aria-invalid={
+                                            fieldErrors.sdiCode ? "true" : "false"
+                                        }
                                         spellCheck={false}
                                         autoCorrect="off"
                                         autoCapitalize="off"
                                     />
+
+                                    {fieldErrors.sdiCode ? (
+                                        <div className="invalid-feedback d-block">
+                                            {fieldErrors.sdiCode}
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className="form-text"
+                                            style={{
+                                                color: "rgba(255,255,255,0.68)",
+                                            }}
+                                        >
+                                            Il Codice SDI deve contenere 7 caratteri
+                                            alfanumerici.
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="col-12 col-md-6">
                                     <label className="form-label">PEC</label>
+
                                     <input
-                                        className={`form-control ${fieldErrors.pec || fieldErrors.sdiPec ? "is-invalid" : ""}`}
+                                        className={`form-control ${fieldErrors.pec ? "is-invalid" : ""
+                                            }`}
                                         type="email"
                                         name="pec"
                                         value={form.pec}
                                         onChange={onChange}
                                         placeholder="esempio@pec.it"
-                                        aria-invalid={fieldErrors.pec || fieldErrors.sdiPec ? "true" : "false"}
+                                        aria-invalid={
+                                            fieldErrors.pec ? "true" : "false"
+                                        }
                                         spellCheck={false}
                                         autoCorrect="off"
                                         autoCapitalize="off"
                                     />
+
+                                    {fieldErrors.pec ? (
+                                        <div className="invalid-feedback d-block">
+                                            {fieldErrors.pec}
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className="form-text"
+                                            style={{
+                                                color: "rgba(255,255,255,0.68)",
+                                            }}
+                                        >
+                                            Inserisci esclusivamente un indirizzo PEC,
+                                            non una normale email.
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="col-12">
-                                    {fieldErrors.sdiCode || fieldErrors.pec || fieldErrors.sdiPec ? (
-                                        <div className="invalid-feedback d-block">
-                                            {fieldErrors.sdiCode || fieldErrors.pec || fieldErrors.sdiPec}
-                                        </div>
-                                    ) : (
-                                        <div className="form-text" style={{ color: "rgba(255,255,255,0.68)" }}>
-                                            Inserisci almeno uno tra Codice SDI e PEC per la fatturazione elettronica. Se usi 0000000, la PEC è obbligatoria.
-                                        </div>
-                                    )}
+                                    <div
+                                        className="form-text"
+                                        style={{ color: "rgba(255,255,255,0.68)" }}
+                                    >
+                                        Inserisci almeno uno tra Codice SDI e PEC. Puoi utilizzare 0000000 se non disponi di un codice destinatario.
+                                    </div>
                                 </div>
 
                                 <div className="col-12 mt-2">

@@ -46,6 +46,54 @@ function normalizePec(v) {
         .toLowerCase();
 }
 
+const ORDINARY_EMAIL_DOMAINS = new Set([
+    "gmail.com",
+    "googlemail.com",
+    "libero.it",
+    "virgilio.it",
+    "outlook.com",
+    "outlook.it",
+    "hotmail.com",
+    "hotmail.it",
+    "live.com",
+    "live.it",
+    "yahoo.com",
+    "yahoo.it",
+    "icloud.com",
+    "me.com",
+    "tiscali.it",
+    "alice.it",
+    "tim.it",
+    "fastwebnet.it",
+    "email.it",
+    "proton.me",
+    "protonmail.com",
+]);
+
+function isValidEmailFormat(value) {
+    const email = normalizePec(value);
+
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isPlausiblePec(value) {
+    const pec = normalizePec(value);
+
+    if (!isValidEmailFormat(pec)) {
+        return false;
+    }
+
+    const domain = pec.split("@").pop();
+
+    return Boolean(domain) && !ORDINARY_EMAIL_DOMAINS.has(domain);
+}
+
+function isValidSdiCode(value) {
+    const code = normalizeSdiCode(value);
+
+    return /^[A-Z0-9]{7}$/.test(code);
+}
+
 function escapeRegExp(str) {
     return String(str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -124,9 +172,36 @@ async function registerUser(payload) {
             throw err;
         }
 
+        const businessDeliveryErrors = {};
+
+        if (
+            normalizedSdiCode &&
+            !isValidSdiCode(normalizedSdiCode)
+        ) {
+            businessDeliveryErrors.sdiCode =
+                "Il Codice SDI deve contenere esattamente 7 caratteri alfanumerici";
+        }
+
+        if (
+            normalizedPec &&
+            !isPlausiblePec(normalizedPec)
+        ) {
+            businessDeliveryErrors.pec =
+                "Inserisci un indirizzo PEC valido, non una normale email";
+        }
+
         if (!normalizedSdiCode && !normalizedPec) {
-            const err = new Error("At least one of sdiCode or pec is required for piva");
+            businessDeliveryErrors.sdiCode =
+                "Inserisci il Codice SDI oppure un indirizzo PEC";
+
+            businessDeliveryErrors.pec =
+                "Inserisci un indirizzo PEC oppure il Codice SDI";
+        }
+
+        if (Object.keys(businessDeliveryErrors).length) {
+            const err = new Error("Controlla i dati per la fatturazione elettronica");
             err.status = 400;
+            err.errors = businessDeliveryErrors;
             throw err;
         }
 
@@ -370,6 +445,39 @@ async function updateMeUser(userId, payload) {
         if (pec !== undefined) {
             const v = normalizePec(pec);
             user.pec = v || null;
+        }
+
+        const electronicBillingFieldsChanged =
+            sdiCode !== undefined ||
+            pec !== undefined;
+
+        if (electronicBillingFieldsChanged) {
+            const finalSdiCode = normalizeSdiCode(user.sdiCode);
+            const finalPec = normalizePec(user.pec);
+
+            if (
+                finalSdiCode &&
+                !isValidSdiCode(finalSdiCode)
+            ) {
+                errors.sdiCode =
+                    "Il Codice SDI deve contenere esattamente 7 caratteri alfanumerici";
+            }
+
+            if (
+                finalPec &&
+                !isPlausiblePec(finalPec)
+            ) {
+                errors.pec =
+                    "Inserisci un indirizzo PEC valido, non una normale email";
+            }
+
+            if (!finalSdiCode && !finalPec) {
+                errors.sdiCode =
+                    "Inserisci il Codice SDI oppure un indirizzo PEC";
+
+                errors.pec =
+                    "Inserisci un indirizzo PEC oppure il Codice SDI";
+            }
         }
 
         if (hasBillingAddressInput) {

@@ -313,6 +313,13 @@ export default function AdminPartners() {
     const [partnerOrdersLoadingById, setPartnerOrdersLoadingById] = useState({});
     const [partnerOrdersErrorById, setPartnerOrdersErrorById] = useState({});
 
+    const [partnerLeaderboard, setPartnerLeaderboard] = useState({
+        topPiecesCount: 0,
+        topSpentCents: 0,
+        topPiecesPartnerIds: [],
+        topSpentPartnerIds: [],
+    });
+
     async function loadPartners() {
         if (!apiBase) {
             setError("VITE_API_URL mancante");
@@ -337,6 +344,44 @@ export default function AdminPartners() {
             setPartners([]);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function loadPartnerLeaderboard() {
+        try {
+            const res = await authFetch("/api/partners/admin/leaderboard");
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                throw new Error(
+                    data?.message || "Errore caricamento classifica partner"
+                );
+            }
+
+            setPartnerLeaderboard({
+                topPiecesCount: Number(data.topPiecesCount) || 0,
+                topSpentCents: Number(data.topSpentCents) || 0,
+
+                topPiecesPartnerIds: Array.isArray(data.topPiecesPartnerIds)
+                    ? data.topPiecesPartnerIds.map(String)
+                    : [],
+
+                topSpentPartnerIds: Array.isArray(data.topSpentPartnerIds)
+                    ? data.topSpentPartnerIds.map(String)
+                    : [],
+            });
+        } catch (err) {
+            console.error(
+                "Errore caricamento classifica partner:",
+                err
+            );
+
+            setPartnerLeaderboard({
+                topPiecesCount: 0,
+                topSpentCents: 0,
+                topPiecesPartnerIds: [],
+                topSpentPartnerIds: [],
+            });
         }
     }
 
@@ -381,6 +426,7 @@ export default function AdminPartners() {
 
     useEffect(() => {
         loadPartners();
+        loadPartnerLeaderboard();
     }, []);
 
     function resetForm() {
@@ -573,6 +619,7 @@ export default function AdminPartners() {
             setSubmitOk(isEdit ? "Partner aggiornato ✅" : "Partner creato ✅");
             resetForm();
             await loadPartners();
+            await loadPartnerLeaderboard();
         } catch (err) {
             setSubmitError(err.message || "Errore salvataggio partner");
         } finally {
@@ -624,6 +671,7 @@ export default function AdminPartners() {
             });
 
             await loadPartners();
+            await loadPartnerLeaderboard();
         } catch (err) {
             setError(err.message || "Errore eliminazione partner");
         }
@@ -1164,6 +1212,34 @@ export default function AdminPartners() {
                                                         <span className={`badge ${getPartnerAssociationStatus(partner).badgeClass}`}>
                                                             Agevolazione: {getPartnerAssociationStatus(partner).label}
                                                         </span>
+
+                                                        {partnerLeaderboard.topPiecesPartnerIds.includes(
+                                                            String(partner._id)
+                                                        ) ? (
+                                                            <span
+                                                                className="admin-partner-rank-icon"
+                                                                title={`Partner con più pezzi acquistati: ${partnerLeaderboard.topPiecesCount}`}
+                                                                aria-label={`Partner con più pezzi acquistati: ${partnerLeaderboard.topPiecesCount}`}
+                                                            >
+                                                                📦
+                                                            </span>
+                                                        ) : null}
+
+                                                        {partnerLeaderboard.topSpentPartnerIds.includes(
+                                                            String(partner._id)
+                                                        ) ? (
+                                                            <span
+                                                                className="admin-partner-rank-icon"
+                                                                title={`Partner con la spesa più alta: ${formatMoneyCents(
+                                                                    partnerLeaderboard.topSpentCents
+                                                                )}`}
+                                                                aria-label={`Partner con la spesa più alta: ${formatMoneyCents(
+                                                                    partnerLeaderboard.topSpentCents
+                                                                )}`}
+                                                            >
+                                                                💶
+                                                            </span>
+                                                        ) : null}
 
                                                     </div>
 

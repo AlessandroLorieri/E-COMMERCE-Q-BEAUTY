@@ -53,3 +53,29 @@
     background: rgba(255, 255, 255, .16);
     border-color: rgba(255, 255, 255, .26);
 }
+
+.admin-orders .admin-orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: transparent;
+}
+
+.admin-orders .admin-order-card {
+    border: 1px solid rgba(0, 0, 0, .10) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .04);
+    padding: 18px 20px;
+    background: #f2f2f2;
+    transition: box-shadow .18s ease, transform .18s ease;
+    border-color: rgba(222, 190, 104, .65) !important;
+}
+
+.admin-orders .admin-order-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .06);
+}
+
+.admin-orders .admin-order-card.border.border-primary {
+    border-color: rgba(222, 190, 104, .65) !important;
+    box-shadow: 0 8px 22px rgba(222, 190, 104, .12);
+}
