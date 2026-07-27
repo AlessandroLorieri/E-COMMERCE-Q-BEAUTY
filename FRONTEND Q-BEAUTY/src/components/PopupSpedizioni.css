@@ -118,3 +118,31 @@
         margin: 0;
     }
 }
+
+.popup-spedizioni__restock {
+    width: 100%;
+    margin-top: 28px;
+    padding-top: 24px;
+    text-align: center;
+    border-top: 1px solid rgba(222, 190, 104, 0.35);
+}
+
+.popup-spedizioni__restockLabel {
+    color: #debe68;
+    font-size: clamp(1.15rem, 3vw, 1.55rem);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.popup-spedizioni__restockDate {
+    margin-top: 8px;
+    color: #debe68;
+    font-size: clamp(2rem, 6vw, 3rem);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+    text-shadow: 0 0 18px rgba(222, 190, 104, 0.18);
+}

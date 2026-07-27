@@ -7,6 +7,7 @@ import { useAuth } from "./context/AuthContext";
 import ReviewsSection from "./components/reviews/ReviewsSection";
 import HomePromoBanner from "./components/HomePromoBanner";
 import Seo from "../components/Seo";
+import PopupSpedizioni from "../components/PopupSpedizioni";
 
 import "./HomeShop.css";
 
@@ -269,6 +270,10 @@ export default function HomeShop() {
                 canonical="/shop"
                 image="/img/last.jpg"
             />
+
+            {/* POPUP TEMPORANEO AVVISO SPEDIZIONI */}
+            <PopupSpedizioni />
+
             {/* HERO VIDEO*/}
             {!error ? (
                 <section className="shop-hero p-0">
