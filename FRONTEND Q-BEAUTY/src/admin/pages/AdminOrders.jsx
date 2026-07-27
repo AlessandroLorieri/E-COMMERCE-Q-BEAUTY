@@ -408,7 +408,8 @@ export default function AdminOrders() {
                     const shipPhone = ship?.phone || "-";
                     const shipStreetNumber = ship?.streetNumber ? `, ${ship.streetNumber}` : "";
                     const shipAddressLine = ship?.address ? `${ship.address}${shipStreetNumber}` : "-";
-                    const shipCityCap = `${ship?.city || "-"} (${ship?.cap || "-"})`;
+                    const shipCityCap = `${ship?.cap || "-"} ${ship?.city || "-"}${ship?.province ? ` (${ship.province})` : ""
+                        }`;
 
                     const bill = o?.billingAddress || {};
                     const billName = bill?.name || ship?.name || "-";
@@ -466,7 +467,10 @@ export default function AdminOrders() {
                     const billStreetNumber = billStreetNumberValue ? `, ${billStreetNumberValue}` : "";
                     const billAddressBase = bill?.address || ship?.address || "";
                     const billAddressLine = billAddressBase ? `${billAddressBase}${billStreetNumber}` : "-";
-                    const billCityCap = `${bill?.city || ship?.city || "-"} (${bill?.cap || ship?.cap || "-"})`;
+                    const billProvince = bill?.province || ship?.province || "";
+
+                    const billCityCap = `${bill?.cap || ship?.cap || "-"} ${bill?.city || ship?.city || "-"
+                        }${billProvince ? ` (${billProvince})` : ""}`;
 
                     const customerTypeRaw = String(o?.customerType || u?.customerType || "").trim().toLowerCase();
                     const isVatCustomer =
@@ -692,7 +696,10 @@ export default function AdminOrders() {
                                                 <div><span className="text-muted">Cognome:</span> <b>{shipSurname}</b></div>
                                                 <div><span className="text-muted">Telefono:</span> <b>{shipPhone}</b></div>
                                                 <div><span className="text-muted">Indirizzo:</span> <b>{shipAddressLine}</b></div>
-                                                <div><span className="text-muted">Città:</span> <b>{shipCityCap}</b></div>
+                                                <div>
+                                                    <span className="text-muted">CAP, città e provincia:</span>{" "}
+                                                    <b>{shipCityCap}</b>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -713,7 +720,10 @@ export default function AdminOrders() {
                                                 <div><span className="text-muted">Email:</span> <b>{billEmail}</b></div>
                                                 <div><span className="text-muted">Telefono:</span> <b>{billPhone}</b></div>
                                                 <div><span className="text-muted">Indirizzo:</span> <b>{billAddressLine}</b></div>
-                                                <div><span className="text-muted">Città:</span> <b>{billCityCap}</b></div>
+                                                <div>
+                                                    <span className="text-muted">CAP, città e provincia:</span>{" "}
+                                                    <b>{billCityCap}</b>
+                                                </div>
                                                 <div><span className="text-muted">Codice fiscale:</span> <b>{billTaxCode}</b></div>
                                             </div>
                                         </div>
