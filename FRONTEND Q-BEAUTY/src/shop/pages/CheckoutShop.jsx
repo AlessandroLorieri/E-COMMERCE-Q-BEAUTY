@@ -588,6 +588,8 @@ export default function CheckoutShop() {
             const shippingPayload = buildShippingPayload();
             const billingPayload = !isVatUser ? buildPrivateBillingPayload() : null;
 
+            console.log("[CHECKOUT_BILLING_PAYLOAD]", billingPayload);
+
             let created;
 
             if (addressMode === "saved" && selectedAddressId) {
