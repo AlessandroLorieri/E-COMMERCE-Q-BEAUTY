@@ -1231,14 +1231,6 @@ async function createOrder(userId, itemsRaw, shippingAddress, shippingAddressId,
         };
     }
 
-    console.log("[ORDER_PROVINCE_DEBUG]", {
-        customerType: user?.customerType,
-        hasExplicitBillingAddress,
-        rawBillingProvince: billingAddressRaw?.province,
-        normalizedShippingProvince: normalizedAddress?.province,
-        builtBillingProvince: billingAddress?.province,
-    });
-
     const finalBillingProvince = String(
         billingAddress?.province || ""
     )

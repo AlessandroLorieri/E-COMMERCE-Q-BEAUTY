@@ -101,16 +101,6 @@ async function create(req, res) {
             note,
         } = req.body || {};
 
-        console.log("[ORDER_CONTROLLER_PROVINCE_DEBUG]", {
-            billingProvince: billingAddress?.province,
-            billingKeys:
-                billingAddress &&
-                    typeof billingAddress === "object" &&
-                    !Array.isArray(billingAddress)
-                    ? Object.keys(billingAddress)
-                    : [],
-        });
-
         const { order, quote } = await createOrder(
             userId,
             items,
