@@ -62,9 +62,12 @@ function normalizeItems(itemsRaw) {
 }
 
 function pickShippingAddress(raw) {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        return undefined;
+    }
 
     const out = {};
+
     const name = pickString(raw.name, 80);
     const surname = pickString(raw.surname, 80);
     const email = pickString(raw.email, 254);
@@ -73,7 +76,9 @@ function pickShippingAddress(raw) {
     const address = pickString(raw.address, 160);
     const streetNumber = pickString(raw.streetNumber, 20);
     const city = pickString(raw.city, 80);
+    const province = pickString(raw.province, 2);
     const cap = pickString(raw.cap, 12);
+    const country = pickString(raw.country, 10);
 
     const taxCode = pickString(raw.taxCode, 20);
 
@@ -85,7 +90,9 @@ function pickShippingAddress(raw) {
     if (address) out.address = address;
     if (streetNumber) out.streetNumber = streetNumber;
     if (city) out.city = city;
+    if (province) out.province = province.toUpperCase();
     if (cap) out.cap = cap;
+    if (country) out.country = country.toUpperCase();
 
     if (taxCode) out.taxCode = taxCode.toUpperCase();
 
