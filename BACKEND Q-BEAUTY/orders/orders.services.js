@@ -1672,42 +1672,73 @@ async function adminSetOrderStatus(orderId, newStatus, shipment) {
     return order;
 }
 
-async function adminSetOrderAdminFlags(orderId, flags = {}) {
+async function adminSetOrderAdminFlags(
+    orderId,
+    flags = {}
+) {
     const id = String(orderId || "").trim();
 
     if (!id) {
-        const err = new Error("Order id required");
+        const err =
+            new Error("Order id required");
+
         err.status = 400;
         throw err;
     }
 
-    const hasIsInvoiced = typeof flags.isInvoiced === "boolean";
-    const hasIsWaybillCreated = typeof flags.isWaybillCreated === "boolean";
+    const hasIsInvoiced =
+        typeof flags.isInvoiced === "boolean";
 
-    if (!hasIsInvoiced && !hasIsWaybillCreated) {
-        const err = new Error("Validation error");
+    const hasIsWaybillCreated =
+        typeof flags.isWaybillCreated ===
+        "boolean";
+
+    const hasIsLargePackage =
+        typeof flags.isLargePackage ===
+        "boolean";
+
+    if (
+        !hasIsInvoiced &&
+        !hasIsWaybillCreated &&
+        !hasIsLargePackage
+    ) {
+        const err =
+            new Error("Validation error");
+
         err.status = 400;
+
         err.errors = {
-            adminFlags: "Inserisci almeno un valore tra fatturato e bollettato",
+            adminFlags:
+                "Inserisci almeno un valore amministrativo valido",
         };
+
         throw err;
     }
 
-    const order = await Order.findById(id);
+    const order =
+        await Order.findById(id);
 
     if (!order) {
-        const err = new Error("Order not found");
+        const err =
+            new Error("Order not found");
+
         err.status = 404;
         throw err;
     }
 
     if (hasIsInvoiced) {
-        const wasInvoiced = Boolean(order.isInvoiced);
+        const wasInvoiced =
+            Boolean(order.isInvoiced);
 
-        order.isInvoiced = flags.isInvoiced;
+        order.isInvoiced =
+            flags.isInvoiced;
 
-        if (flags.isInvoiced && !wasInvoiced) {
-            order.invoicedAt = new Date();
+        if (
+            flags.isInvoiced &&
+            !wasInvoiced
+        ) {
+            order.invoicedAt =
+                new Date();
         }
 
         if (!flags.isInvoiced) {
@@ -1716,17 +1747,31 @@ async function adminSetOrderAdminFlags(orderId, flags = {}) {
     }
 
     if (hasIsWaybillCreated) {
-        const wasWaybillCreated = Boolean(order.isWaybillCreated);
+        const wasWaybillCreated =
+            Boolean(
+                order.isWaybillCreated
+            );
 
-        order.isWaybillCreated = flags.isWaybillCreated;
+        order.isWaybillCreated =
+            flags.isWaybillCreated;
 
-        if (flags.isWaybillCreated && !wasWaybillCreated) {
-            order.waybillCreatedAt = new Date();
+        if (
+            flags.isWaybillCreated &&
+            !wasWaybillCreated
+        ) {
+            order.waybillCreatedAt =
+                new Date();
         }
 
         if (!flags.isWaybillCreated) {
-            order.waybillCreatedAt = null;
+            order.waybillCreatedAt =
+                null;
         }
+    }
+
+    if (hasIsLargePackage) {
+        order.isLargePackage =
+            flags.isLargePackage;
     }
 
     await order.save();
@@ -1792,12 +1837,40 @@ async function adminSendBankReminder(orderId) {
     return order;
 }
 
-async function adminListOrders({ page = 1, limit = 20, status, q, year, month, week } = {}) {
+async function adminListOrders({
+    page = 1,
+    limit = 20,
+    status,
+    q,
+    year,
+    month,
+    week,
+    invoiceStatus,
+    waybillStatus,
+} = {}) {
     const filter = {};
 
-    if (status) filter.status = String(status).trim();
+    if (status) {
+        filter.status = String(status).trim();
+    }
 
-    const createdAtRange = buildCreatedAtRange({ year, month, week });
+    if (invoiceStatus === "pending") {
+        filter.isInvoiced = { $ne: true };
+    } else if (invoiceStatus === "done") {
+        filter.isInvoiced = true;
+    }
+
+    if (waybillStatus === "pending") {
+        filter.isWaybillCreated = { $ne: true };
+    } else if (waybillStatus === "done") {
+        filter.isWaybillCreated = true;
+    }
+
+    const createdAtRange = buildCreatedAtRange({
+        year,
+        month,
+        week,
+    });
     if (createdAtRange) {
         filter.createdAt = {
             $gte: createdAtRange.start,

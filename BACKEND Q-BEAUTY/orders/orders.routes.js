@@ -213,13 +213,23 @@ function validateAdminStatusBody(req, res, next) {
 }
 
 function validateAdminFlagsBody(req, res, next) {
-    const hasIsInvoiced = typeof req.body?.isInvoiced === "boolean";
+    const hasIsInvoiced =
+        typeof req.body?.isInvoiced === "boolean";
+
     const hasIsWaybillCreated =
         typeof req.body?.isWaybillCreated === "boolean";
 
-    if (!hasIsInvoiced && !hasIsWaybillCreated) {
+    const hasIsLargePackage =
+        typeof req.body?.isLargePackage === "boolean";
+
+    if (
+        !hasIsInvoiced &&
+        !hasIsWaybillCreated &&
+        !hasIsLargePackage
+    ) {
         return res.status(400).json({
-            message: "Inserisci almeno un valore tra fatturato e bollettato",
+            message:
+                "Inserisci almeno un valore amministrativo valido",
         });
     }
 
@@ -227,8 +237,19 @@ function validateAdminFlagsBody(req, res, next) {
         ...(hasIsInvoiced
             ? { isInvoiced: req.body.isInvoiced }
             : {}),
+
         ...(hasIsWaybillCreated
-            ? { isWaybillCreated: req.body.isWaybillCreated }
+            ? {
+                isWaybillCreated:
+                    req.body.isWaybillCreated,
+            }
+            : {}),
+
+        ...(hasIsLargePackage
+            ? {
+                isLargePackage:
+                    req.body.isLargePackage,
+            }
             : {}),
     };
 

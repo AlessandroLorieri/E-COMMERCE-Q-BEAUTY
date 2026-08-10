@@ -367,31 +367,59 @@ async function adminSetAdminFlags(req, res) {
 
         const flags = {};
 
-        if (typeof req.body?.isInvoiced === "boolean") {
-            flags.isInvoiced = req.body.isInvoiced;
+        if (
+            typeof req.body?.isInvoiced === "boolean"
+        ) {
+            flags.isInvoiced =
+                req.body.isInvoiced;
         }
 
-        if (typeof req.body?.isWaybillCreated === "boolean") {
-            flags.isWaybillCreated = req.body.isWaybillCreated;
+        if (
+            typeof req.body?.isWaybillCreated ===
+            "boolean"
+        ) {
+            flags.isWaybillCreated =
+                req.body.isWaybillCreated;
         }
 
-        const order = await adminSetOrderAdminFlags(id, flags);
+        if (
+            typeof req.body?.isLargePackage ===
+            "boolean"
+        ) {
+            flags.isLargePackage =
+                req.body.isLargePackage;
+        }
+
+        const order =
+            await adminSetOrderAdminFlags(
+                id,
+                flags
+            );
 
         return res.json({
             orderId: order._id,
 
-            isInvoiced: Boolean(order.isInvoiced),
-            invoicedAt: order.invoicedAt || null,
+            isInvoiced:
+                Boolean(order.isInvoiced),
+            invoicedAt:
+                order.invoicedAt || null,
 
-            isWaybillCreated: Boolean(order.isWaybillCreated),
-            waybillCreatedAt: order.waybillCreatedAt || null,
+            isWaybillCreated:
+                Boolean(order.isWaybillCreated),
+            waybillCreatedAt:
+                order.waybillCreatedAt || null,
+
+            isLargePackage:
+                Boolean(order.isLargePackage),
         });
     } catch (err) {
         const status = err.status || 500;
 
         return res.status(status).json({
-            message: err.message || "Server error",
-            errors: err.errors || undefined,
+            message:
+                err.message || "Server error",
+            errors:
+                err.errors || undefined,
         });
     }
 }
@@ -419,32 +447,111 @@ async function adminSendBankReminder(req, res) {
 async function adminList(req, res) {
     try {
         const { page, limit } = parsePagination(req.query);
-        const status = req.query?.status ? String(req.query.status).trim() : undefined;
-        const q = req.query?.q ? String(req.query.q).trim() : undefined;
 
-        const year = parseOptionalInt(req.query?.year, 2000, 3000);
-        const month = parseOptionalInt(req.query?.month, 1, 12);
-        const week = parseOptionalInt(req.query?.week, 1, 53);
+        const status = req.query?.status
+            ? String(req.query.status).trim()
+            : undefined;
+
+        const q = req.query?.q
+            ? String(req.query.q).trim()
+            : undefined;
+
+        const invoiceStatus = req.query?.invoiceStatus
+            ? String(req.query.invoiceStatus).trim()
+            : undefined;
+
+        const waybillStatus = req.query?.waybillStatus
+            ? String(req.query.waybillStatus).trim()
+            : undefined;
+
+        const allowedAdminFilterValues = new Set([
+            "pending",
+            "done",
+        ]);
+
+        if (
+            invoiceStatus &&
+            !allowedAdminFilterValues.has(invoiceStatus)
+        ) {
+            return res.status(400).json({
+                message: "Validation error",
+                errors: {
+                    invoiceStatus:
+                        "Filtro fatturazione non valido",
+                },
+            });
+        }
+
+        if (
+            waybillStatus &&
+            !allowedAdminFilterValues.has(waybillStatus)
+        ) {
+            return res.status(400).json({
+                message: "Validation error",
+                errors: {
+                    waybillStatus:
+                        "Filtro bollettazione non valido",
+                },
+            });
+        }
+
+        const year = parseOptionalInt(
+            req.query?.year,
+            2000,
+            3000
+        );
+
+        const month = parseOptionalInt(
+            req.query?.month,
+            1,
+            12
+        );
+
+        const week = parseOptionalInt(
+            req.query?.week,
+            1,
+            53
+        );
 
         if ((month || week) && !year) {
             return res.status(400).json({
                 message: "Validation error",
-                errors: { year: "Per filtrare per mese o settimana devi selezionare anche l'anno" },
+                errors: {
+                    year:
+                        "Per filtrare per mese o settimana devi selezionare anche l'anno",
+                },
             });
         }
 
         if (month && week) {
             return res.status(400).json({
                 message: "Validation error",
-                errors: { date: "Puoi filtrare per mese oppure per settimana, non entrambi insieme" },
+                errors: {
+                    date:
+                        "Puoi filtrare per mese oppure per settimana, non entrambi insieme",
+                },
             });
         }
 
-        const result = await adminListOrders({ page, limit, status, q, year, month, week });
+        const result = await adminListOrders({
+            page,
+            limit,
+            status,
+            q,
+            year,
+            month,
+            week,
+            invoiceStatus,
+            waybillStatus,
+        });
+
         return res.json(result);
     } catch (err) {
         const status = err.status || 500;
-        return res.status(status).json({ message: err.message || "Server error" });
+
+        return res.status(status).json({
+            message: err.message || "Server error",
+        });
     }
 }
 

@@ -150,6 +150,11 @@ const OrderSchema = new mongoose.Schema(
             default: null,
         },
 
+        isLargePackage: {
+            type: Boolean,
+            default: false,
+        },
+
         shipment: {
             carrierName: { type: String, trim: true, default: "" },
             trackingCode: { type: String, trim: true, default: "" },

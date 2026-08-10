@@ -87,6 +87,9 @@ export default function AdminOrders() {
     const [yearFilter, setYearFilter] = useState("");
     const [monthFilter, setMonthFilter] = useState("");
 
+    const [invoiceStatusFilter, setInvoiceStatusFilter] = useState("");
+    const [waybillStatusFilter, setWaybillStatusFilter] = useState("");
+
     const [openId, setOpenId] = useState(null);
     const [savingId, setSavingId] = useState(null);
     const [savingAdminFlagId, setSavingAdminFlagId] = useState(null);
@@ -94,14 +97,45 @@ export default function AdminOrders() {
 
     const qs = useMemo(() => {
         const sp = new URLSearchParams();
+
         sp.set("page", String(page));
         sp.set("limit", String(limit));
-        if (statusFilter) sp.set("status", statusFilter);
-        if (q.trim()) sp.set("q", q.trim());
-        if (yearFilter) sp.set("year", yearFilter);
-        if (monthFilter) sp.set("month", monthFilter);
+
+        if (statusFilter) {
+            sp.set("status", statusFilter);
+        }
+
+        if (q.trim()) {
+            sp.set("q", q.trim());
+        }
+
+        if (yearFilter) {
+            sp.set("year", yearFilter);
+        }
+
+        if (monthFilter) {
+            sp.set("month", monthFilter);
+        }
+
+        if (invoiceStatusFilter) {
+            sp.set("invoiceStatus", invoiceStatusFilter);
+        }
+
+        if (waybillStatusFilter) {
+            sp.set("waybillStatus", waybillStatusFilter);
+        }
+
         return sp.toString();
-    }, [page, limit, statusFilter, q, yearFilter, monthFilter]);
+    }, [
+        page,
+        limit,
+        statusFilter,
+        q,
+        yearFilter,
+        monthFilter,
+        invoiceStatusFilter,
+        waybillStatusFilter,
+    ]);
 
     async function apiFetch(path, options = {}) {
         let res;
@@ -195,7 +229,10 @@ export default function AdminOrders() {
     }
 
     async function setAdminFlag(orderId, field, value) {
-        if (value === false) {
+        if (
+            value === false &&
+            (field === "isInvoiced" || field === "isWaybillCreated")
+        ) {
             const label =
                 field === "isInvoiced"
                     ? "Fatturato"
@@ -227,14 +264,23 @@ export default function AdminOrders() {
                     order._id === orderId
                         ? {
                             ...order,
+
                             isInvoiced: data.isInvoiced,
                             invoicedAt: data.invoicedAt,
+
                             isWaybillCreated: data.isWaybillCreated,
                             waybillCreatedAt: data.waybillCreatedAt,
+
+                            isLargePackage: data.isLargePackage,
                         }
                         : order
                 )
             );
+
+            if (invoiceStatusFilter || waybillStatusFilter) {
+                await loadOrders();
+            }
+
         } catch (e) {
             setErrMsg(e.message || "Errore aggiornamento gestione amministrativa");
         } finally {
@@ -394,6 +440,59 @@ export default function AdminOrders() {
                     >
                         Next
                     </button>
+                </div>
+            </div>
+
+            <div
+                className="border rounded-3 p-3 mb-3"
+                style={{ backgroundColor: "#f5f5f5" }}
+            >
+                <div className="fw-semibold mb-2">
+                    Filtri amministrativi
+                </div>
+
+                <div className="d-flex flex-wrap gap-2 align-items-center">
+                    <select
+                        className="form-select"
+                        style={{ maxWidth: 220 }}
+                        value={invoiceStatusFilter}
+                        onChange={(e) => {
+                            setPage(1);
+                            setInvoiceStatusFilter(e.target.value);
+                        }}
+                    >
+                        <option value="">Tutti - fatturazione</option>
+                        <option value="pending">Da fatturare</option>
+                        <option value="done">Fatturati</option>
+                    </select>
+
+                    <select
+                        className="form-select"
+                        style={{ maxWidth: 220 }}
+                        value={waybillStatusFilter}
+                        onChange={(e) => {
+                            setPage(1);
+                            setWaybillStatusFilter(e.target.value);
+                        }}
+                    >
+                        <option value="">Tutti - bollettazione</option>
+                        <option value="pending">Da bollettare</option>
+                        <option value="done">Bollettati</option>
+                    </select>
+
+                    {(invoiceStatusFilter || waybillStatusFilter) ? (
+                        <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            onClick={() => {
+                                setPage(1);
+                                setInvoiceStatusFilter("");
+                                setWaybillStatusFilter("");
+                            }}
+                        >
+                            Azzera filtri amministrativi
+                        </button>
+                    ) : null}
                 </div>
             </div>
 
@@ -601,6 +700,8 @@ export default function AdminOrders() {
 
                     const isInvoiced = Boolean(o.isInvoiced);
                     const isWaybillCreated = Boolean(o.isWaybillCreated);
+                    const isLargePackage = Boolean(o.isLargePackage);
+
                     const isSavingAdminFlags = savingAdminFlagId === o._id;
 
                     const computedShipping = Math.max(0, totalCents - Math.max(0, subtotal - discount));
@@ -623,11 +724,30 @@ export default function AdminOrders() {
                                         <div className="fw-semibold">
                                             Ordine {o.publicId || `#${o._id}`}
                                         </div>
-                                        <div className="d-flex flex-wrap gap-2 align-items-center" style={{ fontSize: 13 }}>
+                                        <div
+                                            className="d-flex flex-wrap gap-2 align-items-center"
+                                            style={{ fontSize: 13 }}
+                                        >
                                             <span className="text-muted">
                                                 {formatDate(o.createdAt)} • {u.email || "utente"}
                                             </span>
-                                            <span className={meta.badge}>{meta.label}</span>
+
+                                            <span className={meta.badge}>
+                                                {meta.label}
+                                            </span>
+
+                                            {isLargePackage ? (
+                                                <span
+                                                    className="badge text-bg-dark"
+                                                    style={{
+                                                        fontSize: 11,
+                                                        fontWeight: 600,
+                                                        letterSpacing: "0.02em",
+                                                    }}
+                                                >
+                                                    📦 PACCO GRANDE
+                                                </span>
+                                            ) : null}
                                         </div>
 
                                     </div>
@@ -690,16 +810,82 @@ export default function AdminOrders() {
 
                                     <div className="row g-3 mb-3">
                                         <div className="col-12 col-lg-6">
-                                            <div className="fw-semibold mb-2">Spedizione</div>
+                                            <div className="fw-semibold mb-2">
+                                                Spedizione
+                                            </div>
+
                                             <div style={{ fontSize: 14 }}>
-                                                <div><span className="text-muted">Nome:</span> <b>{shipName}</b></div>
-                                                <div><span className="text-muted">Cognome:</span> <b>{shipSurname}</b></div>
-                                                <div><span className="text-muted">Telefono:</span> <b>{shipPhone}</b></div>
-                                                <div><span className="text-muted">Indirizzo:</span> <b>{shipAddressLine}</b></div>
                                                 <div>
-                                                    <span className="text-muted">CAP, città e provincia:</span>{" "}
+                                                    <span className="text-muted">
+                                                        Nome:
+                                                    </span>{" "}
+                                                    <b>{shipName}</b>
+                                                </div>
+
+                                                <div>
+                                                    <span className="text-muted">
+                                                        Cognome:
+                                                    </span>{" "}
+                                                    <b>{shipSurname}</b>
+                                                </div>
+
+                                                <div>
+                                                    <span className="text-muted">
+                                                        Telefono:
+                                                    </span>{" "}
+                                                    <b>{shipPhone}</b>
+                                                </div>
+
+                                                <div>
+                                                    <span className="text-muted">
+                                                        Indirizzo:
+                                                    </span>{" "}
+                                                    <b>{shipAddressLine}</b>
+                                                </div>
+
+                                                <div>
+                                                    <span className="text-muted">
+                                                        CAP, città e provincia:
+                                                    </span>{" "}
                                                     <b>{shipCityCap}</b>
                                                 </div>
+                                            </div>
+
+                                            <div
+                                                className="mt-3 pt-3 border-top"
+                                                style={{ fontSize: 14 }}
+                                            >
+                                                <label
+                                                    className="d-flex align-items-center gap-2"
+                                                    style={{
+                                                        cursor: isSavingAdminFlags
+                                                            ? "default"
+                                                            : "pointer",
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isLargePackage}
+                                                        disabled={isSavingAdminFlags}
+                                                        onChange={(e) =>
+                                                            setAdminFlag(
+                                                                o._id,
+                                                                "isLargePackage",
+                                                                e.target.checked
+                                                            )
+                                                        }
+                                                    />
+
+                                                    {isLargePackage ? (
+                                                        <span className="fw-semibold">
+                                                            📦 PACCO GRANDE
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted">
+                                                            Pacco standard
+                                                        </span>
+                                                    )}
+                                                </label>
                                             </div>
                                         </div>
 
