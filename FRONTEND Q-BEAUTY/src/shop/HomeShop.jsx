@@ -7,7 +7,7 @@ import { useAuth } from "./context/AuthContext";
 import ReviewsSection from "./components/reviews/ReviewsSection";
 import HomePromoBanner from "./components/HomePromoBanner";
 import Seo from "../components/Seo";
-//import PopupSpedizioni from "../components/PopupSpedizioni";
+import PopupSpedizioni from "../components/PopupSpedizioni";
 
 import "./HomeShop.css";
 
@@ -272,7 +272,7 @@ export default function HomeShop() {
             />
 
             {/* POPUP TEMPORANEO AVVISO SPEDIZIONI */}
-            {/* <PopupSpedizioni /> */}
+            <PopupSpedizioni />
 
             {/* HERO VIDEO*/}
             {!error ? (
