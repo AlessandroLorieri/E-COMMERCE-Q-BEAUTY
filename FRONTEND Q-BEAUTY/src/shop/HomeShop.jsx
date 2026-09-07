@@ -272,7 +272,7 @@ export default function HomeShop() {
             />
 
             {/* POPUP TEMPORANEO AVVISO SPEDIZIONI */}
-            <PopupSpedizioni />
+            {/* <PopupSpedizioni/> */}
 
             {/* HERO VIDEO*/}
             {!error ? (
