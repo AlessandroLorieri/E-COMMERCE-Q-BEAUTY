@@ -66,6 +66,18 @@ export default function CheckoutShop() {
 
     const [addresses, setAddresses] = useState([]);
     const [addressesLoading, setAddressesLoading] = useState(false);
+    const [addressesLoaded, setAddressesLoaded] = useState(false);
+
+    const shippingAddresses = useMemo(() => {
+        return addresses.filter((a) => {
+            const label = String(a?.label || "")
+                .trim()
+                .toLowerCase();
+
+            return label !== "sede legale";
+        });
+    }, [addresses]);
+
     const [addressMode, setAddressMode] = useState("new");
     const [selectedAddressId, setSelectedAddressId] = useState("");
     const [saveToAddressBook, setSaveToAddressBook] = useState(true);
@@ -98,14 +110,29 @@ export default function CheckoutShop() {
             if (!user) return;
 
             setAddressesLoading(true);
+            setAddressesLoaded(false);
+
             try {
                 const list = await fetchMyAddresses();
                 if (!alive) return;
 
-                setAddresses(list);
+                const safeList = Array.isArray(list) ? list : [];
 
-                if (list.length > 0) {
-                    const def = list.find((a) => a.isDefault) || list[0];
+                setAddresses(safeList);
+                setAddressesLoaded(true);
+
+                const safeShippingList = safeList.filter((a) => {
+                    const label = String(a?.label || "")
+                        .trim()
+                        .toLowerCase();
+
+                    return label !== "sede legale";
+                });
+
+                if (safeShippingList.length > 0) {
+                    const def =
+                        safeShippingList.find((a) => a.isDefault) ||
+                        safeShippingList[0];
                     setSelectedAddressId(def?._id || "");
                     setAddressMode("saved");
 
@@ -124,6 +151,7 @@ export default function CheckoutShop() {
                         cap: def.cap || prev.cap,
                     }));
                 } else {
+                    setSelectedAddressId("");
                     setAddressMode("new");
                 }
             } catch (err) {
@@ -144,7 +172,9 @@ export default function CheckoutShop() {
     function handleSelectSaved(id) {
         setSelectedAddressId(id);
 
-        const a = addresses.find((x) => x._id === id);
+        const a = shippingAddresses.find(
+            (x) => String(x._id) === String(id)
+        );
         if (!a) return;
 
         setForm((prev) => ({
@@ -337,6 +367,102 @@ export default function CheckoutShop() {
             (storedTaxCode && /^\d{11}$/.test(String(storedTaxCode)))
         );
     }, [user, storedTaxCode]);
+
+    const vatBillingAddress = useMemo(() => {
+        if (!isVatUser) return null;
+
+        const billingAddressId = String(
+            user?.billingAddressRef || ""
+        ).trim();
+
+        if (billingAddressId) {
+            const byId = addresses.find(
+                (a) => String(a?._id || "") === billingAddressId
+            );
+
+            if (byId) return byId;
+        }
+
+        return (
+            addresses.find(
+                (a) =>
+                    String(a?.label || "")
+                        .trim()
+                        .toLowerCase() === "sede legale"
+            ) || null
+        );
+    }, [isVatUser, user, addresses]);
+
+    const vatBillingMissingFields = useMemo(() => {
+        if (!isVatUser || !addressesLoaded) return [];
+
+        const missing = [];
+
+        if (!String(user?.companyName || "").trim()) {
+            missing.push("ragione sociale");
+        }
+
+        if (!String(user?.vatNumber || "").trim()) {
+            missing.push("Partita IVA");
+        }
+
+        if (!String(user?.taxCode || "").trim()) {
+            missing.push("codice fiscale");
+        }
+
+        const hasSdiOrPec =
+            Boolean(String(user?.sdiCode || "").trim()) ||
+            Boolean(String(user?.pec || "").trim());
+
+        if (!hasSdiOrPec) {
+            missing.push("Codice SDI o PEC");
+        }
+
+        if (!vatBillingAddress) {
+            missing.push("sede legale di fatturazione");
+            return missing;
+        }
+
+        if (!String(vatBillingAddress?.address || "").trim()) {
+            missing.push("indirizzo della sede legale");
+        }
+
+        if (!String(vatBillingAddress?.streetNumber || "").trim()) {
+            missing.push("numero civico della sede legale");
+        }
+
+        if (!String(vatBillingAddress?.city || "").trim()) {
+            missing.push("città della sede legale");
+        }
+
+        const province = normalizeProvince(
+            vatBillingAddress?.province
+        );
+
+        if (!/^[A-Z]{2}$/.test(province)) {
+            missing.push("provincia della sede legale");
+        }
+
+        const cap = String(
+            vatBillingAddress?.cap || ""
+        ).trim();
+
+        if (!/^\d{5}$/.test(cap)) {
+            missing.push("CAP della sede legale");
+        }
+
+        return missing;
+    }, [
+        isVatUser,
+        addressesLoaded,
+        user,
+        vatBillingAddress,
+    ]);
+
+    const isVatBillingIncomplete =
+        isVatUser &&
+        addressesLoaded &&
+        vatBillingMissingFields.length > 0;
 
     useEffect(() => {
         if (isVatUser) return;
@@ -823,6 +949,90 @@ export default function CheckoutShop() {
                     {/* Colonna sinistra: form */}
                     <div className="col-12 col-lg-7">
                         <div className="card p-3">
+
+                            {isVatUser ? (
+                                <>
+                                    <h5 className="mb-2">
+                                        Dati di fatturazione
+                                    </h5>
+
+                                    {addressesLoading && !addressesLoaded ? (
+                                        <div
+                                            className="text-muted mb-3"
+                                            style={{ fontSize: 13 }}
+                                        >
+                                            Verifico i dati di fatturazione...
+                                        </div>
+                                    ) : null}
+
+                                    {isVatBillingIncomplete ? (
+                                        <div
+                                            className="alert alert-warning py-3 mb-3"
+                                            role="alert"
+                                        >
+                                            <div className="fw-semibold mb-1">
+                                                Dati di fatturazione incompleti
+                                            </div>
+
+                                            <div>
+                                                Per procedere con l’ordine devi
+                                                completare i dati della sede legale
+                                                salvati nella tua Area utente.
+                                            </div>
+
+                                            <div className="mt-2">
+                                                <strong>
+                                                    {vatBillingMissingFields.length === 1
+                                                        ? "Dato mancante:"
+                                                        : "Dati mancanti:"}
+                                                </strong>{" "}
+                                                {vatBillingMissingFields.join(", ")}.
+                                            </div>
+
+                                            <div className="mt-2">
+                                                Dopo aver salvato i dati,
+                                                torna al checkout per completare l’ordine.
+                                            </div>
+
+                                            <Link
+                                                to="/shop/login?next=/shop/checkout"
+                                                className="btn btn-primary btn-sm mt-3"
+                                            >
+                                                Completa i dati di fatturazione
+                                            </Link>
+                                        </div>
+                                    ) : null}
+
+                                    {addressesLoaded &&
+                                        !isVatBillingIncomplete &&
+                                        vatBillingAddress ? (
+                                        <div
+                                            className="checkout-locked-note mb-3"
+                                            role="status"
+                                        >
+                                            <strong>
+                                                Dati di fatturazione P.IVA completi.
+                                            </strong>
+                                            <br />
+
+                                            Sede legale:{" "}
+                                            {vatBillingAddress.address}
+                                            {vatBillingAddress.streetNumber
+                                                ? `, ${vatBillingAddress.streetNumber}`
+                                                : ""}
+                                            ,{" "}
+                                            {vatBillingAddress.cap}{" "}
+                                            {vatBillingAddress.city}
+                                            {vatBillingAddress.province
+                                                ? ` (${vatBillingAddress.province})`
+                                                : ""}
+                                        </div>
+                                    ) : null}
+
+                                    <hr className="my-4" />
+                                </>
+                            ) : null}
+
                             <h5>Dati spedizione</h5>
 
                             <div className="mb-3">
@@ -878,7 +1088,7 @@ export default function CheckoutShop() {
                                     <div className="text-muted" style={{ fontSize: 13 }}>
                                         Carico indirizzi...
                                     </div>
-                                ) : addresses.length > 0 ? (
+                                ) : shippingAddresses.length > 0 ? (
                                     <>
                                         <div className="form-check">
                                             <input
@@ -888,7 +1098,9 @@ export default function CheckoutShop() {
                                                 checked={addressMode === "saved"}
                                                 onChange={() => {
                                                     setAddressMode("saved");
-                                                    const id = selectedAddressId || (addresses[0]?._id ?? "");
+                                                    const id =
+                                                        selectedAddressId ||
+                                                        (shippingAddresses[0]?._id ?? "");
                                                     if (id) handleSelectSaved(id);
                                                 }}
                                                 disabled={busy}
@@ -906,7 +1118,7 @@ export default function CheckoutShop() {
                                                     onChange={(e) => handleSelectSaved(e.target.value)}
                                                     disabled={busy}
                                                 >
-                                                    {addresses.map((a) => {
+                                                    {shippingAddresses.map((a) => {
                                                         const civic = a.streetNumber ? `, ${a.streetNumber}` : "";
                                                         return (
                                                             <option key={a._id} value={a._id}>
@@ -1119,7 +1331,6 @@ export default function CheckoutShop() {
                                         name="province"
                                         value={form.province}
                                         onChange={onChange}
-                                        placeholder="PR"
                                         maxLength={2}
                                         autoCapitalize="characters"
                                         autoCorrect="off"
@@ -1339,7 +1550,6 @@ export default function CheckoutShop() {
                                                         name="province"
                                                         value={billingForm.province}
                                                         onChange={onBillingChange}
-                                                        placeholder="PR"
                                                         maxLength={2}
                                                         autoCapitalize="characters"
                                                         autoCorrect="off"
@@ -1493,7 +1703,13 @@ export default function CheckoutShop() {
                                 );
                             })()}
 
-                            <button className="btn btn-primary mt-3" onClick={confirmOrderAndPay} disabled={busy}>
+                            <button className="btn btn-primary mt-3" onClick={confirmOrderAndPay} disabled={
+                                busy ||
+                                addressesLoading ||
+                                (isVatUser && !addressesLoaded) ||
+                                isVatBillingIncomplete
+                            }
+                            >
                                 {submitting ? "Creo ordine..." : paying ? "Apro Stripe..." : "Conferma e paga"}
                             </button>
 
@@ -1501,7 +1717,12 @@ export default function CheckoutShop() {
                                 type="button"
                                 className="btn btn-outline-light mt-2 w-100"
                                 onClick={confirmOrderBankTransfer}
-                                disabled={busy}
+                                disabled={
+                                    busy ||
+                                    addressesLoading ||
+                                    (isVatUser && !addressesLoaded) ||
+                                    isVatBillingIncomplete
+                                }
                             >
                                 {banking ? "Creo l’ordine..." : "Paga con bonifico"}
                             </button>

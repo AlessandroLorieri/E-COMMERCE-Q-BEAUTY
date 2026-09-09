@@ -13,6 +13,9 @@ export default function LoginShop() {
     const next = params.get("next") || "/shop/cart";
     const resetOk = params.get("reset") === "1";
 
+    const returningFromCheckout =
+        next === "/shop/checkout";
+
     const { user, login, logout, token } = useAuth();
     const { fetchMyAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress } = useShop();
 
@@ -40,14 +43,21 @@ export default function LoginShop() {
     });
 
     const [profileError, setProfileError] = useState("");
+    const [profileFieldErrors, setProfileFieldErrors] = useState({});
     const [profileOk, setProfileOk] = useState("");
     const [profileSaving, setProfileSaving] = useState(false);
     const [editingProfile, setEditingProfile] = useState(false);
 
     const [addresses, setAddresses] = useState([]);
     const [addrLoading, setAddrLoading] = useState(false);
+    const [addressesLoaded, setAddressesLoaded] = useState(false);
     const [addrError, setAddrError] = useState("");
     const [addrBusyId, setAddrBusyId] = useState(null);
+
+    const [
+        checkoutBillingGuideStarted,
+        setCheckoutBillingGuideStarted,
+    ] = useState(false);
 
     const [showNewAddress, setShowNewAddress] = useState(false);
     const [newAddr, setNewAddr] = useState({
@@ -83,6 +93,18 @@ export default function LoginShop() {
         return label !== "sede legale";
     });
 
+    const pivaBillingMissingFields =
+        currentUser?.customerType === "piva" &&
+            addressesLoaded
+            ? getPivaBillingMissingFields(
+                currentUser,
+                addresses
+            )
+            : [];
+
+    const isPivaBillingIncomplete =
+        pivaBillingMissingFields.length > 0;
+
     useEffect(() => {
         setLocalUser(user || null);
     }, [user]);
@@ -91,6 +113,63 @@ export default function LoginShop() {
         if (!currentUser || editingProfile) return;
         setProfile(buildProfileState(currentUser, addresses));
     }, [currentUser, addresses, editingProfile]);
+
+    useEffect(() => {
+        if (!returningFromCheckout) return;
+        if (!addressesLoaded) return;
+        if (!currentUser) return;
+        if (currentUser.customerType !== "piva") return;
+        if (checkoutBillingGuideStarted) return;
+
+        const missing =
+            getPivaBillingMissingFields(
+                currentUser,
+                addresses
+            );
+
+        setCheckoutBillingGuideStarted(true);
+
+        if (!missing.length) return;
+
+        const firstMissing = missing[0];
+
+        setProfile(
+            buildProfileState(
+                currentUser,
+                addresses
+            )
+        );
+
+        setEditingProfile(true);
+        setProfileError("");
+        setProfileOk("");
+
+        setProfileFieldErrors({
+            [firstMissing.field]:
+                firstMissing.message,
+        });
+
+        window.setTimeout(() => {
+            const field = document.querySelector(
+                `[name="${firstMissing.field}"]`
+            );
+
+            if (!field) return;
+
+            field.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+
+            field.focus();
+        }, 150);
+    }, [
+        returningFromCheckout,
+        addressesLoaded,
+        currentUser,
+        addresses,
+        checkoutBillingGuideStarted,
+    ]);
 
     function onProfileChange(e) {
         const { name, value } = e.target;
@@ -104,6 +183,14 @@ export default function LoginShop() {
             ...prev,
             [name]: nextValue,
         }));
+
+        setProfileFieldErrors((prev) => {
+            if (!prev[name]) return prev;
+
+            const next = { ...prev };
+            delete next[name];
+            return next;
+        });
 
         setProfileError("");
         setProfileOk("");
@@ -125,11 +212,58 @@ export default function LoginShop() {
             .toUpperCase();
     }
 
+    function showProfileFieldError(fieldName, message) {
+        setProfileError(message);
+
+        setProfileFieldErrors({
+            [fieldName]: message,
+        });
+
+        requestAnimationFrame(() => {
+            const field = document.querySelector(
+                `[name="${fieldName}"]`
+            );
+
+            if (!field) return;
+
+            field.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+
+            window.setTimeout(() => {
+                field.focus();
+            }, 300);
+        });
+    }
+
     function buildProfileState(sourceUser, list = []) {
-        const billingAddressId = sourceUser?.billingAddressRef ? String(sourceUser.billingAddressRef) : "";
-        const billingAddress = billingAddressId
-            ? list.find((x) => String(x._id) === billingAddressId) || null
+        const savedBillingAddressId =
+            sourceUser?.billingAddressRef
+                ? String(sourceUser.billingAddressRef)
+                : "";
+
+        let billingAddress = savedBillingAddressId
+            ? list.find(
+                (x) =>
+                    String(x?._id || "") ===
+                    savedBillingAddressId
+            ) || null
             : null;
+
+        if (!billingAddress) {
+            billingAddress =
+                list.find(
+                    (x) =>
+                        String(x?.label || "")
+                            .trim()
+                            .toLowerCase() === "sede legale"
+                ) || null;
+        }
+
+        const billingAddressId = billingAddress?._id
+            ? String(billingAddress._id)
+            : savedBillingAddressId;
 
         return {
             firstName: sourceUser?.firstName || "",
@@ -149,10 +283,119 @@ export default function LoginShop() {
         };
     }
 
+    function getPivaBillingMissingFields(
+        sourceUser,
+        list = []
+    ) {
+        if (sourceUser?.customerType !== "piva") {
+            return [];
+        }
+
+        const p = buildProfileState(sourceUser, list);
+        const missing = [];
+
+        if (!String(p.companyName || "").trim()) {
+            missing.push({
+                field: "companyName",
+                label: "Ragione sociale",
+                message: "Inserisci la ragione sociale.",
+            });
+        }
+
+        if (!String(p.vatNumber || "").trim()) {
+            missing.push({
+                field: "vatNumber",
+                label: "Partita IVA",
+                message: "Inserisci la Partita IVA.",
+            });
+        }
+
+        if (!String(p.taxCode || "").trim()) {
+            missing.push({
+                field: "taxCode",
+                label: "Codice fiscale",
+                message: "Inserisci il codice fiscale.",
+            });
+        }
+
+        const hasSdiOrPec =
+            Boolean(String(p.sdiCode || "").trim()) ||
+            Boolean(String(p.pec || "").trim());
+
+        if (!hasSdiOrPec) {
+            missing.push({
+                field: "sdiCode",
+                label: "Codice SDI o PEC",
+                message:
+                    "Inserisci almeno il Codice SDI oppure la PEC.",
+            });
+        }
+
+        if (!String(p.billingAddress || "").trim()) {
+            missing.push({
+                field: "billingAddress",
+                label: "Indirizzo della sede legale",
+                message:
+                    "Inserisci l'indirizzo della sede legale.",
+            });
+        }
+
+        if (
+            !String(
+                p.billingStreetNumber || ""
+            ).trim()
+        ) {
+            missing.push({
+                field: "billingStreetNumber",
+                label: "Numero civico della sede legale",
+                message:
+                    "Inserisci il numero civico della sede legale.",
+            });
+        }
+
+        if (!String(p.billingCity || "").trim()) {
+            missing.push({
+                field: "billingCity",
+                label: "Città della sede legale",
+                message:
+                    "Inserisci la città della sede legale.",
+            });
+        }
+
+        if (
+            !/^[A-Z]{2}$/.test(
+                normalizeProvince(p.billingProvince)
+            )
+        ) {
+            missing.push({
+                field: "billingProvince",
+                label: "Provincia della sede legale",
+                message:
+                    "Inserisci la sigla della provincia della sede legale, ad esempio PR.",
+            });
+        }
+
+        if (
+            !/^\d{5}$/.test(
+                String(p.billingCap || "").trim()
+            )
+        ) {
+            missing.push({
+                field: "billingCap",
+                label: "CAP della sede legale",
+                message:
+                    "Inserisci un CAP valido di 5 cifre.",
+            });
+        }
+
+        return missing;
+    }
+
     function startEditProfile() {
         if (!currentUser) return;
         setProfile(buildProfileState(currentUser, addresses));
         setProfileError("");
+        setProfileFieldErrors({});
         setProfileOk("");
         setEditingProfile(true);
     }
@@ -161,6 +404,7 @@ export default function LoginShop() {
         if (!currentUser) return;
         setProfile(buildProfileState(currentUser, addresses));
         setProfileError("");
+        setProfileFieldErrors({});
         setProfileOk("");
         setEditingProfile(false);
     }
@@ -168,6 +412,7 @@ export default function LoginShop() {
     async function saveProfile(e) {
         e.preventDefault();
         setProfileError("");
+        setProfileFieldErrors({});
         setProfileOk("");
 
         if (!authToken) {
@@ -208,54 +453,82 @@ export default function LoginShop() {
 
         if (currentUser?.customerType === "piva") {
             if (!normalizedCompanyName) {
-                setProfileError("Ragione sociale richiesta");
-                return;
-            }
-
-            if (!normalizedSdiCode && !normalizedPec) {
-                setProfileError("Inserisci almeno Codice SDI o PEC");
+                showProfileFieldError(
+                    "companyName",
+                    "Inserisci la ragione sociale."
+                );
                 return;
             }
 
             if (!normalizedVatNumber) {
-                setProfileError("Partita IVA richiesta");
+                showProfileFieldError(
+                    "vatNumber",
+                    "Inserisci la Partita IVA."
+                );
                 return;
             }
 
             if (!normalizedTaxCode) {
-                setProfileError("Codice fiscale richiesto");
+                showProfileFieldError(
+                    "taxCode",
+                    "Inserisci il codice fiscale."
+                );
+                return;
+            }
+
+            if (!normalizedSdiCode && !normalizedPec) {
+                showProfileFieldError(
+                    "sdiCode",
+                    "Inserisci almeno il Codice SDI oppure la PEC."
+                );
                 return;
             }
 
             if (!normalizedBillingAddress) {
-                setProfileError("Indirizzo sede legale richiesto");
+                showProfileFieldError(
+                    "billingAddress",
+                    "Inserisci l'indirizzo della sede legale."
+                );
                 return;
             }
 
             if (!normalizedBillingStreetNumber) {
-                setProfileError("N° civico sede legale richiesto");
+                showProfileFieldError(
+                    "billingStreetNumber",
+                    "Inserisci il numero civico della sede legale."
+                );
                 return;
             }
 
             if (!normalizedBillingCity) {
-                setProfileError("Città sede legale richiesta");
+                showProfileFieldError(
+                    "billingCity",
+                    "Inserisci la città della sede legale."
+                );
                 return;
             }
 
             if (!normalizedBillingProvince) {
-                setProfileError("Provincia sede legale richiesta");
+                showProfileFieldError(
+                    "billingProvince",
+                    "Inserisci la sigla della provincia della sede legale, ad esempio PR."
+                );
                 return;
             }
 
             if (!/^[A-Z]{2}$/.test(normalizedBillingProvince)) {
-                setProfileError(
-                    "Provincia sede legale non valida: inserisci una sigla di 2 lettere"
+                showProfileFieldError(
+                    "billingProvince",
+                    "La provincia deve essere una sigla di 2 lettere, ad esempio PR."
                 );
                 return;
             }
 
             if (!/^\d{5}$/.test(normalizedBillingCap)) {
-                setProfileError("CAP sede legale non valido (5 cifre)");
+                showProfileFieldError(
+                    "billingCap",
+                    "Inserisci un CAP valido di 5 cifre."
+                );
                 return;
             }
         }
@@ -326,6 +599,11 @@ export default function LoginShop() {
 
             setProfileOk("Dati salvati ✅");
             setEditingProfile(false);
+
+            if (params.get("next") === "/shop/checkout") {
+                navigate("/shop/checkout", { replace: true });
+                return;
+            }
         } catch (err) {
             setProfileError(err.message || "Errore salvataggio");
         } finally {
@@ -507,13 +785,19 @@ export default function LoginShop() {
 
         async function loadAddresses() {
             if (!user) return;
+
             setAddrLoading(true);
+            setAddressesLoaded(false);
             setAddrError("");
 
             try {
                 const list = await fetchMyAddresses();
                 if (!alive) return;
-                setAddresses(list || []);
+
+                setAddresses(
+                    Array.isArray(list) ? list : []
+                );
+                setAddressesLoaded(true);
             } catch (e) {
                 if (!alive) return;
                 setAddrError(e.message || "Errore caricamento indirizzi");
@@ -767,10 +1051,49 @@ export default function LoginShop() {
                             </div>
                         ) : null}
 
-                        {currentUser?.customerType === "piva" &&
-                            (!profile.billingAddressId || !profile.billingProvince) ? (
-                            <div className="alert alert-warning py-2" role="alert">
-                                Per completare gli ordini come Partita IVA devi inserire la sede legale di fatturazione.
+                        {isPivaBillingIncomplete ? (
+                            <div
+                                className="alert alert-warning py-2"
+                                role="alert"
+                            >
+                                {returningFromCheckout ? (
+                                    <>
+                                        <div className="fw-semibold">
+                                            Completa i dati di fatturazione
+                                            per terminare l’ordine
+                                        </div>
+
+                                        <div className="mt-1">
+                                            <strong>
+                                                {pivaBillingMissingFields.length === 1
+                                                    ? "Dato mancante:"
+                                                    : "Dati mancanti:"}
+                                            </strong>{" "}
+                                            {pivaBillingMissingFields
+                                                .map((item) => item.label)
+                                                .join(", ")}.
+                                        </div>
+
+                                        <div className="mt-1">
+                                            Compila il campo evidenziato e
+                                            salva le modifiche. Dopo il
+                                            salvataggio tornerai
+                                            automaticamente al checkout.
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        I dati di fatturazione non sono
+                                        completi. Per effettuare ordini
+                                        come Partita IVA completa i dati
+                                        mancanti:{" "}
+                                        <strong>
+                                            {pivaBillingMissingFields
+                                                .map((item) => item.label)
+                                                .join(", ")}
+                                        </strong>.
+                                    </>
+                                )}
                             </div>
                         ) : null}
 
@@ -912,94 +1235,188 @@ export default function LoginShop() {
                                             <div className="col-12">
                                                 <label className="form-label">Ragione sociale</label>
                                                 <input
-                                                    className="form-control"
+                                                    className={`form-control ${profileFieldErrors.companyName
+                                                        ? "is-invalid"
+                                                        : ""
+                                                        }`}
                                                     name="companyName"
                                                     value={profile.companyName}
                                                     onChange={onProfileChange}
                                                 />
+
+                                                {profileFieldErrors.companyName ? (
+                                                    <div className="invalid-feedback">
+                                                        {profileFieldErrors.companyName}
+                                                    </div>
+                                                ) : null}
+
                                             </div>
 
                                             <div className="col-12">
                                                 <label className="form-label">Partita IVA</label>
                                                 <input
-                                                    className="form-control"
+                                                    className={`form-control ${profileFieldErrors.vatNumber
+                                                        ? "is-invalid"
+                                                        : ""
+                                                        }`}
                                                     name="vatNumber"
                                                     value={profile.vatNumber}
                                                     onChange={onProfileChange}
                                                 />
+
+                                                {profileFieldErrors.vatNumber ? (
+                                                    <div className="invalid-feedback">
+                                                        {profileFieldErrors.vatNumber}
+                                                    </div>
+                                                ) : null}
+
                                             </div>
 
                                             <div className="col-12">
                                                 <label className="form-label">Codice fiscale</label>
                                                 <input
-                                                    className="form-control"
+                                                    className={`form-control ${profileFieldErrors.taxCode
+                                                        ? "is-invalid"
+                                                        : ""
+                                                        }`}
                                                     name="taxCode"
                                                     value={profile.taxCode}
-                                                    onChange={(e) =>
+                                                    onChange={(e) => {
                                                         setProfile((prev) => ({
                                                             ...prev,
                                                             taxCode: String(e.target.value || "").toUpperCase(),
-                                                        }))
-                                                    }
+                                                        }));
+                                                        setProfileFieldErrors((prev) => {
+                                                            if (!prev.taxCode) return prev;
+
+                                                            const next = { ...prev };
+                                                            delete next.taxCode;
+                                                            return next;
+                                                        });
+
+                                                        setProfileError("");
+                                                        setProfileOk("");
+                                                    }}
                                                 />
+
+                                                {profileFieldErrors.taxCode ? (
+                                                    <div className="invalid-feedback">
+                                                        {profileFieldErrors.taxCode}
+                                                    </div>
+                                                ) : null}
+
                                             </div>
 
                                             <div className="col-12">
                                                 <label className="form-label">Codice SDI</label>
                                                 <input
-                                                    className="form-control"
+                                                    className={`form-control ${profileFieldErrors.sdiCode
+                                                        ? "is-invalid"
+                                                        : ""
+                                                        }`}
                                                     name="sdiCode"
                                                     value={profile.sdiCode}
-                                                    onChange={(e) =>
+                                                    onChange={(e) => {
                                                         setProfile((prev) => ({
                                                             ...prev,
                                                             sdiCode: String(e.target.value || "").toUpperCase(),
-                                                        }))
-                                                    }
+                                                        }));
+
+                                                        setProfileFieldErrors((prev) => {
+                                                            const next = { ...prev };
+                                                            delete next.sdiCode;
+                                                            delete next.pec;
+                                                            return next;
+                                                        });
+
+                                                        setProfileError("");
+                                                        setProfileOk("");
+                                                    }}
                                                 />
+
+                                                {profileFieldErrors.sdiCode ? (
+                                                    <div className="invalid-feedback">
+                                                        {profileFieldErrors.sdiCode}
+                                                    </div>
+                                                ) : null}
+
                                             </div>
 
                                             <div className="col-12">
                                                 <label className="form-label">PEC</label>
                                                 <input
-                                                    className="form-control"
+                                                    className={`form-control ${profileFieldErrors.pec
+                                                        ? "is-invalid"
+                                                        : ""
+                                                        }`}
                                                     name="pec"
                                                     value={profile.pec}
-                                                    onChange={(e) =>
+                                                    onChange={(e) => {
                                                         setProfile((prev) => ({
                                                             ...prev,
                                                             pec: String(e.target.value || "").toLowerCase(),
-                                                        }))
-                                                    }
+                                                        }));
+
+                                                        setProfileFieldErrors((prev) => {
+                                                            const next = { ...prev };
+                                                            delete next.sdiCode;
+                                                            delete next.pec;
+                                                            return next;
+                                                        });
+
+                                                        setProfileError("");
+                                                        setProfileOk("");
+                                                    }}
                                                 />
                                             </div>
 
                                             <div className="col-12">
                                                 <label className="form-label">Indirizzo sede legale</label>
                                                 <input
-                                                    className="form-control"
+                                                    className={`form-control ${profileFieldErrors.billingAddress
+                                                        ? "is-invalid"
+                                                        : ""
+                                                        }`}
                                                     name="billingAddress"
                                                     value={profile.billingAddress}
                                                     onChange={onProfileChange}
                                                 />
+
+                                                {profileFieldErrors.billingAddress ? (
+                                                    <div className="invalid-feedback">
+                                                        {profileFieldErrors.billingAddress}
+                                                    </div>
+                                                ) : null}
                                             </div>
 
                                             <div className="col-12 col-md-2">
                                                 <label className="form-label">N° civico</label>
 
                                                 <input
-                                                    className="form-control"
+                                                    className={`form-control ${profileFieldErrors.billingStreetNumber
+                                                        ? "is-invalid"
+                                                        : ""
+                                                        }`}
                                                     name="billingStreetNumber"
                                                     value={profile.billingStreetNumber}
                                                     onChange={onProfileChange}
                                                 />
+
+                                                {profileFieldErrors.billingStreetNumber ? (
+                                                    <div className="invalid-feedback">
+                                                        {profileFieldErrors.billingStreetNumber}
+                                                    </div>
+                                                ) : null}
                                             </div>
 
                                             <div className="col-12 col-md-5">
                                                 <label className="form-label">Città</label>
 
                                                 <input
-                                                    className="form-control"
+                                                    className={`form-control ${profileFieldErrors.billingCity
+                                                        ? "is-invalid"
+                                                        : ""
+                                                        }`}
                                                     name="billingCity"
                                                     value={profile.billingCity}
                                                     onChange={onProfileChange}
@@ -1012,35 +1429,69 @@ export default function LoginShop() {
                                                         }))
                                                     }
                                                 />
+
+                                                {profileFieldErrors.billingCity ? (
+                                                    <div className="invalid-feedback">
+                                                        {profileFieldErrors.billingCity}
+                                                    </div>
+                                                ) : null}
+
                                             </div>
 
                                             <div className="col-12 col-md-2">
-                                                <label className="form-label">Provincia</label>
+                                                <label className="form-label">
+                                                    Provincia
+                                                    <span className="text-muted ms-1">
+                                                        (sigla)
+                                                    </span>
+                                                </label>
 
                                                 <input
-                                                    className="form-control"
+                                                    className={`form-control ${profileFieldErrors.billingProvince
+                                                        ? "is-invalid"
+                                                        : ""
+                                                        }`}
                                                     name="billingProvince"
                                                     value={profile.billingProvince}
                                                     onChange={onProfileChange}
-                                                    placeholder="PR"
                                                     maxLength={2}
                                                     autoCapitalize="characters"
                                                     autoCorrect="off"
                                                     spellCheck={false}
                                                 />
+
+                                                {profileFieldErrors.billingProvince ? (
+                                                    <div className="invalid-feedback">
+                                                        {profileFieldErrors.billingProvince}
+                                                    </div>
+                                                ) : (
+                                                    <div className="form-text">
+                                                        Inserisci 2 lettere, es. PR
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="col-12 col-md-3">
                                                 <label className="form-label">CAP</label>
 
                                                 <input
-                                                    className="form-control"
+                                                    className={`form-control ${profileFieldErrors.billingCap
+                                                        ? "is-invalid"
+                                                        : ""
+                                                        }`}
                                                     name="billingCap"
                                                     value={profile.billingCap}
                                                     onChange={onProfileChange}
                                                     inputMode="numeric"
                                                     maxLength={5}
                                                 />
+
+                                                {profileFieldErrors.billingCap ? (
+                                                    <div className="invalid-feedback">
+                                                        {profileFieldErrors.billingCap}
+                                                    </div>
+                                                ) : null}
+
                                             </div>
                                         </div>
 
@@ -1275,7 +1726,6 @@ export default function LoginShop() {
                                                                 name="province"
                                                                 value={editAddr.province}
                                                                 onChange={onEditAddrChange}
-                                                                placeholder="Es. PR"
                                                                 maxLength={2}
                                                                 autoCapitalize="characters"
                                                                 autoCorrect="off"
@@ -1415,7 +1865,6 @@ export default function LoginShop() {
                                                 name="province"
                                                 value={newAddr.province}
                                                 onChange={onNewAddrChange}
-                                                placeholder="Es. PR"
                                                 maxLength={2}
                                                 autoCapitalize="characters"
                                                 autoCorrect="off"
