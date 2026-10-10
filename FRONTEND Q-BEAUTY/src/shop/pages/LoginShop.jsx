@@ -98,7 +98,8 @@ export default function LoginShop() {
             addressesLoaded
             ? getPivaBillingMissingFields(
                 currentUser,
-                addresses
+                addresses,
+                editingProfile ? profile : null
             )
             : [];
 
@@ -237,6 +238,94 @@ export default function LoginShop() {
         });
     }
 
+    function showProfileBackendErrors(errors) {
+        if (!errors || typeof errors !== "object") {
+            return false;
+        }
+
+        const fieldMap = {
+            firstName: "firstName",
+            lastName: "lastName",
+            phone: "phone",
+            companyName: "companyName",
+            vatNumber: "vatNumber",
+            taxCode: "taxCode",
+            sdiCode: "sdiCode",
+            pec: "pec",
+
+            billingAddressId: "billingAddressId",
+            billingAddress: "billingAddress",
+            billingStreetNumber: "billingStreetNumber",
+            billingCity: "billingCity",
+            billingProvince: "billingProvince",
+            billingCap: "billingCap",
+
+            // Eventuali errori Mongoose direttamente dal modello Address
+            address: "billingAddress",
+            streetNumber: "billingStreetNumber",
+            city: "billingCity",
+            province: "billingProvince",
+            cap: "billingCap",
+        };
+
+        const fieldErrors = {};
+
+        for (const [backendField, message] of Object.entries(errors)) {
+            const formField = fieldMap[backendField];
+
+            if (!formField || !message) continue;
+
+            fieldErrors[formField] = String(message);
+        }
+
+        const fieldOrder = [
+            "firstName",
+            "lastName",
+            "phone",
+            "companyName",
+            "vatNumber",
+            "taxCode",
+            "sdiCode",
+            "pec",
+            "billingAddress",
+            "billingStreetNumber",
+            "billingCity",
+            "billingProvince",
+            "billingCap",
+            "billingAddressId",
+        ];
+
+        const firstField =
+            fieldOrder.find((field) => fieldErrors[field]) ||
+            Object.keys(fieldErrors)[0];
+
+        if (!firstField) {
+            return false;
+        }
+
+        setProfileFieldErrors(fieldErrors);
+        setProfileError(fieldErrors[firstField]);
+
+        requestAnimationFrame(() => {
+            const field = document.querySelector(
+                `[name="${firstField}"]`
+            );
+
+            if (!field) return;
+
+            field.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+
+            window.setTimeout(() => {
+                field.focus();
+            }, 300);
+        });
+
+        return true;
+    }
+
     function buildProfileState(sourceUser, list = []) {
         const savedBillingAddressId =
             sourceUser?.billingAddressRef
@@ -285,13 +374,16 @@ export default function LoginShop() {
 
     function getPivaBillingMissingFields(
         sourceUser,
-        list = []
+        list = [],
+        draftProfile = null
     ) {
         if (sourceUser?.customerType !== "piva") {
             return [];
         }
 
-        const p = buildProfileState(sourceUser, list);
+        const p =
+            draftProfile ||
+            buildProfileState(sourceUser, list);
         const missing = [];
 
         if (!String(p.companyName || "").trim()) {
@@ -571,21 +663,16 @@ export default function LoginShop() {
             const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
-                const msg =
-                    data?.errors?.firstName ||
-                    data?.errors?.lastName ||
-                    data?.errors?.phone ||
-                    data?.errors?.companyName ||
-                    data?.errors?.vatNumber ||
-                    data?.errors?.taxCode ||
-                    data?.errors?.billingAddressId ||
-                    data?.errors?.billingAddress ||
-                    data?.errors?.billingProvince ||
-                    data?.errors?.billingCity ||
-                    data?.errors?.billingCap ||
-                    data?.message ||
-                    "Errore salvataggio";
-                throw new Error(msg);
+                const handled =
+                    showProfileBackendErrors(data?.errors);
+
+                if (handled) {
+                    return;
+                }
+
+                throw new Error(
+                    data?.message || "Errore salvataggio"
+                );
             }
 
             const refreshedAddresses = await fetchMyAddresses().catch(() => addresses);
@@ -1317,15 +1404,28 @@ export default function LoginShop() {
                                                     name="sdiCode"
                                                     value={profile.sdiCode}
                                                     onChange={(e) => {
+                                                        const nextSdiCode =
+                                                            String(e.target.value || "").toUpperCase();
+
                                                         setProfile((prev) => ({
                                                             ...prev,
-                                                            sdiCode: String(e.target.value || "").toUpperCase(),
+                                                            sdiCode: nextSdiCode,
                                                         }));
 
                                                         setProfileFieldErrors((prev) => {
                                                             const next = { ...prev };
+
                                                             delete next.sdiCode;
-                                                            delete next.pec;
+
+                                                            if (
+                                                                nextSdiCode.trim() &&
+                                                                String(prev.pec || "")
+                                                                    .toLowerCase()
+                                                                    .includes("oppure")
+                                                            ) {
+                                                                delete next.pec;
+                                                            }
+
                                                             return next;
                                                         });
 
@@ -1338,7 +1438,11 @@ export default function LoginShop() {
                                                     <div className="invalid-feedback">
                                                         {profileFieldErrors.sdiCode}
                                                     </div>
-                                                ) : null}
+                                                ) : (
+                                                    <div className="form-text">
+                                                        Il Codice SDI deve contenere 7 caratteri alfanumerici.
+                                                    </div>
+                                                )}
 
                                             </div>
 
@@ -1352,15 +1456,28 @@ export default function LoginShop() {
                                                     name="pec"
                                                     value={profile.pec}
                                                     onChange={(e) => {
+                                                        const nextPec =
+                                                            String(e.target.value || "").toLowerCase();
+
                                                         setProfile((prev) => ({
                                                             ...prev,
-                                                            pec: String(e.target.value || "").toLowerCase(),
+                                                            pec: nextPec,
                                                         }));
 
                                                         setProfileFieldErrors((prev) => {
                                                             const next = { ...prev };
-                                                            delete next.sdiCode;
+
                                                             delete next.pec;
+
+                                                            if (
+                                                                nextPec.trim() &&
+                                                                String(prev.sdiCode || "")
+                                                                    .toLowerCase()
+                                                                    .includes("oppure")
+                                                            ) {
+                                                                delete next.sdiCode;
+                                                            }
+
                                                             return next;
                                                         });
 
@@ -1368,6 +1485,16 @@ export default function LoginShop() {
                                                         setProfileOk("");
                                                     }}
                                                 />
+                                                {profileFieldErrors.pec ? (
+                                                    <div className="invalid-feedback">
+                                                        {profileFieldErrors.pec}
+                                                    </div>
+                                                ) : (
+                                                    <div className="form-text">
+                                                        Inserisci un indirizzo PEC valido. Le normali email
+                                                        come Gmail, Outlook o Libero non sono PEC.
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="col-12">
