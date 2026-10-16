@@ -48,11 +48,11 @@ router.get("/sitemap.xml", async (req, res) => {
             buildUrlEntry(`${siteUrl}/shop`),
 
             ...products
-                .filter((product) => product?._id)
+                .filter((product) => String(product?.productId || "").trim())
                 .map((product) =>
                     buildUrlEntry(
                         `${siteUrl}/shop/product/${encodeURIComponent(
-                            String(product._id)
+                            String(product.productId).trim()
                         )}`,
                         product.updatedAt
                     )

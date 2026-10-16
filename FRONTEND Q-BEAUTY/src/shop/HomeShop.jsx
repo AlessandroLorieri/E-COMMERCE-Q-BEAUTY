@@ -399,7 +399,7 @@ export default function HomeShop() {
                                                 ) : null}
 
                                                 <Link
-                                                    to={`/shop/product/${encodeURIComponent(p._id)}`}
+                                                    to={`/shop/product/${p.id}`}
                                                     className="btn shop-btn-outline mb-3"
                                                 >
                                                     Dettagli
