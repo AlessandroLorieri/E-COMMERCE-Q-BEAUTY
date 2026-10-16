@@ -165,7 +165,11 @@ export default function ProductDetailShop() {
         return out;
     }, [product]);
 
-    const canonicalPath = `/shop/product/${encodeURIComponent(id)}`;
+    const canonicalProductId = String(
+        product?.productId || id || ""
+    ).trim();
+
+    const canonicalPath = `/shop/product/${encodeURIComponent(canonicalProductId)}`;
     const productUrl = `${siteUrl}${canonicalPath}`;
 
     const seoTitle = product?.name
