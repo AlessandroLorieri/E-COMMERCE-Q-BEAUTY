@@ -123,6 +123,7 @@ const couponRoutes = require("./coupons/coupons.routes");
 const reviewRoutes = require("./reviews/reviews.routes");
 const shippingRoutes = require("./shipping/shipping.routes");
 const partnersRoutes = require("./partners/partners.routes");
+const seoRoutes = require("./seo/seo.routes");
 
 const makeStripeWebhookRouter = require("./webhooks/stripe.routes");
 const makePaymentsRouter = require("./payments/payments.routes");
@@ -235,6 +236,9 @@ app.get("/health", (req, res) => {
 if (process.env.NODE_ENV !== "production") {
     app.use("/api/dev", makeDevRouter({ verifySmtp, sendWelcomeEmail }));
 }
+
+// SEO pubblico
+app.use("/", seoRoutes);
 
 // Payments
 app.use("/api/payments", makePaymentsRouter({ stripe }));
