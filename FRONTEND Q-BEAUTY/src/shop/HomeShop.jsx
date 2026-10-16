@@ -398,7 +398,10 @@ export default function HomeShop() {
                                                     </div>
                                                 ) : null}
 
-                                                <Link to={`/shop/product/${p.id}`} className="btn shop-btn-outline mb-3">
+                                                <Link
+                                                    to={`/shop/product/${encodeURIComponent(p._id)}`}
+                                                    className="btn shop-btn-outline mb-3"
+                                                >
                                                     Dettagli
                                                 </Link>
 

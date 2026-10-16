@@ -333,7 +333,6 @@ export default function ProductDetailShop() {
                     title="Carico prodotto | Q•BEAUTY"
                     description="Scheda prodotto Q•BEAUTY in caricamento."
                     canonical={canonicalPath}
-                    noindex
                 />
                 <BrandSpinner text="Carico il prodotto..." />
             </>
