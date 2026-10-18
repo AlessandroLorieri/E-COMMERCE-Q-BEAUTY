@@ -201,7 +201,9 @@ export default function ProductDetailShop() {
             name: product.name,
             description: String(product?.shortDesc || product?.description || "").trim(),
             image: schemaImages,
-            sku: String(product?.productId || product?.id || id || "").trim(),
+            sku: String(product?.productId || product?.id || id || "")
+                .trim()
+                .replace(/\s+/g, "-"),
             brand: {
                 "@type": "Brand",
                 name: "Q•BEAUTY",
