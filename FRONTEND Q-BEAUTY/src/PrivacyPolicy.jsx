@@ -16,7 +16,7 @@ export default function PrivacyPolicy() {
       <p>
         <strong>Elena Santucci – Nail Educator</strong>
         <br />
-        Via Faviano Inferiore 26, 43037 Lesignano de’ Bagni (PR), Italia
+        Via del Fienile 2, 43037 Lesignano de’ Bagni (PR), Italia
         <br />
         C.F. <strong>SNTLNE92P66E463R</strong> – P.IVA <strong>03065510343</strong>
         <br />

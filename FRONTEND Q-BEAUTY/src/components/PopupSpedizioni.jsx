@@ -52,7 +52,7 @@ export default function PopupSpedizioni() {
                     <span className="diamond_small" aria-hidden="true" />
 
                     <h2 className="popup-spedizioni__title">
-                        TUTTI GLI ORDINI EFFETTUATI DAL 29/09 AL 30/09 VERRANNO SPEDITI IL 01/10
+                        TUTTI GLI ORDINI EFFETTUATI DAL 22/10 AL 25/10 VERRANNO SPEDITI IL 26/10
                     </h2>
 
                     <span className="diamond_small" aria-hidden="true" />
