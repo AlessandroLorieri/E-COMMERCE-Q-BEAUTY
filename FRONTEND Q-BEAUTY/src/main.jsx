@@ -7,6 +7,7 @@ import HomePage from './Home';
 import ScrollToTop from './components/ScrollToTop';
 import CookieBanner from './components/CookieBanner';
 import PrivacyPolicy from './PrivacyPolicy';
+import ShippingReturnsPolicy from './ShippingReturnsPolicy';
 
 import HomeShop from './shop/HomeShop'
 import ShopLayout from './shop/ShopLayout';
@@ -156,6 +157,10 @@ root.render(
           </Route>
 
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route
+            path="/spedizioni-resi"
+            element={<ShippingReturnsPolicy />}
+          />
 
           <Route path="/partners" element={<PartnersPage />} />
           <Route path="/partners/:slug" element={<PartnerDetailPage />} />

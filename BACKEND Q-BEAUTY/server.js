@@ -124,6 +124,7 @@ const reviewRoutes = require("./reviews/reviews.routes");
 const shippingRoutes = require("./shipping/shipping.routes");
 const partnersRoutes = require("./partners/partners.routes");
 const seoRoutes = require("./seo/seo.routes");
+const withdrawalRoutes = require("./withdrawals/withdrawals.routes");
 
 const makeStripeWebhookRouter = require("./webhooks/stripe.routes");
 const makePaymentsRouter = require("./payments/payments.routes");
@@ -258,6 +259,7 @@ app.use("/api/coupons", couponRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/shipping", shippingRoutes);
 app.use("/api/partners", partnersRoutes);
+app.use("/api/withdrawals", withdrawalRoutes);
 
 // 404 JSON
 app.use((req, res) => {

@@ -1703,6 +1703,22 @@ export default function CheckoutShop() {
                                 );
                             })()}
 
+                            <div className="mt-3 mb-2 text-center">
+                                <Link
+                                    to="/spedizioni-resi?from=checkout"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                        color: "#debe68",
+                                        fontSize: 13,
+                                        textDecoration: "underline",
+                                        textUnderlineOffset: 3,
+                                    }}
+                                >
+                                    Spedizioni, resi e diritto di recesso
+                                </Link>
+                            </div>
+
                             <button className="btn btn-primary mt-3" onClick={confirmOrderAndPay} disabled={
                                 busy ||
                                 addressesLoading ||

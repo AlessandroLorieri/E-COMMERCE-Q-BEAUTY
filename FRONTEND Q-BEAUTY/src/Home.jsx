@@ -289,14 +289,33 @@ function HomePage() {
               </a>
             </p>
 
-            <p style={{ marginTop: 8, fontSize: '.95rem', opacity: 0.9 }}>
+
+            <div
+              style={{
+                marginTop: 16,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px 32px',
+                fontSize: '.95rem',
+                opacity: 0.9,
+              }}
+            >
               <Link
                 to="/privacy-policy"
                 style={{ color: '#debe68', textDecoration: 'underline' }}
               >
                 Privacy & Cookie
               </Link>
-              {' · '}
+
+              <Link
+                to="/spedizioni-resi"
+                style={{ color: '#debe68', textDecoration: 'underline' }}
+              >
+                Spedizioni, resi e diritto di recesso
+              </Link>
+
               <button
                 type="button"
                 onClick={() => window.qbeautyCookie?.open?.()}
@@ -313,7 +332,8 @@ function HomePage() {
               >
                 Impostazioni cookie
               </button>
-            </p>
+            </div>
+
           </footer>
         </main>
       </div>

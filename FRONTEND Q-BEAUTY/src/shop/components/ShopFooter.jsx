@@ -18,8 +18,18 @@ export default function ShopFooter() {
                     <Link to="/shop/orders" className="shop-footer-link">I miei ordini</Link>
                     <Link to="/home" className="shop-footer-link">Torna al sito</Link>
 
-                    {/* nuove voci */}
-                    <Link to="/privacy-policy" className="shop-footer-link">Privacy & Cookie</Link>
+                    {/* Link informativi */}
+                    <Link to="/privacy-policy" className="shop-footer-link">
+                        Privacy & Cookie
+                    </Link>
+                    <Link
+                        to="/spedizioni-resi"
+                        state={{ returnTo: "/shop" }}
+                        className="shop-footer-link"
+                    >
+                        Spedizioni, resi e diritto di recesso
+                    </Link>
+
                     <button
                         type="button"
                         className="shop-footer-link shop-footer-btnlink"
