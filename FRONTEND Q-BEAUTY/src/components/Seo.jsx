@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 
 const SITE_NAME = "Q•BEAUTY";
@@ -44,6 +45,22 @@ export default function Seo({
     const finalRobots = String(
         robots || (noindex ? "noindex, nofollow" : "index, follow")
     ).trim();
+
+    useEffect(() => {
+        const fallbackNodes = Array.from(
+            document.head.querySelectorAll('[data-qb-fallback="true"]')
+        );
+
+        fallbackNodes.forEach((node) => node.remove());
+
+        return () => {
+            fallbackNodes.forEach((node) => {
+                if (!node.isConnected) {
+                    document.head.appendChild(node);
+                }
+            });
+        };
+    }, []);
 
     return (
         <Helmet prioritizeSeoTags>

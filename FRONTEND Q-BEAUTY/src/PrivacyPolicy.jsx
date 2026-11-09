@@ -1,8 +1,15 @@
+import Seo from "./components/Seo";
 import "./PrivacyPolicy.css";
 
 export default function PrivacyPolicy() {
   return (
     <main className="policy">
+      <Seo
+        title="Privacy & Cookie Policy"
+        description="Leggi la Privacy & Cookie Policy di Q•BEAUTY: trattamento dei dati personali, utilizzo dei cookie e diritti degli utenti."
+        canonical="/privacy-policy"
+      />
+
       <h1>Privacy & Cookie Policy</h1>
       <p className="policy__meta">
         <em>Ultimo aggiornamento: 07/03/2026</em>

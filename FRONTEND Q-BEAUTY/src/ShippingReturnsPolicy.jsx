@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import WithdrawalForm from "./WithdrawalForm";
+import Seo from "./components/Seo";
 import "./PrivacyPolicy.css";
 
 export default function ShippingReturnsPolicy() {
@@ -15,6 +16,12 @@ export default function ShippingReturnsPolicy() {
 
     return (
         <main className="policy">
+            <Seo
+                title="Spedizioni, resi e diritto di recesso"
+                description="Consulta le condizioni Q•BEAUTY: costi e tempi di spedizione, restituzione dei prodotti, rimborsi e modalità per esercitare il diritto di recesso."
+                canonical="/spedizioni-resi"
+            />
+
             {fromCheckout ? (
                 <div style={{ marginBottom: 24 }}>
                     <button
