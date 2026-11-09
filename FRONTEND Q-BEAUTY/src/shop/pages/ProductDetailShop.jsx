@@ -172,18 +172,28 @@ export default function ProductDetailShop() {
     const canonicalPath = `/shop/product/${encodeURIComponent(canonicalProductId)}`;
     const productUrl = `${siteUrl}${canonicalPath}`;
 
-    const seoTitle = product?.name
-        ? `${product.name}`
-        : "Prodotto Q•BEAUTY";
 
-    const seoDescription = String(
-        product?.shortDesc ||
-        product?.description ||
-        "Prodotto professionale Q•BEAUTY per pedicure e cura del piede."
-    )
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 160);
+    const isCheratolyticCream =
+        normalizeProductKey(product?.productId || product?.id) ===
+        "CREMA IDRATANTE CHERATOLITICA";
+
+    const seoTitle = isCheratolyticCream
+        ? "Crema Cheratolitica Piedi con Urea 10%"
+        : product?.name
+            ? `${product.name}`
+            : "Prodotto Q•BEAUTY";
+
+    const seoDescription = isCheratolyticCream
+        ? "Crema cheratolitica per piedi con urea al 10%. Idrata, esfolia e aiuta a prevenire secchezza e ispessimenti cutanei. Ideale anche per le mani."
+        : String(
+            product?.shortDesc ||
+            product?.description ||
+            "Prodotto professionale Q•BEAUTY per pedicure e cura del piede."
+        )
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 160);
+
 
     const seoImage = images[0] || "/img/last.jpg";
 
