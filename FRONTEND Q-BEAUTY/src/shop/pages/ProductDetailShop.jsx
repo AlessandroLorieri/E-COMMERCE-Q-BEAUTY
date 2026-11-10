@@ -185,6 +185,13 @@ export default function ProductDetailShop() {
             description:
                 "Burro emolliente per piedi e mani con karité e cacao. Nutre, ammorbidisce e aiuta a proteggere la pelle secca, favorendo idratazione ed elasticità.",
         },
+
+        "SPRAY IGIENIZZANTE": {
+            title: "Spray Igienizzante Piedi e Mani",
+            description:
+                "Spray igienizzante per piedi e mani con camomilla e malva. Rinfresca, contrasta i cattivi odori, ammorbidisce e leviga la pelle. Ideale per la pedicure.",
+        },
+
     };
 
     const productSeo = productSeoOverrides[
