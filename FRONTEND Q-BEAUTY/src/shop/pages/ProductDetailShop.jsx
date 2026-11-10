@@ -173,19 +173,29 @@ export default function ProductDetailShop() {
     const productUrl = `${siteUrl}${canonicalPath}`;
 
 
-    const isCheratolyticCream =
-        normalizeProductKey(product?.productId || product?.id) ===
-        "CREMA IDRATANTE CHERATOLITICA";
 
-    const seoTitle = isCheratolyticCream
-        ? "Crema Cheratolitica Piedi con Urea 10%"
-        : product?.name
-            ? `${product.name}`
-            : "Prodotto Q•BEAUTY";
+    const productSeoOverrides = {
+        "CREMA IDRATANTE CHERATOLITICA": {
+            title: "Crema Cheratolitica Piedi con Urea 10%",
+            description:
+                "Crema cheratolitica per piedi con urea al 10%. Idrata, esfolia e aiuta a prevenire secchezza e ispessimenti cutanei. Ideale anche per le mani.",
+        },
+        "BURRO EMOLLIENTE": {
+            title: "Burro Emolliente Piedi e Mani per Pelle Secca",
+            description:
+                "Burro emolliente per piedi e mani con karité e cacao. Nutre, ammorbidisce e aiuta a proteggere la pelle secca, favorendo idratazione ed elasticità.",
+        },
+    };
 
-    const seoDescription = isCheratolyticCream
-        ? "Crema cheratolitica per piedi con urea al 10%. Idrata, esfolia e aiuta a prevenire secchezza e ispessimenti cutanei. Ideale anche per le mani."
-        : String(
+    const productSeo = productSeoOverrides[
+        normalizeProductKey(product?.productId || product?.id)
+    ];
+
+    const seoTitle = productSeo?.title ||
+        (product?.name ? `${product.name}` : "Prodotto Q•BEAUTY");
+
+    const seoDescription = productSeo?.description ||
+        String(
             product?.shortDesc ||
             product?.description ||
             "Prodotto professionale Q•BEAUTY per pedicure e cura del piede."
@@ -193,6 +203,7 @@ export default function ProductDetailShop() {
             .replace(/\s+/g, " ")
             .trim()
             .slice(0, 160);
+
 
 
     const seoImage = images[0] || "/img/last.jpg";
