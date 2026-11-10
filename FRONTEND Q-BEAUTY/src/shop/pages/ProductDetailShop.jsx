@@ -192,6 +192,14 @@ export default function ProductDetailShop() {
                 "Spray igienizzante per piedi e mani con camomilla e malva. Rinfresca, contrasta i cattivi odori, ammorbidisce e leviga la pelle. Ideale per la pedicure.",
         },
 
+
+        "KERATO5": {
+            title: "KERATO5 Gel Cheratolitico per Unghie e Cuticole",
+            description:
+                "KERATO5 è un gel cheratolitico con urea e acido salicilico. Ammorbidisce cuticole e ispessimenti intorno alle unghie di mani e piedi. 5 azioni in 1, 50 ml.",
+        },
+
+
     };
 
     const productSeo = productSeoOverrides[
