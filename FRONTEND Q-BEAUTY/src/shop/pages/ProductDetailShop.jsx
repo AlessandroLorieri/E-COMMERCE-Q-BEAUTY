@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { useShop } from "../context/ShopContext";
 import BrandSpinner from "../components/BrandSpinner";
 import { formatEURFromCents } from "../utils/money";
@@ -13,6 +13,8 @@ export default function ProductDetailShop() {
     const siteUrl = String(import.meta.env.VITE_SITE_URL || "https://qbeautyshop.it").replace(/\/+$/, "");
 
     const { id } = useParams();
+    const location = useLocation();
+    const navigate = useNavigate();
     const { addToCartQty, cart, products } = useShop();
     const { user } = useAuth();
 
@@ -431,7 +433,16 @@ export default function ProductDetailShop() {
 
             <div className="shop-page">
                 <div className="container py-4 product-detail">
-                    <Link to="/shop" className="btn shop-btn-outline mb-3">
+
+                    <Link
+                        to={location.state?.fromHome === true ? "/" : "/shop"}
+                        state={
+                            location.state?.fromHome === true
+                                ? { scrollToProducts: true }
+                                : undefined
+                        }
+                        className="btn shop-btn-outline mb-3"
+                    >
                         ← Indietro
                     </Link>
 

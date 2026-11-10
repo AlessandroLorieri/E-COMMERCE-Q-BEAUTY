@@ -345,18 +345,6 @@ img {
   .product-details {
     font-size: 1rem;
   }
-
-  .product-image img {
-    width: 100%;
-  }
-
-  .form-card {
-    padding: 1rem;
-  }
-
-  .section-title {
-    font-size: 1.5rem;
-  }
 }
 
 @media (max-width: 768px) {

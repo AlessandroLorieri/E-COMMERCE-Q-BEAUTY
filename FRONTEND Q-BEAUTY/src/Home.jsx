@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { FaInstagram, FaEnvelope, FaRegCopy, FaShoppingCart, FaTiktok, FaCheck } from 'react-icons/fa';
 import Seo from './components/Seo';
 import './App.css';
@@ -15,10 +15,29 @@ function HomePage() {
   const [loaded, setLoaded] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
 
+  const location = useLocation();
+
   useEffect(() => {
     const timer = setTimeout(() => setLoaded(true), 1000);
     return () => clearTimeout(timer);
   }, []);
+
+
+  useEffect(() => {
+    if (location.state?.scrollToProducts !== true) return;
+
+    const frame = requestAnimationFrame(() => {
+      document
+        .querySelector("#prodotti .founder-title")
+        ?.scrollIntoView({
+          behavior: "auto",
+          block: "start",
+        });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [location.state]);
+
 
   async function handleCopyEmail() {
     try {
@@ -164,13 +183,87 @@ function HomePage() {
             <div className="founder-products-layout">
               <h2 className="founder-title">I PRODOTTI</h2>
 
-              <div className="founder-photo-container">
-                <img
-                  src="/Home-Prodotti.png"
-                  alt="Prodotti Q.BEAUTY"
-                  className="founder-photo"
-                />
+
+              <div className="qb-products-grid">
+
+                <Link
+                  to="/shop/product/SPRAY%20IGIENIZZANTE"
+                  state={{ fromHome: true }}
+                  className="qb-product-card"
+                >
+                  <div className="qb-product-card__image">
+                    <img
+                      src="https://cdn.qbeautyshop.it/spray/spray-1.JPG"
+                      alt="Spray Igienizzante Q•BEAUTY per piedi e mani"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="qb-product-card__content">
+                    <h3>SPRAY IGIENIZZANTE</h3>
+                    <p>Rinfresca, igienizza e leviga</p>
+                    <span>SCOPRI IL PRODOTTO</span>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/shop/product/BURRO%20EMOLLIENTE"
+                  state={{ fromHome: true }}
+                  className="qb-product-card"
+                >
+                  <div className="qb-product-card__image">
+                    <img
+                      src="https://cdn.qbeautyshop.it/burro/burro-1.JPG"
+                      alt="Burro Emolliente Q•BEAUTY per piedi e mani"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="qb-product-card__content">
+                    <h3>BURRO EMOLLIENTE</h3>
+                    <p>Nutre, ammorbidisce e protegge</p>
+                    <span>SCOPRI IL PRODOTTO</span>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/shop/product/CREMA%20IDRATANTE%20CHERATOLITICA"
+                  state={{ fromHome: true }}
+                  className="qb-product-card"
+                >
+                  <div className="qb-product-card__image">
+                    <img
+                      src="https://cdn.qbeautyshop.it/crema/crema-1.JPG"
+                      alt="Crema Idratante Cheratolitica Q•BEAUTY con urea al 10%"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="qb-product-card__content">
+                    <h3>CREMA CHERATOLITICA</h3>
+                    <p>Idrata, esfolia e lenisce</p>
+                    <span>SCOPRI IL PRODOTTO</span>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/shop/product/KERATO5"
+                  state={{ fromHome: true }}
+                  className="qb-product-card"
+                >
+                  <div className="qb-product-card__image">
+                    <img
+                      src="https://cdn.qbeautyshop.it/kerato5/kerato5-1.jpg"
+                      alt="KERATO5 Q•BEAUTY gel cheratolitico per unghie e cuticole"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="qb-product-card__content">
+                    <h3>KERATO5</h3>
+                    <p>Gel cheratolitico per unghie e cuticole</p>
+                    <span>SCOPRI IL PRODOTTO</span>
+                  </div>
+                </Link>
+
               </div>
+
 
               <div className="founder-text">
                 <p>
@@ -180,11 +273,10 @@ function HomePage() {
                   Perchè il trattamento di pedicure deve essere un rituale non solo estetico, ma
                   soprattutto mirato al benessere del piede.
                 </p>
+
               </div>
             </div>
           </section>
-
-
 
           <section className={`contact home-reveal ${loaded ? 'visible' : ''}`}>
             <div className="contact-grid">
