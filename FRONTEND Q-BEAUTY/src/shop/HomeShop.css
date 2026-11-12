@@ -121,9 +121,9 @@
     color: var(--qb-badge-text, #ffffff);
     border: 1px solid rgba(255, 255, 255, .18);
     border-radius: 10px;
-    padding: 7px 12px;     
+    padding: 7px 12px;
     font-weight: 900;
-    font-size: 13px;       
+    font-size: 13px;
     letter-spacing: .35px;
     line-height: 1;
     box-shadow: 0 12px 28px rgba(0, 0, 0, .38);
@@ -234,4 +234,34 @@ button.btn.shop-btn-primary:disabled {
     line-height: 1;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+}
+
+
+/* ===== INTRODUZIONE SEO SHOP ===== */
+
+
+.shop-page .shop-intro {
+    width: 100%;
+    margin: 0 auto 32px;
+    padding: clamp(20px, 3vw, 30px);
+    background: var(--qb-section);
+    border: 1px solid var(--qb-border);
+    border-radius: 18px;
+    text-align: center;
+}
+
+
+.shop-page .shop-intro h2 {
+    margin: 0 0 12px;
+    color: var(--qb-accent);
+    font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+    line-height: 1.25;
+    font-weight: 700;
+}
+
+.shop-page .shop-intro p {
+    margin: 0;
+    color: var(--qb-muted);
+    font-size: clamp(1rem, 1.4vw, 1.15rem);
+    line-height: 1.55;
 }

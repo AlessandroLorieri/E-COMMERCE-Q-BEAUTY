@@ -86,7 +86,7 @@ function HomePage() {
       <div className="home">
 
         {/* POPUP TEMPORANEO AVVISO SPEDIZIONI*/}
-        <PopupSpedizioni />
+        {/* <PopupSpedizioni /> */}
 
 
 

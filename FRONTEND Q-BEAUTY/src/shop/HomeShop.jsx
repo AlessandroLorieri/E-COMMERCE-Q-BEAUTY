@@ -272,7 +272,7 @@ export default function HomeShop() {
             />
 
             {/* POPUP TEMPORANEO AVVISO SPEDIZIONI */}
-            <PopupSpedizioni />
+            {/* <PopupSpedizioni /> */}
 
             {/* HERO VIDEO*/}
             {!error ? (
@@ -299,6 +299,24 @@ export default function HomeShop() {
                 <h1 className="visually-hidden">
                     Shop Q•BEAUTY, prodotti professionali per pedicure e cura del piede
                 </h1>
+
+                {/* {!error && (
+                    <section className="shop-intro" aria-labelledby="shop-intro-title">
+                        <h2 id="shop-intro-title">
+                            PRODOTTI PROFESSIONALI PER PEDICURE
+                        </h2>
+
+                        <p>
+                            Scopri la linea Q•BEAUTY dedicata alla pedicure professionale
+                            e alla cura dei piedi. Dallo spray igienizzante al burro
+                            emolliente, dalla crema cheratolitica con urea a KERATO5,
+                            il gel cheratolitico per unghie e cuticole.
+                            Prodotti pensati per i trattamenti professionali
+                            e il mantenimento domiciliare.
+                        </p>
+                    </section> 
+                )} */}
+
                 {error ? (
                     <div className="alert alert-danger py-2" role="alert">
                         {error}
